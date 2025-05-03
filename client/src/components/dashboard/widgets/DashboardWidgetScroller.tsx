@@ -65,6 +65,7 @@ import {
 import { CreditWidget } from "./CreditWidget";
 import { PendingCreditsWidgetBlue } from "@/components/dashboard/widgets/PendingCreditsWidgetBlue";
 import { LeaseEndWidget } from "@/components/dashboard/widgets/LeaseEndWidget";
+import { FormResponsesWidget } from "@/components/dashboard/widgets/FormResponsesWidget";
 
 interface DashboardWidgetScrollerProps {
   className?: string;
@@ -1395,6 +1396,11 @@ export function DashboardWidgetScroller({ className }: DashboardWidgetScrollerPr
         
         {/* Widget des crédits à payer */}
         <CreditWidget />
+      </div>
+
+      {/* Widget des réponses aux formulaires */}
+      <div className="mt-4">
+        <FormResponsesWidget />
       </div>
 
       {/* Dialogue de confirmation pour la mise à jour du statut */}

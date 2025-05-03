@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { FileText, Upload, Download, Save, Trash2, Check, Settings, Building, RefreshCw, Eye, Users } from "lucide-react";
+import { FileText, Upload, Download, Save, Trash2, Check, Settings, Building, RefreshCw, Eye, Users, DollarSign } from "lucide-react";
 import { Visit } from "@/types/visits";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -65,6 +65,19 @@ export default function PDFExportsPage() {
   // Récupérer les maintenances pour l'aperçu
   const { data: maintenances = [] } = useQuery<any[]>({
     queryKey: ["/api/maintenance"],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Récupérer les transactions pour l'aperçu
+  const { data: transactions = [] } = useQuery<{ data: any[] }, Error, any[]>({
+    queryKey: ["/api/transactions"],
+    select: (response) => {
+      if (!response || !response.data || !Array.isArray(response.data)) {
+        console.error('Invalid transactions data:', response);
+        return [];
+      }
+      return response.data;
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -203,14 +216,16 @@ export default function PDFExportsPage() {
     if (
       (selectedPdfType === "visits" && !visits.length) ||
       (selectedPdfType === "tenants" && !tenants.length) ||
-      (selectedPdfType === "maintenance" && !maintenances.length)
+      (selectedPdfType === "maintenance" && !maintenances.length) ||
+      (selectedPdfType === "transactions" && !transactions.length)
     ) {
       toast({
         title: `Aucune donnée disponible`,
         description: `Il n'y a pas de ${
           selectedPdfType === "visits" ? "visites" : 
           selectedPdfType === "tenants" ? "locataires" : 
-          "demandes de maintenance"
+          selectedPdfType === "maintenance" ? "maintenance" :
+          "transactions"
         } à inclure dans le PDF`,
         variant: "destructive",
       });
@@ -286,6 +301,9 @@ export default function PDFExportsPage() {
         case "maintenance":
           documentTitle = "Suivi de maintenance";
           break;
+        case "transactions":
+          documentTitle = "Transactions";
+          break;
         default:
           documentTitle = "Document";
       }
@@ -324,6 +342,9 @@ export default function PDFExportsPage() {
           break;
         case "maintenance":
           generateMaintenanceTable(doc);
+          break;
+        case "transactions":
+          generateTransactionsTable(doc);
           break;
         default:
           // Table par défaut avec message
@@ -503,39 +524,39 @@ export default function PDFExportsPage() {
     
     const values = form.getValues();
     
-    // Convertir les données réelles pour autoTable
+    // Convertir les données pour autoTable
     const tableData = maintenances.slice(0, 10).map((maintenance: any) => [
-      maintenance.createdAt ? format(new Date(maintenance.createdAt), 'dd/MM/yyyy', { locale: fr }) : '-',
-      maintenance.property?.name || maintenance.property?.address || '-',
+      format(new Date(maintenance.reportDate), 'dd/MM/yyyy'),
+      maintenance.property?.name || '-',
       maintenance.title || '-',
       maintenance.description || '-',
-      maintenance.reportedBy || (maintenance.tenant ? `${maintenance.tenant.firstName || ''} ${maintenance.tenant.lastName || ''}` : '-'),
-      maintenance.totalCost ? `${maintenance.totalCost} €` : '-',
-      maintenance.priority === "high" ? "Urgent" : 
-      maintenance.priority === "medium" ? "Normal" : 
-      maintenance.priority === "low" ? "Basse" : 
-      maintenance.priority || '-',
-      maintenance.status === "open" ? "Ouvert" : 
-      maintenance.status === "in_progress" ? "En cours" : 
-      maintenance.status === "completed" ? "Terminé" : 
-      maintenance.status || '-'
+      maintenance.reportedBy?.fullName || '-',
+      maintenance.cost ? `${maintenance.cost} €` : '-',
+      maintenance.priority === "low" ? "Basse" :
+      maintenance.priority === "medium" ? "Moyenne" :
+      maintenance.priority === "high" ? "Haute" :
+      maintenance.priority === "urgent" ? "Urgente" : maintenance.priority || '-',
+      maintenance.status === "pending" ? "En attente" :
+      maintenance.status === "in_progress" ? "En cours" :
+      maintenance.status === "completed" ? "Terminé" :
+      maintenance.status === "cancelled" ? "Annulé" : maintenance.status || '-'
     ]);
     
     // Définir les colonnes
     const tableColumns = [
-      'Date',
-      'Propriété',
-      'Titre',
-      'Description',
-      'Signalé par',
-      'Coût',
-      'Priorité',
-      'Statut'
+      { header: 'Date', dataKey: 'date' },
+      { header: 'Propriété', dataKey: 'property' },
+      { header: 'Titre', dataKey: 'title' },
+      { header: 'Description', dataKey: 'description' },
+      { header: 'Signalé par', dataKey: 'reporter' },
+      { header: 'Coût', dataKey: 'cost' },
+      { header: 'Priorité', dataKey: 'priority' },
+      { header: 'Statut', dataKey: 'status' }
     ];
     
     // Créer le tableau
     autoTable(doc, {
-      head: [tableColumns],
+      head: [tableColumns.map(col => col.header)],
       body: tableData,
       startY: 60,
       styles: { fontSize: 8, cellPadding: 2 },
@@ -546,9 +567,72 @@ export default function PDFExportsPage() {
       alternateRowStyles: { fillColor: [245, 245, 255] as [number, number, number] },
       columnStyles: {
         0: { fontStyle: 'bold' }, // Date en gras
-        2: { fontStyle: 'bold' }, // Titre en gras
         6: { fontStyle: 'bold' }, // Priorité en gras
         7: { fontStyle: 'bold' }  // Statut en gras
+      },
+      margin: { top: 35 }
+    });
+  };
+
+  // Générer le tableau des transactions
+  const generateTransactionsTable = (doc: jsPDF) => {
+    if (!transactions.length) return;
+    
+    const values = form.getValues();
+    
+    // Convertir les données pour autoTable
+    const tableData = transactions.slice(0, 10).map((transaction: any) => {
+      // S'assurer que la date est bien formatée
+      const transactionDate = transaction.date ? new Date(transaction.date) : new Date();
+      const formattedDate = format(transactionDate, 'dd/MM/yyyy');
+      
+      // Formater le montant avec Intl.NumberFormat
+      const amount = typeof transaction.amount === 'number' 
+        ? transaction.amount 
+        : parseFloat(transaction.amount || '0');
+      const formattedAmount = new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'EUR'
+      }).format(amount);
+      
+      return [
+        formattedDate,
+        transaction.property?.name || transaction.propertyName || '-',
+        transaction.description || '-',
+        transaction.category || '-',
+        transaction.type === 'income' ? 'Revenu' : 
+        transaction.type === 'expense' ? 'Dépense' : 
+        transaction.type === 'credit' ? 'Crédit' : transaction.type || '-',
+        transaction.paymentMethod || '-',
+        formattedAmount
+      ];
+    });
+    
+    // Définir les colonnes
+    const tableColumns = [
+      { header: 'Date', dataKey: 'date' },
+      { header: 'Propriété', dataKey: 'property' },
+      { header: 'Description', dataKey: 'description' },
+      { header: 'Catégorie', dataKey: 'category' },
+      { header: 'Type', dataKey: 'type' },
+      { header: 'Méthode', dataKey: 'method' },
+      { header: 'Montant', dataKey: 'amount' }
+    ];
+    
+    // Créer le tableau
+    autoTable(doc, {
+      head: [tableColumns.map(col => col.header)],
+      body: tableData,
+      startY: 60,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { 
+        fillColor: hexToRgb(values.headerColor).array as [number, number, number],
+        textColor: [255, 255, 255] as [number, number, number]
+      },
+      alternateRowStyles: { fillColor: [245, 245, 255] as [number, number, number] },
+      columnStyles: {
+        0: { fontStyle: 'bold' }, // Date en gras
+        6: { fontStyle: 'bold' }  // Montant en gras
       },
       margin: { top: 35 }
     });
@@ -577,6 +661,7 @@ export default function PDFExportsPage() {
     { id: "visits", label: "Visites", icon: Building },
     { id: "tenants", label: "Locataires", icon: Users },
     { id: "maintenance", label: "Maintenance", icon: RefreshCw },
+    { id: "transactions", label: "Transactions", icon: DollarSign },
   ];
 
   if (isLoading) {
@@ -978,11 +1063,13 @@ export default function PDFExportsPage() {
                     <p className="text-muted-foreground">
                       {(selectedPdfType === "visits" && visits.length === 0) || 
                        (selectedPdfType === "tenants" && tenants.length === 0) ||
-                       (selectedPdfType === "maintenance" && maintenances.length === 0)
+                       (selectedPdfType === "maintenance" && maintenances.length === 0) ||
+                       (selectedPdfType === "transactions" && transactions.length === 0)
                         ? `Aucune donnée de ${
                             selectedPdfType === "visits" ? "visites" : 
                             selectedPdfType === "tenants" ? "locataires" : 
-                            "maintenance"
+                            selectedPdfType === "maintenance" ? "maintenance" :
+                            "transactions"
                           } disponible pour générer un aperçu`
                         : "Génération de l'aperçu en cours..."}
                     </p>

@@ -63,16 +63,9 @@ export function Sidebar({ className }: SidebarProps) {
     },
     { href: "/maintenance", label: "Maintenance", icon: Wrench },
     { href: "/finance", label: "Finances", icon: Wallet },
+    { href: "/documents", label: "Documents", icon: Library },
+    { href: "/links", label: "Liens", icon: Link2 },
     { href: "/marketplace", label: "Prestataires", icon: ShoppingBag },
-    {
-      id: "documents",
-      label: "Documents et Lettres",
-      icon: Library,
-      subMenu: [
-        { href: "/documents", label: "Documents", icon: Library },
-        { href: "/contracts/letters", label: "Modèles de lettres", icon: FileText }
-      ]
-    },
     {
       id: "tools",
       label: "Outils",
@@ -80,7 +73,7 @@ export function Sidebar({ className }: SidebarProps) {
       subMenu: [
         { href: "/image-enhancement", label: "Amélioration d'Images", icon: Image },
         { href: "/listing-generator", label: "Générateur d'Annonces", icon: FileText },
-        { href: "/links", label: "Liens", icon: Link2 },
+        { href: "/contracts/letters", label: "Modèles de lettres", icon: FileText }
       ],
     }
   ];
@@ -94,7 +87,7 @@ export function Sidebar({ className }: SidebarProps) {
     if (menuToOpen && !openMenus.includes(menuToOpen)) {
       setOpenMenus(prev => [...prev, menuToOpen]);
     }
-  }, [location, links, openMenus]);
+  }, [location]);
 
   // Toggle d'un sous-menu
   const toggleSubMenu = (id: string) => {

@@ -13,7 +13,7 @@ import {
   CheckCircle,
   Clock
 } from "lucide-react";
-import { VisitsTabs } from "@/components/visits/visits-tabs";
+import { ImprovedVisitsTabs } from "@/components/visits/improved-visits-tabs";
 import { VisitCalendar } from "@/components/visits/visit-calendar";
 import { Link, useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -364,7 +364,7 @@ export default function VisitsPage() {
         transition={{ duration: 0.4, delay: 0.2 }}
       >
         {view === "list" ? (
-          <VisitsTabs />
+          <ImprovedVisitsTabs />
         ) : (
           <VisitCalendar />
         )}

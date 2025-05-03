@@ -1,0 +1,5 @@
+<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+  <path d="M-5 20L25 -10" stroke="currentColor" stroke-width="1.5" opacity="0.1"/>
+  <path d="M-15 20L15 -10" stroke="currentColor" stroke-width="1.5" opacity="0.1"/>
+  <path d="M5 20L35 -10" stroke="currentColor" stroke-width="1.5" opacity="0.1"/>
+</svg> 

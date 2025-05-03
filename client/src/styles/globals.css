@@ -1,0 +1,1017 @@
+/* DASHBOARD - STYLE CRYPTO/TECHNIQUE DARK */
+:root {
+  /* Palette de couleurs crypto dark */
+  --crypto-bg: #0a0a0f;
+  --crypto-card-bg: #131722;
+  --crypto-card-border: rgba(255, 255, 255, 0.08);
+  --crypto-text-primary: #f8fafc;
+  --crypto-text-secondary: rgba(255, 255, 255, 0.65);
+  --crypto-accent-blue: #3b82f6;
+  --crypto-accent-green: #10b981;
+  --crypto-accent-red: #ef4444;
+  --crypto-accent-orange: #f59e0b;
+  --crypto-accent-purple: #6366f1;
+  
+  /* Dimensions du système de grille */
+  --grid-gap: 16px;
+  --grid-unit: 110px;
+  --grid-widget-header: 40px;
+  
+  /* Dimensions des widgets standardisées */
+  /* Tailles de base pour toutes les hauteurs */
+  --widget-height-1: 110px;  /* hauteur de base pour 1 rangée */
+  --widget-height-2: 236px;  /* hauteur de base pour 2 rangées */
+  --widget-height-3: 362px;  /* hauteur de base pour 3 rangées */
+}
+
+/* Personnalisation de base de l'interface pour le style crypto */
+body {
+  background-color: var(--crypto-bg);
+  color: var(--crypto-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Styles for the dashboard grid container */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  position: relative;
+}
+
+/* Ensure the widgets fit properly in their containers */
+.widget-container {
+  width: 100%; 
+  height: 100%;
+  min-height: 200px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1280px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Widget sizes */
+.widget-container[data-size="1x1"] {
+  grid-column: span 3;
+}
+
+.widget-container[data-size="2x1"] {
+  grid-column: span 6;
+}
+
+.widget-container[data-size="3x1"] {
+  grid-column: span 9;
+}
+
+.widget-container[data-size="4x1"] {
+  grid-column: span 12;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1400px) {
+  .widget-container[data-size="1x1"] {
+    grid-column: span 4;
+  }
+  
+  .widget-container[data-size="2x1"] {
+    grid-column: span 8;
+  }
+  
+  .widget-container[data-size="3x1"] {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 768px) {
+  .widget-container[data-size="1x1"],
+  .widget-container[data-size="2x1"],
+  .widget-container[data-size="3x1"] {
+    grid-column: span 12;
+  }
+}
+
+/* DÉFINITION SIMPLIFIÉE DES SPANS DE GRILLE */
+/* Spans de colonne */
+.dashboard-grid .col-span-1 { grid-column: span 1 !important; }
+.dashboard-grid .col-span-2 { grid-column: span 2 !important; }
+.dashboard-grid .col-span-3 { grid-column: span 3 !important; }
+.dashboard-grid .col-span-4 { grid-column: span 4 !important; }
+
+/* Spans de ligne */
+.dashboard-grid .row-span-1 { grid-row: span 1 !important; }
+.dashboard-grid .row-span-2 { grid-row: span 2 !important; }
+.dashboard-grid .row-span-3 { grid-row: span 3 !important; }
+
+/* DÉFINITION CLAIRE DES TAILLES DE WIDGET PAR CLASSE SIZE */
+/* Format 1x1 */
+.dashboard-grid .widget-container.size-1x1 {
+  grid-column: span 1 !important;
+  grid-row: span 1 !important;
+  height: var(--widget-height-1) !important;
+}
+
+/* Format 1x2 */
+.dashboard-grid .widget-container.size-1x2 {
+  grid-column: span 1 !important;
+  grid-row: span 2 !important;
+  height: var(--widget-height-2) !important;
+}
+
+/* Format 1x3 */
+.dashboard-grid .widget-container.size-1x3 {
+  grid-column: span 1 !important;
+  grid-row: span 3 !important;
+  height: var(--widget-height-3) !important;
+}
+
+/* Format 2x1 */
+.dashboard-grid .widget-container.size-2x1 {
+  grid-column: span 2 !important;
+  grid-row: span 1 !important;
+  height: var(--widget-height-1) !important;
+}
+
+/* Format 2x2 */
+.dashboard-grid .widget-container.size-2x2 {
+  grid-column: span 2 !important;
+  grid-row: span 2 !important;
+  height: var(--widget-height-2) !important;
+}
+
+/* Format 2x3 */
+.dashboard-grid .widget-container.size-2x3 {
+  grid-column: span 2 !important;
+  grid-row: span 3 !important;
+  height: var(--widget-height-3) !important;
+}
+
+/* Format 3x1 */
+.dashboard-grid .widget-container.size-3x1 {
+  grid-column: span 3 !important;
+  grid-row: span 1 !important;
+  height: var(--widget-height-1) !important;
+}
+
+/* Format 3x2 */
+.dashboard-grid .widget-container.size-3x2 {
+  grid-column: span 3 !important;
+  grid-row: span 2 !important;
+  height: var(--widget-height-2) !important;
+}
+
+/* Format 3x3 */
+.dashboard-grid .widget-container.size-3x3 {
+  grid-column: span 3 !important;
+  grid-row: span 3 !important;
+  height: var(--widget-height-3) !important;
+}
+
+/* S'assurer que les cartes de widgets remplissent leur conteneur */
+.dashboard-grid .widget-container .widget-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Désactiver les transitions pendant les mises à jour de la grille */
+.dashboard-grid.grid-updating,
+.dashboard-grid.is-updating {
+  transition: none !important;
+}
+
+/* Rend les widgets redimensionnables en douceur quand ils ne sont pas en train d'être déplacés */
+.dashboard-grid .widget-container:not(.dragging) {
+  transition: all 0.2s ease;
+}
+
+/* RESPONSIVE - ADAPTÉ AUX DIFFÉRENTES TAILLES D'ÉCRAN */
+@media (max-width: 1400px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .widget-container {
+    grid-column: span 1 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* DIMENSIONS STANDARDISÉES DES WIDGETS - RESET ET DÉFINITION UNIQUE */
+/* Classes de colonnes */
+.col-span-1 { grid-column: span 1 / span 1 !important; }
+.col-span-2 { grid-column: span 2 / span 2 !important; }
+.col-span-3 { grid-column: span 3 / span 3 !important; }
+.col-span-4 { grid-column: span 4 / span 4 !important; }
+
+/* Classes de lignes */
+.row-span-1 { grid-row: span 1 / span 1 !important; }
+.row-span-2 { grid-row: span 2 / span 2 !important; }
+.row-span-3 { grid-row: span 3 / span 3 !important; }
+
+/* Format 1x1 - widget standard */
+.col-span-1.row-span-1 {
+  height: var(--widget-height-1) !important;
+}
+
+/* Format 1x2 - widget vertical */
+.col-span-1.row-span-2 {
+  height: var(--widget-height-2) !important;
+}
+
+/* Format 1x3 - widget colonne entière */
+.col-span-1.row-span-3 {
+  height: var(--widget-height-3) !important;
+}
+
+/* Format 2x1 - widget horizontal */
+.col-span-2.row-span-1 {
+  height: var(--widget-height-1) !important;
+}
+
+/* Format 2x2 - widget carré moyen */
+.col-span-2.row-span-2 {
+  height: var(--widget-height-2) !important;
+}
+
+/* Format 2x3 - widget rectangulaire vertical */
+.col-span-2.row-span-3 {
+  height: var(--widget-height-3) !important;
+}
+
+/* Format 3x1 - widget large horizontal */
+.col-span-3.row-span-1 {
+  height: var(--widget-height-1) !important;
+}
+
+/* Format 3x2 - widget large rectangulaire */
+.col-span-3.row-span-2 {
+  height: var(--widget-height-2) !important;
+}
+
+/* Format 3x3 - grand widget pleine page */
+.col-span-3.row-span-3 {
+  height: var(--widget-height-3) !important;
+}
+
+/* Format 4x1 - widget pleine largeur */
+.col-span-4.row-span-1 {
+  height: var(--widget-height-1) !important;
+}
+
+/* Format 4x2 - widget pleine largeur moyen */
+.col-span-4.row-span-2 {
+  height: var(--widget-height-2) !important;
+}
+
+/* Format 4x3 - grand widget pleine largeur */
+.col-span-4.row-span-3 {
+  height: var(--widget-height-3) !important;
+}
+
+/* STYLE CRYPTO POUR LES WIDGETS */
+.widget-card {
+  /* Structure de base */
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  
+  /* Apparence crypto dark */
+  background: linear-gradient(135deg, rgba(19, 23, 34, 0.9), rgba(13, 17, 28, 0.95)) !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid var(--crypto-card-border) !important;
+  
+  /* Effets visuels */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+  
+  /* Optimisations de performance */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, box-shadow;
+  contain: content;
+}
+
+/* Effets au survol et épinglés */
+.widget-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25) !important;
+  transform: translateY(-2px) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.widget-card.pinned {
+  border-color: var(--crypto-accent-blue) !important;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3), 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* En-tête de widget dans le style crypto */
+.widget-card-header {
+  flex: 0 0 var(--grid-widget-header) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0.5rem 0.75rem !important;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.05), transparent) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  z-index: 1;
+}
+
+.widget-card-title {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  max-width: 80% !important;
+  color: var(--crypto-text-primary) !important;
+}
+
+/* Contenu des widgets */
+.widget-card-content {
+  flex: 1 1 auto !important;
+  padding: 0.75rem !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 0;
+  color: var(--crypto-text-secondary);
+}
+
+/* Style de scrollbar crypto */
+.widget-card-content::-webkit-scrollbar {
+  width: 3px !important;
+  height: 3px !important;
+}
+
+.widget-card-content::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.widget-card-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 3px !important;
+}
+
+.widget-card-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Menu de redimensionnement du style crypto */
+.widget-resize-menu {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 6px !important;
+  padding: 6px !important;
+  background: var(--crypto-card-bg) !important;
+  border: 1px solid var(--crypto-card-border) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.widget-resize-option {
+  aspect-ratio: 1/1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+  transition: all 0.2s !important;
+  cursor: pointer !important;
+  position: relative !important;
+  font-size: 0.65rem !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.widget-resize-option:hover {
+  border-color: var(--crypto-accent-blue) !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: var(--crypto-accent-blue) !important;
+}
+
+.widget-resize-option.active {
+  border-color: var(--crypto-accent-blue) !important;
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: var(--crypto-accent-blue) !important;
+}
+
+/* Indicateur de redimensionnement */
+.widget-resizing {
+  box-shadow: 0 0 0 2px var(--crypto-accent-blue), 0 0 20px rgba(0, 0, 0, 0.3) !important;
+  z-index: 10 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.size-indicator {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: var(--crypto-accent-blue) !important;
+  color: white !important;
+  padding: 0.25rem 0.75rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  pointer-events: none !important;
+  z-index: 50 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  animation: sizeIndicatorPulse 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+}
+
+@keyframes sizeIndicatorPulse {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  30% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  40% { transform: translate(-50%, -50%) scale(0.95); }
+  50% { transform: translate(-50%, -50%) scale(1); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
+/* OPTIMISATIONS POUR LES TYPES DE WIDGETS SPÉCIFIQUES */
+
+/* Widget de statistiques - style compact avec chiffres importants */
+[data-widget-type="stats"] .widget-card-content {
+  padding: 0.5rem !important;
+}
+
+[data-widget-type="stats"] .text-3xl {
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--crypto-text-primary) !important;
+}
+
+[data-widget-type="stats"] .text-sm {
+  font-size: 0.75rem !important;
+  opacity: 0.75 !important;
+}
+
+[data-widget-type="stats"] .h-1 {
+  height: 0.15rem !important;
+  border-radius: 2px !important;
+  background: rgba(59, 130, 246, 0.2) !important;
+}
+
+[data-widget-type="stats"] .bg-primary {
+  background: var(--crypto-accent-blue) !important;
+  border-radius: 2px !important;
+}
+
+/* Widget graphique avec grille subtile */
+[data-widget-type*="chart"] .recharts-wrapper {
+  margin: 0 auto !important;
+}
+
+[data-widget-type*="chart"] .recharts-cartesian-grid-horizontal line,
+[data-widget-type*="chart"] .recharts-cartesian-grid-vertical line {
+  stroke: rgba(255, 255, 255, 0.1) !important;
+  stroke-dasharray: 3 3 !important;
+}
+
+[data-widget-type*="chart"] .recharts-tooltip-wrapper {
+  border-radius: 4px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Widget avec badges et étiquettes */
+.widget-card .badge {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--crypto-text-primary) !important;
+  font-size: 0.65rem !important;
+  border-radius: 4px !important;
+  padding: 0.125rem 0.375rem !important;
+  font-weight: 500 !important;
+}
+
+.widget-card .badge-success {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: var(--crypto-accent-green) !important;
+}
+
+.widget-card .badge-warning {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: var(--crypto-accent-orange) !important;
+}
+
+.widget-card .badge-danger {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: var(--crypto-accent-red) !important;
+}
+
+/* Barre de navigation et interface générale */
+.app-header {
+  background: var(--crypto-card-bg) !important;
+  border-bottom: 1px solid var(--crypto-card-border) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.app-sidebar {
+  background: var(--crypto-card-bg) !important;
+  border-right: 1px solid var(--crypto-card-border) !important;
+}
+
+/* Textes avec mise en valeur */
+.text-primary {
+  color: var(--crypto-accent-blue) !important;
+}
+
+.text-success {
+  color: var(--crypto-accent-green) !important;
+}
+
+.text-danger {
+  color: var(--crypto-accent-red) !important;
+}
+
+.text-warning {
+  color: var(--crypto-accent-orange) !important;
+}
+
+/* Tableaux pour les données */
+.crypto-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  font-size: 0.75rem !important;
+}
+
+.crypto-table th {
+  padding: 0.375rem !important;
+  text-align: left !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  text-transform: uppercase !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 0.05em !important;
+}
+
+.crypto-table td {
+  padding: 0.375rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.crypto-table tr:last-child td {
+  border-bottom: none !important;
+}
+
+.crypto-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Graphiques style crypto */
+.crypto-chart-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+  font-size: 0.7rem !important;
+}
+
+.crypto-chart-legend-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.crypto-chart-legend-color {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+}
+
+/* Conteneur principal du dashboard */
+.dashboard-container {
+  max-width: 1600px !important;
+  margin: 0 auto !important;
+  padding: 16px !important;
+}
+
+/* Effet de fond subtle */
+.crypto-bg-grid {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-image: 
+    linear-gradient(to right, rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(59, 130, 246, 0.03) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+}
+
+/* Style pour les boutons d'action */
+.crypto-button {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: var(--crypto-accent-blue) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  border-radius: 4px !important;
+  padding: 0.25rem 0.75rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.crypto-button:hover {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.crypto-button-success {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: var(--crypto-accent-green) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+.crypto-button-success:hover {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Styles pour les chiffres et statistiques en surbrillance */
+.crypto-stat {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  color: var(--crypto-text-primary) !important;
+  letter-spacing: -0.02em !important;
+}
+
+.crypto-stat-label {
+  font-size: 0.7rem !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Widget Grid Layout */
+.dashboard-widgets {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  min-height: calc(100vh - 200px);
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Widget Sizing */
+.widget {
+  position: relative;
+  background: var(--surface-color);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+}
+
+/* Widget Sizes */
+.widget[data-size="large"] {
+  grid-column: span 12;
+  min-height: 400px;
+}
+
+.widget[data-size="medium"] {
+  grid-column: span 6;
+  min-height: 300px;
+}
+
+.widget[data-size="small"] {
+  grid-column: span 4;
+  min-height: 200px;
+}
+
+.widget[data-size="compact"] {
+  grid-column: span 3;
+  min-height: 150px;
+}
+
+/* Widget States */
+.widget[data-pinned="true"] {
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.widget[data-fullscreen="true"] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  min-height: 100vh;
+  border-radius: 0;
+}
+
+/* Widget Header */
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  min-height: 48px;
+}
+
+/* Widget Content */
+.widget-content {
+  flex: 1;
+  padding: var(--spacing-md);
+  overflow: auto;
+  position: relative;
+}
+
+/* Widget Controls */
+.widget-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.widget:hover .widget-controls {
+  opacity: 1;
+}
+
+/* Responsive Layout */
+@media (max-width: 1400px) {
+  .widget[data-size="medium"] {
+    grid-column: span 6;
+  }
+  
+  .widget[data-size="small"] {
+    grid-column: span 4;
+  }
+  
+  .widget[data-size="compact"] {
+    grid-column: span 3;
+  }
+}
+
+@media (max-width: 1200px) {
+  .widget[data-size="medium"] {
+    grid-column: span 6;
+  }
+  
+  .widget[data-size="small"],
+  .widget[data-size="compact"] {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-widgets {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+  
+  .widget[data-size="medium"],
+  .widget[data-size="small"],
+  .widget[data-size="compact"] {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Grid Animation */
+.grid-updating {
+  transition: all 0.3s ease;
+}
+
+/* Widget Animation */
+.widget-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.widget-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.widget-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.widget-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
+} 
+
+/* Définition des variables pour les hauteurs standardisées */
+:root {
+  --widget-height-1: 150px;  /* Hauteur standard pour 1 unité */
+  --widget-height-2: 320px;  /* Hauteur standard pour 2 unités */
+  --widget-height-3: 480px;  /* Hauteur standard pour 3 unités */
+  
+  /* Dimensions du système de grille */
+  --grid-gap: 16px;
+  --grid-unit: 110px;
+  --grid-widget-header: 48px;
+}
+
+/* Adaptation des dimensions pour les écrans plus petits */
+@media (max-width: 768px) {
+  :root {
+    --widget-height-1: 120px;
+    --widget-height-2: 250px;
+    --widget-height-3: 380px;
+    --grid-gap: 12px;
+  }
+}
+
+/* Amélioration de la transition pour le redimensionnement */
+.dashboard-grid .widget-container {
+  transition: width 0.3s ease, height 0.3s ease, grid-column 0.3s ease, grid-row 0.3s ease !important;
+  will-change: width, height, grid-column, grid-row;
+}
+
+/* Animation de mise à jour de la grille */
+.dashboard-grid.grid-updating {
+  transition: none !important;
+}
+
+/* DASHBOARD POPOVER ET DROPDOWN MENUS - Assurer leur visibilité */
+.dropdown-menu-content,
+[data-radix-popper-content-wrapper] {
+  z-index: 1000 !important; /* S'assurer que le menu est au-dessus de tout */
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Assurer que les contenus des menus Select sont toujours au-dessus de tout */
+[data-radix-select-content] {
+  z-index: 9999 !important;
+  position: relative !important;
+}
+
+/* Select content wrapper level également */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+/* Assurer que le contenu du menu de widget est correctement affiché */
+[data-side="bottom"] {
+  transform: translateY(8px) !important;
+}
+
+/* Styling des menus déroulants pour widgets */
+.dropdown-menu-content {
+  background-color: var(--crypto-card-bg) !important;
+  border: 1px solid var(--crypto-card-border) !important;
+  border-radius: 6px !important;
+  min-width: 160px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* S'assurer que les widgets sont toujours interactifs */
+.dashboard-grid .widget-container,
+.widget-container {
+  pointer-events: auto !important;
+  z-index: 10 !important;
+}
+
+/* Assurer que les contrôles des widgets sont toujours accessibles */
+.widget-controls {
+  z-index: 20 !important;
+  position: relative !important;
+}
+
+/* Rendre les menus des widgets toujours visibles au survol */
+.widget-card:hover .widget-controls {
+  opacity: 1 !important;
+}
+
+/* Override pour s'assurer que le contenu des popover est visible */
+.popover-content,
+.dropdown-menu-content {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Style spécifique pour les boutons de redimensionnement */
+.resize-option-button {
+  width: 100% !important;
+  text-align: center !important;
+  padding: 6px !important;
+  background-color: var(--crypto-card-bg) !important;
+  color: var(--crypto-text-primary) !important;
+  border: 1px solid var(--crypto-card-border) !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.resize-option-button:hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border-color: var(--crypto-accent-blue) !important;
+  color: var(--crypto-accent-blue) !important;
+}
+
+/* Styles for the dashboard grid container */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  position: relative;
+}
+
+/* Ensure the widgets fit properly in their containers */
+.widget-container {
+  width: 100%; 
+  height: 100%;
+  min-height: 200px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make sure popovers and dropdowns are visible and properly positioned */
+.widget-popover,
+.widget-dropdown {
+  z-index: 100; 
+  visibility: visible;
+}
+
+/* Styles spécifiques pour la taille 3x4 */
+.size-3x4 {
+  grid-column: span 3 !important;
+  grid-row: span 4 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Change the mobile breakpoint for the grid */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Force all widgets to be full width on mobile */
+  .widget-container {
+    grid-column: span 1 !important;
+  }
+} 

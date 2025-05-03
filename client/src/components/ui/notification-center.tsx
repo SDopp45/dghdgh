@@ -1,0 +1,1 @@
+// Ce fichier est intentionnellement vide car nous supprimons le centre de notifications

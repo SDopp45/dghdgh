@@ -1,0 +1,609 @@
+/* Styles futuristes pour le calendrier */
+
+/* Conteneur du calendrier */
+.immo-calendar .rbc-calendar {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: white;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Styles dark mode pour le conteneur du calendrier */
+.dark .immo-calendar .rbc-calendar {
+  background-color: hsl(var(--card));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* En-tête du calendrier - mois et semaine */
+.immo-calendar .rbc-header {
+  font-weight: 600;
+  padding: 12px 10px;
+  background: linear-gradient(to right, #f5f3ff, #ede9fe);
+  border: none;
+  color: hsl(var(--foreground));
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+}
+
+/* En-tête du calendrier - mode sombre */
+.dark .immo-calendar .rbc-header {
+  background: linear-gradient(to right, hsl(var(--card)), hsl(var(--muted)));
+  color: hsl(var(--foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Cellules du calendrier */
+.immo-calendar .rbc-month-view {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Cellules du calendrier - mode sombre */
+.dark .immo-calendar .rbc-month-view {
+  background-color: hsl(var(--card));
+}
+
+/* Augmenter la hauteur des cellules dans la vue mois */
+.immo-calendar .rbc-month-view .rbc-month-row {
+  min-height: 220px; /* Hauteur augmentée pour afficher plus de contenu */
+  overflow: visible; /* Permettre le débordement pour éviter les coupures */
+}
+
+/* Amélioration des cellules des jours dans la vue mois */
+.immo-calendar .rbc-month-view .rbc-day-bg {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+/* Cellule qui contient les événements */
+.immo-calendar .rbc-month-view .rbc-row-content {
+  height: 100%; /* Utiliser toute la hauteur disponible */
+}
+
+/* Sélecteur pour les cellules de jour individuelles dans la vue mois */
+.immo-calendar .rbc-month-view .rbc-month-row .rbc-row-segment {
+  position: relative;
+}
+
+/* Cibler directement la div qui contient les événements dans chaque cellule de jour */
+.immo-calendar .rbc-month-view .rbc-month-row .rbc-row-segment .rbc-events-container {
+  height: auto;
+  max-height: 170px; /* Hauteur maximale pour éviter de déborder trop */
+  overflow-y: auto !important; /* Forcer le défilement vertical */
+  scrollbar-width: thin; /* Style de scrollbar fin */
+  scrollbar-color: rgba(124, 58, 237, 0.3) rgba(124, 58, 237, 0.1);
+  padding-right: 3px; /* Espace pour la scrollbar */
+}
+
+/* Style de scrollbar pour les cellules de jour */
+.immo-calendar .rbc-month-view .rbc-month-row .rbc-row-segment .rbc-events-container::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.immo-calendar .rbc-month-view .rbc-month-row .rbc-row-segment .rbc-events-container::-webkit-scrollbar-track {
+  background: rgba(124, 58, 237, 0.05);
+  border-radius: 4px;
+}
+
+.immo-calendar .rbc-month-view .rbc-month-row .rbc-row-segment .rbc-events-container::-webkit-scrollbar-thumb {
+  background-color: rgba(124, 58, 237, 0.25);
+  border-radius: 4px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+/* Ajout d'un indicateur visuel pour montrer qu'il y a plus de contenu à scroller */
+.immo-calendar .rbc-month-view .rbc-month-row .rbc-row-segment .rbc-events-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(to bottom, transparent, rgba(124, 58, 237, 0.1));
+  pointer-events: none;
+  opacity: 0.7;
+  z-index: 5;
+}
+
+/* Permet d'avoir des événements scrollables dans les cellules */
+.immo-calendar .rbc-month-view .rbc-row-content .rbc-row {
+  height: auto !important;
+  max-height: 190px !important; /* Hauteur max augmentée pour afficher plus d'événements */
+  overflow-y: auto !important; /* Permettre le défilement vertical */
+  scrollbar-width: thin !important; /* Scrollbar fine pour navigateurs modernes */
+  scrollbar-color: rgba(124, 58, 237, 0.3) rgba(124, 58, 237, 0.1) !important; /* Couleur de scrollbar */
+  z-index: 5; /* S'assurer que les cellules sont au-dessus des autres éléments */
+}
+
+/* S'assurer que chaque cellule de jour peut défiler indépendamment */
+.immo-calendar .rbc-month-view .rbc-row-content .rbc-row .rbc-row-segment {
+  max-height: 100%;
+  overflow-y: visible; /* Permettre au contenu de dépasser et d'être géré par le parent */
+}
+
+/* Conteneur d'événements à l'intérieur des cellules */
+.immo-calendar .rbc-month-view .rbc-row-content .rbc-row .rbc-event-content-wrapper {
+  overflow-y: auto !important; /* Assurer le défilement */
+}
+
+/* Style de scrollbar pour Chrome et autres navigateurs Webkit */
+.immo-calendar .rbc-month-view .rbc-row-content .rbc-row::-webkit-scrollbar {
+  width: 4px;
+}
+
+.immo-calendar .rbc-month-view .rbc-row-content .rbc-row::-webkit-scrollbar-track {
+  background: rgba(124, 58, 237, 0.1);
+  border-radius: 3px;
+}
+
+.immo-calendar .rbc-month-view .rbc-row-content .rbc-row::-webkit-scrollbar-thumb {
+  background-color: rgba(124, 58, 237, 0.3);
+  border-radius: 3px;
+}
+
+/* Conteneur des événements dans la vue mois */
+.immo-calendar .rbc-month-view .rbc-events-container {
+  position: relative;
+  padding-bottom: 10px; /* Ajouter de l'espace en bas pour éviter que les événements ne touchent le bas de la cellule */
+}
+
+.immo-calendar .rbc-day-bg {
+  transition: background-color 0.3s ease;
+  background-color: white;
+}
+
+.immo-calendar .rbc-day-bg:hover {
+  background-color: #f5f3ff;
+  transform: scale(0.99);
+}
+
+/* Cellules de jour - mode sombre */
+.dark .immo-calendar .rbc-day-bg {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark .immo-calendar .rbc-day-bg:hover {
+  background-color: hsl(var(--muted));
+}
+
+.immo-calendar .rbc-off-range-bg {
+  background: radial-gradient(ellipse at center, #fafafa 0%, #f5f5f5 100%);
+  opacity: 0.8;
+}
+
+/* Jours hors mois - mode sombre */
+.dark .immo-calendar .rbc-off-range-bg {
+  background: radial-gradient(ellipse at center, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+  opacity: 0.5;
+}
+
+/* Aujourd'hui */
+.immo-calendar .rbc-today {
+  position: relative;
+  z-index: 1;
+  background-color: rgba(124, 58, 237, 0.05) !important;
+  border-top: 2px solid rgba(124, 58, 237, 0.5) !important;
+}
+
+.immo-calendar .rbc-today::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  background-color: hsl(var(--primary));
+  border-radius: 50%;
+  z-index: 2;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+  animation: pulse 2s infinite;
+}
+
+/* Date dans la cellule */
+.immo-calendar .rbc-date-cell {
+  padding: 8px 10px;
+  text-align: right;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #000000; /* Changé à noir */
+}
+
+/* Date dans la cellule - mode sombre */
+.dark .immo-calendar .rbc-date-cell {
+  color: hsl(var(--foreground));
+}
+
+.immo-calendar .rbc-off-range {
+  color: #666666; /* Gris foncé pour les dates hors plage */
+  opacity: 0.6;
+}
+
+/* Dates hors plage - mode sombre */
+.dark .immo-calendar .rbc-off-range {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+.immo-calendar .rbc-off-range-bg {
+  background: #fafafa;
+}
+
+/* Fond hors plage - mode sombre */
+.dark .immo-calendar .rbc-off-range-bg {
+  background: hsl(var(--muted)/20);
+}
+
+/* Événements dans le calendrier */
+.immo-calendar .rbc-event {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  color: #000000 !important; /* Forcer le texte en noir */
+}
+
+/* Événements dans le calendrier - mode sombre */
+.dark .immo-calendar .rbc-event {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Événements spécifiquement dans la vue mois */
+.immo-calendar .rbc-month-view .rbc-event {
+  margin-bottom: 5px; /* Espacement augmenté entre les événements */
+  padding: 3px 0; /* Padding vertical augmenté pour les événements */
+  min-height: 26px; /* Hauteur minimale légèrement augmentée */
+  position: relative; /* Pour le positionnement des éléments internes */
+  overflow: visible !important; /* Permettre le débordement contrôlé */
+  max-width: 100%; /* Utiliser toute la largeur disponible */
+  border-radius: 6px;
+}
+
+.immo-calendar .rbc-event-content {
+  color: #000000 !important; /* Texte en noir pour le contenu des événements */
+  font-weight: 500;
+  line-height: 1.2; /* Réduire l'espacement vertical du texte */
+}
+
+/* Contenu des événements - mode sombre */
+.dark .immo-calendar .rbc-event-content {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Amélioration de l'affichage des événements dans la vue mois */
+.immo-calendar .rbc-month-view .rbc-event-content {
+  padding: 2px 6px; /* Ajouter de l'espace autour du contenu */
+  font-size: 0.8rem; /* Réduire légèrement la taille du texte pour afficher plus d'infos */
+  white-space: nowrap; /* Empêcher le retour à la ligne */
+  overflow: hidden; /* Cacher le texte qui dépasse */
+  text-overflow: ellipsis; /* Ajouter des points de suspension pour le texte coupé */
+  display: block; /* Assurer que le contenu prend toute la largeur */
+}
+
+.immo-calendar .rbc-event:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* Hover sur événements - mode sombre */
+.dark .immo-calendar .rbc-event:hover {
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Vue semaine et jour */
+.immo-calendar .rbc-time-view {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Vue semaine et jour - mode sombre */
+.dark .immo-calendar .rbc-time-view {
+  background-color: hsl(var(--card));
+}
+
+.immo-calendar .rbc-time-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* En-tête de temps - mode sombre */
+.dark .immo-calendar .rbc-time-header {
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.immo-calendar .rbc-time-content {
+  border-top: 1px solid #f5f3ff;
+}
+
+/* Contenu de temps - mode sombre */
+.dark .immo-calendar .rbc-time-content {
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* Augmenter la hauteur des créneaux horaires pour les vues jour et semaine */
+.immo-calendar .rbc-time-slot {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  height: 30px !important; /* Hauteur augmentée */
+}
+
+/* Cellules d'événements dans les vues jour et semaine */
+.immo-calendar .rbc-day-slot .rbc-events-container {
+  margin-right: 0;
+}
+
+.immo-calendar .rbc-day-slot .rbc-event {
+  min-height: 60px !important; /* Taille minimale pour éviter les coupures */
+  padding: 0 !important;
+  overflow: visible !important; /* Permettre le débordement contrôlé */
+  border-radius: 6px;
+}
+
+/* S'assurer que les cellules sont suffisamment grandes */
+.immo-calendar .rbc-timeslot-group {
+  min-height: 80px; /* Augmentation de la hauteur minimale */
+}
+
+/* Augmenter la taille des slots de temps */
+.immo-calendar .rbc-day-slot .rbc-time-slot {
+  min-height: 40px; /* Hauteur minimale augmentée */
+}
+
+/* Augmenter la hauteur des slots de temps pour les créneaux de 30 minutes */
+.immo-calendar .rbc-time-view .rbc-day-slot .rbc-timeslot-group {
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Style spécifique aux vues jour et semaine */
+.immo-calendar .rbc-time-view .rbc-time-content {
+  border-left: 2px solid #e5e7eb; /* Ligne de séparation plus visible */
+}
+
+/* Ajustement des hauteurs des événements par défaut */
+.immo-calendar .rbc-event-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 1px 5px !important;
+  line-height: 1.2;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Ajuster la taille de la colonne d'heure */
+.immo-calendar .rbc-time-gutter {
+  width: 80px !important;
+}
+
+.immo-calendar .rbc-label {
+  padding: 8px;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Division des heures plus visible */
+.immo-calendar .rbc-time-header-content {
+  border-left: 1px solid #e2e8f0;
+}
+
+/* Style des événements dans la vue jour */
+.immo-calendar .rbc-day-slot .rbc-background-event,
+.immo-calendar .rbc-day-slot .rbc-event {
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+/* S'assurer que les noms des jours en haut sont bien alignés */
+.immo-calendar .rbc-header {
+  padding: 12px;
+  text-align: center;
+}
+
+/* Vue agenda */
+.immo-calendar .rbc-agenda-view table.rbc-agenda-table {
+  border: none;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Vue agenda - mode sombre */
+.dark .immo-calendar .rbc-agenda-view table.rbc-agenda-table {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.immo-calendar .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  background: linear-gradient(to right, #f5f3ff, #ede9fe);
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  padding: 14px;
+  border-bottom: 1px solid #e2e8f0;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+}
+
+/* En-tête de la vue agenda - mode sombre */
+.dark .immo-calendar .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  background: linear-gradient(to right, hsl(var(--muted)/30), hsl(var(--muted)/50));
+  color: hsl(var(--foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.immo-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  padding: 14px;
+  border-bottom: 1px solid #f5f3ff;
+  transition: background-color 0.2s ease;
+}
+
+/* Cellules de la vue agenda - mode sombre */
+.dark .immo-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.immo-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr:hover {
+  background: #f8fafc;
+}
+
+/* Hover sur les lignes de la vue agenda - mode sombre */
+.dark .immo-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr:hover {
+  background: hsl(var(--muted)/50);
+}
+
+/* État de chargement */
+.immo-calendar-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 700px;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* État de chargement - mode sombre */
+.dark .immo-calendar-loader {
+  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+}
+
+.immo-calendar-loader-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(124, 58, 237, 0.1);
+  border-left-color: rgba(124, 58, 237, 0.8);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Effet futuriste pour les boutons dans le calendrier */
+.immo-calendar button {
+  position: relative;
+  overflow: hidden;
+}
+
+.immo-calendar button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.immo-calendar button:hover::after {
+  transform: translateX(100%);
+}
+
+/* Animations et transitions */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.immo-calendar .rbc-event {
+  animation: fadeInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.immo-calendar .rbc-event:nth-child(odd) {
+  animation-delay: 0.1s;
+}
+
+.immo-calendar .rbc-event:nth-child(even) {
+  animation-delay: 0.2s;
+}
+
+.immo-calendar.changing .rbc-month-view {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.immo-calendar .rbc-month-view {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.immo-calendar-empty-state {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Effet de pulse sur aujourd'hui */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+    transform: scale(1);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(124, 58, 237, 0);
+    transform: scale(1.1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+    transform: scale(1);
+  }
+}
+
+/* Classes spécifiques pour les status */
+.immo-calendar .status-pending {
+  border-left-color: #f59e0b !important;
+  background-color: rgba(245, 158, 11, 0.08);
+}
+
+.immo-calendar .status-completed {
+  border-left-color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+.immo-calendar .status-cancelled {
+  border-left-color: #f43f5e !important;
+  background-color: rgba(244, 63, 94, 0.08);
+}
+
+.dark .immo-calendar .status-pending {
+  border-left-color: #f59e0b !important;
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
+.dark .immo-calendar .status-completed {
+  border-left-color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.15);
+}
+
+.dark .immo-calendar .status-cancelled {
+  border-left-color: #f43f5e !important;
+  background-color: rgba(244, 63, 94, 0.15);
+}

@@ -1,0 +1,147 @@
+/* Styles de base pour les popups */
+.property-popup .leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  padding: 0;
+}
+
+.property-popup .leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+
+/* Animation des marqueurs au survol */
+.leaflet-marker-icon {
+  transition: transform 0.2s ease-out;
+}
+
+.leaflet-marker-icon:hover {
+  transform: scale(1.15) translateY(-5px);
+}
+
+/* Amélioration des contrôles de zoom */
+.leaflet-control-zoom {
+  border-radius: 8px;
+}
+
+/* Mode sombre */
+.dark .property-popup .leaflet-popup-content-wrapper {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+
+/* Styles personnalisés pour la carte Leaflet */
+
+/* Amélioration des popups */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  overflow: hidden;
+  width: auto !important;
+  min-width: 280px;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+
+.property-popup .leaflet-popup-content-wrapper {
+  background: white;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.dark .property-popup .leaflet-popup-content-wrapper {
+  background: #1f2937;
+  color: #e5e7eb;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.leaflet-popup-tip {
+  background: white;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.dark .leaflet-popup-tip {
+  background: #1f2937;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+/* Personnalisation du bouton de fermeture de popup */
+.leaflet-popup-close-button {
+  color: #9ca3af !important;
+  font-size: 18px !important;
+  padding: 5px 5px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #ef4444 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15) !important;
+}
+
+.dark .leaflet-popup-close-button {
+  background: rgba(31, 41, 55, 0.8) !important;
+  color: #d1d5db !important;
+}
+
+.dark .leaflet-popup-close-button:hover {
+  background: rgba(31, 41, 55, 0.95) !important;
+  color: #f87171 !important;
+}
+
+/* Personnalisation de l'attribution */
+.leaflet-control-attribution {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+}
+
+.dark .leaflet-control-attribution {
+  background-color: rgba(31, 41, 55, 0.7) !important;
+  color: #d1d5db !important;
+}
+
+/* Correction des z-index */
+.leaflet-pane {
+  z-index: 400;
+}
+
+.leaflet-popup-pane {
+  z-index: 500;
+}
+
+.leaflet-marker-pane {
+  z-index: 450;
+}
+
+.leaflet-control {
+  z-index: 800;
+}
+
+/* Effet de transition lors du changement de tuiles */
+.leaflet-fade-anim .leaflet-tile, 
+.leaflet-fade-anim .leaflet-popup {
+  transition: opacity 0.3s linear !important;
+}
+
+/* Positionnement amélioré des popups */
+.leaflet-popup {
+  margin-bottom: 25px;
+  max-width: 90vw; /* S'adapte à la taille de l'écran */
+}
+
+/* Pour améliorer l'affichage sur mobile */
+@media (max-width: 640px) {
+  .leaflet-popup-content-wrapper {
+    max-width: 280px !important;
+  }
+  
+  .property-popup .leaflet-popup-content {
+    padding: 8px;
+  }
+} 

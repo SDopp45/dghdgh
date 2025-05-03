@@ -1,0 +1,124 @@
+{"context":"Server","level":"info","message":"Setting up authentication and routes...","timestamp":"2025-03-24T20:05:23.572Z"}
+{"context":"Server","level":"info","message":"Server started on port 5000","timestamp":"2025-03-24T20:05:23.601Z"}
+{"context":"Server","level":"info","message":"Environment: production","timestamp":"2025-03-24T20:05:23.603Z"}
+{"level":"info","message":"Ensured directory exists: /home/runner/workspace/uploads/temp","timestamp":"2025-03-24T20:05:23.647Z"}
+{"level":"info","message":"Ensured directory exists: /home/runner/workspace/uploads/templates","timestamp":"2025-03-24T20:05:23.647Z"}
+{"level":"info","message":"Ensured directory exists: /home/runner/workspace/uploads","timestamp":"2025-03-24T20:05:23.648Z"}
+{"level":"info","message":"Ensured directory exists: /home/runner/workspace/uploads/documents","timestamp":"2025-03-24T20:05:23.649Z"}
+{"level":"info","message":"Test user already exists","timestamp":"2025-03-24T20:05:26.413Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:08:33.791Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:08:33.997Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:08:34.386Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:08:47.408Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:09:30.575Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:09:30.737Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:09:30.899Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:10:15.158Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:10:15.297Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:10:15.464Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:10:48.751Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:10:48.885Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:10:49.035Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:11:01.140Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:11:06.494Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:11:24.863Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:11:24.998Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:11:25.224Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:11:27.413Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:14:10.883Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:14:13.547Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:14:13.954Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:14:16.627Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:14:20.524Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:14:24.821Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:14:24.822Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:14:25.922Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:14:25.924Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:16:38.482Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:16:40.666Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:16:41.345Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:16:50.477Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:17:48.454Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:19:00.111Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:19:06.509Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:19:09.392Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:19:09.394Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:19:10.532Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:19:10.534Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:19:31.905Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:19:31.907Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:20:08.519Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:20:08.521Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:20:14.772Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:20:35.047Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:20:37.217Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:20:37.567Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:21:37.194Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:21:37.347Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:21:41.096Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:22:24.496Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:22:24.636Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:22:26.612Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:22:35.179Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:22:43.246Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:22:52.103Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:22:52.161Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:22:53.232Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:22:53.288Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:22:55.351Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:22:55.442Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:28:22.060Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:28:22.691Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:23.074Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:24.670Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:28:29.433Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:31.875Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:31.876Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:32.995Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:32.996Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:35.099Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:35.100Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:39.201Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:28:39.203Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:31:04.851Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:31:05.008Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:31:05.397Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:31:09.794Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:32:16.603Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:32:16.768Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:32:16.915Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:35:09.301Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:35:09.450Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:35:09.956Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:35:12.711Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:35:13.828Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:35:23.745Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:35:23.880Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:35:24.027Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:35:30.780Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:35:39.285Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:35:39.463Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:35:39.623Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:35:41.122Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:36:33.762Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:36:33.896Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:34.168Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:36:42.350Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:44.357Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:44.360Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:45.460Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:45.462Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:47.562Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:47.564Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:51.677Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:36:51.681Z"}
+{"level":"info","message":"Attempting login for user: testuser","timestamp":"2025-03-24T20:39:32.173Z"}
+{"level":"info","message":"User testuser logged in successfully","timestamp":"2025-03-24T20:39:32.315Z"}
+{"code":"42703","file":"parse_relation.c","length":132,"level":"error","line":"3722","message":"Error fetching visits: column visits_property.acquisition_date does not exist","name":"error","position":"1298","routine":"errorMissingColumn","severity":"ERROR","stack":"error: column visits_property.acquisition_date does not exist\n    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)\n    at async file:///home/runner/workspace/dist/index.js:2240:23","timestamp":"2025-03-24T20:39:33.988Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:39:36.427Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:39:37.033Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:39:37.038Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:39:38.142Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:39:38.144Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:39:40.248Z"}
+{"ip":"172.31.128.79","level":"warn","message":"Unauthorized access attempt","method":"GET","path":"/","timestamp":"2025-03-24T20:39:40.271Z"}

@@ -1,0 +1,60 @@
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+[32minfo[39m: Initialisation des images par défaut {"service":"property-management","timestamp":"2025-04-01T12:42:04.214Z"}
+[32minfo[39m: Dossier source: /home/runner/workspace/public/images/property-types {"service":"property-management","timestamp":"2025-04-01T12:42:04.216Z"}
+[32minfo[39m: Dossier destination: /home/runner/workspace/uploads/properties {"service":"property-management","timestamp":"2025-04-01T12:42:04.216Z"}
+[32minfo[39m: Fichiers trouvés dans le dossier source: apartment-default.jpg, building-default.jpg, commercial-default.jpg, garage-default.jpg, house-default.jpg, land-default.jpg, office-default.jpg, parking-default.jpg, storage-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.216Z"}
+[32minfo[39m: Vérification de l'image pour le type apartment: apartment-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.217Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/apartment-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.217Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/apartment-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.217Z"}
+[32minfo[39m: L'image pour le type apartment existe déjà dans la destination: /home/runner/workspace/uploads/properties/apartment-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.217Z"}
+[32minfo[39m: Vérification de l'image pour le type house: house-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.218Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/house-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.218Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/house-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.218Z"}
+[32minfo[39m: L'image pour le type house existe déjà dans la destination: /home/runner/workspace/uploads/properties/house-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.218Z"}
+[32minfo[39m: Vérification de l'image pour le type commercial: commercial-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.219Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/commercial-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.219Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/commercial-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.219Z"}
+[32minfo[39m: L'image pour le type commercial existe déjà dans la destination: /home/runner/workspace/uploads/properties/commercial-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.219Z"}
+[32minfo[39m: Vérification de l'image pour le type parking: parking-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.219Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/parking-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.220Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/parking-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.220Z"}
+[32minfo[39m: L'image pour le type parking existe déjà dans la destination: /home/runner/workspace/uploads/properties/parking-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.220Z"}
+[32minfo[39m: Vérification de l'image pour le type garage: garage-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.220Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/garage-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.220Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/garage-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.221Z"}
+[32minfo[39m: L'image pour le type garage existe déjà dans la destination: /home/runner/workspace/uploads/properties/garage-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.221Z"}
+[32minfo[39m: Vérification de l'image pour le type land: land-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.221Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/land-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.221Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/land-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.221Z"}
+[32minfo[39m: L'image pour le type land existe déjà dans la destination: /home/runner/workspace/uploads/properties/land-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.221Z"}
+[32minfo[39m: Vérification de l'image pour le type office: office-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.221Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/office-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/office-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: L'image pour le type office existe déjà dans la destination: /home/runner/workspace/uploads/properties/office-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: Vérification de l'image pour le type building: building-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/building-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/building-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: L'image pour le type building existe déjà dans la destination: /home/runner/workspace/uploads/properties/building-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: Vérification de l'image pour le type storage: storage-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: Source: /home/runner/workspace/public/images/property-types/storage-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.222Z"}
+[32minfo[39m: Destination: /home/runner/workspace/uploads/properties/storage-default.jpg (existe: true) {"service":"property-management","timestamp":"2025-04-01T12:42:04.223Z"}
+[32minfo[39m: L'image pour le type storage existe déjà dans la destination: /home/runner/workspace/uploads/properties/storage-default.jpg {"service":"property-management","timestamp":"2025-04-01T12:42:04.223Z"}
+[32minfo[39m: Fichiers dans le dossier destination après traitement: 1740552391709-34114791.webp, 1740552835394-394318325.webp, 1741982330972-127311087.jpg, 1742327601509-626776805.jpg, 1742378323141-311210335.jpg, 1742378329027-889549042.jpg, 1742381856878-473140438.jpg, 1742556414263-715396311.jpg, apartment-default.jpg, building-default.jpg, commercial-default.jpg, garage-default.jpg, house-default.jpg, land-default.jpg, office-default.jpg, parking-default.jpg, storage-default.jpg, test-image.svg {"service":"property-management","timestamp":"2025-04-01T12:42:04.223Z"}
+[32minfo[39m: Environment variables: {"DATABASE_URL":"[REDACTED]","service":"property-management","timestamp":"2025-04-01T12:42:04.223Z"}
+[32minfo[39m: Application configuration: {"baseUrl":"http://localhost:5001","corsOrigin":"*","environment":"development","port":5001,"publicDir":"/home/runner/workspace/dist/public","service":"property-management","timestamp":"2025-04-01T12:42:04.224Z","uploadDir":"/home/runner/workspace/uploads"}
+[32minfo[39m: Starting application initialization... {"service":"property-management","timestamp":"2025-04-01T12:42:04.225Z"}
+[32minfo[39m: Mounting API routes... {"service":"property-management","timestamp":"2025-04-01T12:42:04.228Z"}
+[32minfo[39m: Setting up Vite middleware for development... {"service":"property-management","timestamp":"2025-04-01T12:42:04.229Z"}
+[32minfo[39m: Starting server on port 5000... {"service":"property-management","timestamp":"2025-04-01T12:42:04.230Z"}
+[31merror[39m: Uncaught Exception: listen EADDRINUSE: address already in use 0.0.0.0:5000 {"address":"0.0.0.0","code":"EADDRINUSE","errno":-98,"port":5000,"service":"property-management","stack":"Error: listen EADDRINUSE: address already in use 0.0.0.0:5000\n    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n    at listenInCluster (node:net:1965:12)\n    at doListen (node:net:2139:7)\n    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)","syscall":"listen","timestamp":"2025-04-01T12:42:04.245Z"}
+[32minfo[39m: Hashing password - salt length: 32, hash length: 128 {"service":"property-management","timestamp":"2025-04-01T12:42:04.276Z"}
+[32minfo[39m: Creating test user with hashed password {"service":"property-management","timestamp":"2025-04-01T12:42:04.276Z"}
+[32minfo[39m: Hashing password - salt length: 32, hash length: 128 {"service":"property-management","timestamp":"2025-04-01T12:42:04.283Z"}
+[32minfo[39m: Creating test user with hashed password {"service":"property-management","timestamp":"2025-04-01T12:42:04.284Z"}
+[32minfo[39m: New client connected to database {"context":"Database","service":"property-management","timestamp":"2025-04-01T12:42:04.575Z"}
+[32minfo[39m: Successfully connected to database {"context":"Database","service":"property-management","timestamp":"2025-04-01T12:42:04.576Z"}
+[32minfo[39m: Test user password updated {"service":"property-management","timestamp":"2025-04-01T12:42:04.651Z"}
+[32minfo[39m: Test user password updated {"service":"property-management","timestamp":"2025-04-01T12:42:04.657Z"}

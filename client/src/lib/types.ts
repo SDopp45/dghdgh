@@ -1,0 +1,42 @@
+export interface Property {
+  id: number;
+  name: string;
+  address: string;
+  description?: string;
+  type: string;
+  units: number;
+  rooms: number;
+  bedrooms?: number;
+  floors?: number;
+  bathrooms?: number;
+  toilets?: number;
+  energyClass: string;
+  energyEmissions?: string;
+  livingArea: number;
+  landArea?: number;
+  hasParking: boolean;
+  hasTerrace: boolean;
+  hasGarage: boolean;
+  hasOutbuilding: boolean;
+  hasBalcony: boolean;
+  hasElevator: boolean;
+  hasCellar: boolean;
+  hasGarden: boolean;
+  isNewConstruction: boolean;
+  purchasePrice: number;
+  monthlyRent?: number;
+  monthlyExpenses?: number;
+  loanAmount?: number;
+  monthlyLoanPayment?: number;
+  status: string;
+  constructionYear?: number;
+  purchaseDate?: string;
+  area?: number;
+  createdAt: string;
+  updatedAt: string;
+  images?: Array<{
+    id: number;
+    filename: string;
+    order: number;
+  }>;
+}

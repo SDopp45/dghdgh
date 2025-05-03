@@ -1,0 +1,123 @@
+/* Animations pour les motifs d'arrière-plan */
+
+/* Animation de pulse */
+@keyframes pulse {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.3; }
+}
+
+/* Animation de rotation */
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Animation de déplacement */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(10px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Animation de clignotement */
+@keyframes blink {
+  0% { opacity: 0.1; }
+  25% { opacity: 0.3; }
+  50% { opacity: 0.5; }
+  75% { opacity: 0.3; }
+  100% { opacity: 0.1; }
+}
+
+/* Animation d'échelle */
+@keyframes scale {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(0.9); }
+}
+
+/* Animation de vague */
+@keyframes wave {
+  0% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(5px) translateY(-5px); }
+  50% { transform: translateX(10px) translateY(0); }
+  75% { transform: translateX(5px) translateY(5px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+
+/* Classes d'animation pour les motifs SVG */
+.pattern-animate-pulse .animate-element {
+  animation: pulse 3s infinite ease-in-out;
+}
+
+.pattern-animate-rotate .animate-element {
+  animation: rotate 20s infinite linear;
+  transform-origin: center;
+}
+
+.pattern-animate-float .animate-element {
+  animation: float 5s infinite ease-in-out;
+}
+
+.pattern-animate-blink .animate-element {
+  animation: blink 4s infinite ease-in-out;
+}
+
+.pattern-animate-scale .animate-element {
+  animation: scale 8s infinite ease-in-out;
+  transform-origin: center;
+}
+
+.pattern-animate-wave .animate-element {
+  animation: wave 10s infinite ease-in-out;
+}
+
+/* Animation spécifique pour le motif circuit */
+.pattern-animate-circuit .node-circle {
+  animation: pulse 2s infinite ease-in-out;
+}
+.pattern-animate-circuit .circuit-line {
+  animation: pulse 3s infinite ease-in-out;
+  animation-delay: 0.5s;
+}
+
+/* Animation spécifique pour le motif smartcity */
+.pattern-animate-smartcity .window {
+  animation: blink 3s infinite;
+}
+.pattern-animate-smartcity .window:nth-child(odd) {
+  animation-delay: 1s;
+}
+.pattern-animate-smartcity .window:nth-child(even) {
+  animation-delay: 0.5s;
+}
+
+/* Animation spécifique pour le motif nodes */
+.pattern-animate-nodes .node {
+  animation: pulse 3s infinite;
+}
+.pattern-animate-nodes .node:nth-child(1) {
+  animation-delay: 0s;
+}
+.pattern-animate-nodes .node:nth-child(2) {
+  animation-delay: 0.5s;
+}
+.pattern-animate-nodes .node:nth-child(3) {
+  animation-delay: 1s;
+}
+.pattern-animate-nodes .node:nth-child(4) {
+  animation-delay: 1.5s;
+}
+.pattern-animate-nodes .network {
+  animation: pulse 5s infinite;
+  animation-delay: 2s;
+}
+
+/* Animation spécifique pour le motif keys */
+.pattern-animate-keys .key-hole {
+  animation: pulse 3s infinite;
+}
+.pattern-animate-keys .key-bit {
+  animation: pulse 2s infinite;
+  animation-delay: 1s;
+} 

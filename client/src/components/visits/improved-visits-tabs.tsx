@@ -83,7 +83,10 @@ import {
   Home,
   Sliders,
   X,
-  Building
+  Building,
+  Download,
+  FileText,
+  FileSpreadsheet
 } from "lucide-react";
 
 // Dialogs
@@ -571,6 +574,74 @@ export function ImprovedVisitsTabs() {
     }
   }, [activeFilter]);
 
+  // Fonction pour exporter les données filtrées
+  const exportVisitsData = (exportFormat: 'csv' | 'pdf', visits: Visit[]) => {
+    // Fonction pour formater la date
+    const formatDateStr = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return format(date, 'dd/MM/yyyy HH:mm', { locale: fr });
+    };
+
+    if (exportFormat === 'csv') {
+      // Préparation de l'en-tête CSV
+      const headers = [
+        'Prénom',
+        'Nom',
+        'Email',
+        'Téléphone',
+        'Date et heure',
+        'Type de visite',
+        'Propriété',
+        'Statut',
+        'Message'
+      ].join(',');
+      
+      // Préparation des données
+      const rows = visits.map(visit => {
+        // Protection contre les virgules dans les données (CSV)
+        const escapeCSV = (str: string) => str ? `"${str.replace(/"/g, '""')}"` : '';
+        
+        return [
+          escapeCSV(visit.firstName),
+          escapeCSV(visit.lastName),
+          escapeCSV(visit.email),
+          escapeCSV(visit.phone),
+          escapeCSV(formatDateStr(visit.datetime)),
+          escapeCSV(visitTypeConfig[visit.visitType as keyof typeof visitTypeConfig]?.label || visit.visitType),
+          escapeCSV(visit.property?.name || visit.manualAddress || ''),
+          escapeCSV(statusConfig[visit.status as keyof typeof statusConfig]?.label || visit.status),
+          escapeCSV(visit.message || '')
+        ].join(',');
+      });
+      
+      // Création du contenu CSV
+      const csvContent = [headers, ...rows].join('\n');
+      
+      // Création d'un blob et du lien de téléchargement
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      
+      // Nom du fichier avec date et statut
+      const statusName = statusConfig[activeTab as keyof typeof statusConfig]?.label.toLowerCase() || activeTab;
+      const today = new Date();
+      const dateStr = format(today, 'yyyy-MM-dd');
+      link.setAttribute('download', `visites_${statusName}_${dateStr}.csv`);
+      
+      // Déclenchement du téléchargement
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (exportFormat === 'pdf') {
+      // Pour PDF, on informe l'utilisateur que cette fonctionnalité sera bientôt disponible
+      alert("L'export en PDF sera bientôt disponible. Veuillez utiliser l'export CSV pour le moment.");
+      
+      // Logique d'export PDF à implémenter ultérieurement
+      // Cela nécessiterait d'utiliser une bibliothèque comme jsPDF ou d'appeler une API backend
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Notification pour les visites passées */}
@@ -969,6 +1040,45 @@ export function ImprovedVisitsTabs() {
                 <XCircle className="h-4 w-4 mr-2" />
                 Effacer le filtre
               </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Menu d'export */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="gap-1 hover:bg-primary/5 transition-colors"
+                title="Exporter les données"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Exporter</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 p-1">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Exporter les visites {statusConfig[activeTab as keyof typeof statusConfig]?.label.toLowerCase()}
+                {activeFiltersCount > 0 && " (filtrées)"}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => exportVisitsData('csv', filteredVisits)}
+                className="flex items-center cursor-pointer"
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                Exporter en CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => exportVisitsData('pdf', filteredVisits)}
+                className="flex items-center cursor-pointer"
+              >
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                Exporter en PDF
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                {filteredVisits.length} visite{filteredVisits.length > 1 ? "s" : ""} à exporter
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 

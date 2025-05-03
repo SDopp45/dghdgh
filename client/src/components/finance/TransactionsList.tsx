@@ -553,6 +553,41 @@ const exportToExcel = (transactions: FormattedTransaction[]) => {
   XLSX.writeFile(workbook, `transactions_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
 };
 
+const exportToCSV = (transactions: FormattedTransaction[]) => {
+  // Préparer les données pour l'export CSV (Date, Propriété, Description, Catégorie, Type, Méthode, Montant)
+  const csvData = transactions.map(t => [
+    format(new Date(t.date), 'dd/MM/yyyy'),
+    t.propertyName || '-',
+    t.description || '-',
+    categoryLabels[t.category as TransactionCategory] || '-',
+    t.type === 'income' ? 'Revenu' : t.type === 'expense' ? 'Dépense' : 'Crédit',
+    paymentMethodLabels[t.paymentMethod as keyof typeof paymentMethodLabels] || '-',
+    t.formattedAmount
+  ]);
+  
+  // Ajouter l'en-tête
+  csvData.unshift(['Date', 'Propriété', 'Description', 'Catégorie', 'Type', 'Méthode', 'Montant']);
+  
+  // Convertir les données en format CSV
+  let csvContent = csvData.map(row => row.map(cell => {
+    // Échapper les guillemets et entourer de guillemets si contient des virgules
+    let cellValue = String(cell || '');
+    if (cellValue.includes('"')) {
+      cellValue = cellValue.replace(/"/g, '""');
+    }
+    if (cellValue.includes(',') || cellValue.includes('"') || cellValue.includes('\n')) {
+      cellValue = `"${cellValue}"`;
+    }
+    return cellValue;
+  }).join(',')).join('\n');
+  
+  // Créer un blob avec l'encodage UTF-8 pour supporter les caractères français
+  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8' });
+  
+  // Télécharger le fichier
+  saveAs(blob, `transactions_${format(new Date(), 'dd-MM-yyyy')}.csv`);
+};
+
 const exportToPdf = (transactions: FormattedTransaction[]) => {
   try {
     // Récupération de la configuration PDF depuis localStorage
@@ -748,29 +783,23 @@ const exportToPdf = (transactions: FormattedTransaction[]) => {
 
 const exportGroupToCSV = (group: GroupedTransaction) => {
   const csvContent = [
-    ['Date', 'Description', 'Catégorie', 'Type', 'Montant', 'Propriété', 'Statut', 'Méthode de paiement'],
+    ['Date', 'Propriété', 'Description', 'Catégorie', 'Type', 'Méthode', 'Montant'],
     ...group.transactions.map(t => [
       format(new Date(t.date), 'dd/MM/yyyy'),
+      t.propertyName || '',
       t.description || '',
       categoryLabels[t.category as TransactionCategory],
       t.type === 'income' ? 'Revenu' : t.type === 'expense' ? 'Dépense' : 'Crédit',
-      t.formattedAmount,
-      t.propertyName || '',
-      t.status,
-      paymentMethodLabels[t.paymentMethod as keyof typeof paymentMethodLabels] || ''
+      paymentMethodLabels[t.paymentMethod as keyof typeof paymentMethodLabels] || '',
+      t.formattedAmount
     ])
   ];
 
   const csvString = csvContent.map(row => row.join(',')).join('\n');
-  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', `transactions_${group.propertyName}_${format(new Date(), 'dd-MM-yyyy')}.csv`);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
+  
+  // Télécharger le fichier
+  saveAs(blob, `transactions_${group.propertyName}_${format(new Date(), 'dd-MM-yyyy')}.csv`);
 };
 
 // Ajouter l'interface DocumentTypeConfig
@@ -1403,6 +1432,12 @@ export function TransactionsList({
                                     <FileText className="h-4 w-4 mr-2" />
                                     Exporter en PDF
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => exportToCSV(group.transactions)}
+                                  >
+                                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                    Exporter en CSV
+                                  </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                 onClick={() => {
@@ -1602,6 +1637,12 @@ export function TransactionsList({
                                             >
                                               <FileText className="h-4 w-4 mr-2" />
                                               Exporter en PDF
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={() => exportToCSV([transaction])}
+                                            >
+                                              <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                              Exporter en CSV
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem

@@ -203,14 +203,59 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
     if (!submissions.length || !selectedLink?.formDefinition) return;
     
     try {
+      // Récupération de la configuration PDF depuis localStorage
+      let pdfConfig = {
+        companyName: "ImmoVault",
+        companyAddress: "",
+        companyPhone: "",
+        companyEmail: "",
+        useLogo: true,
+        logoPosition: "left" as "left" | "center" | "right",
+        headerColor: "#4B70E2",
+        footerText: "Document généré par ImmoVault",
+        includeDateInHeader: true,
+      };
+
+      // Récupérer les paramètres personnalisés si disponibles
+      const savedConfig = localStorage.getItem('pdfConfig');
+      if (savedConfig) {
+        pdfConfig = { ...pdfConfig, ...JSON.parse(savedConfig) };
+      }
+      
       // Création du document PDF
       const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
       
-      // Définir le titre
+      // Titre principal
       doc.setFontSize(16);
-      doc.text(`Réponses du formulaire: ${selectedLink.title}`, 14, 15);
-      doc.setFontSize(10);
-      doc.text(`Exporté le ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: fr })}`, 14, 22);
+      doc.text(`Réponses du formulaire: ${selectedLink.title}`, 15, 40);
+      
+      // Information de la société sous le titre
+      let yPos = 48;
+      if (pdfConfig.companyAddress || pdfConfig.companyPhone || pdfConfig.companyEmail) {
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        
+        if (pdfConfig.companyAddress) {
+          yPos += 5;
+          doc.text(pdfConfig.companyAddress, 15, yPos);
+        }
+        
+        if (pdfConfig.companyPhone) {
+          yPos += 4;
+          doc.text(`Tél: ${pdfConfig.companyPhone}`, 15, yPos);
+        }
+        
+        if (pdfConfig.companyEmail) {
+          yPos += 4;
+          doc.text(`Email: ${pdfConfig.companyEmail}`, 15, yPos);
+        }
+        
+        yPos += 8;
+      } else {
+        yPos += 10;
+      }
       
       // Préparer les données pour le tableau
       const headers = ['Date'].concat(selectedLink.formDefinition.map(field => field.label));
@@ -228,14 +273,30 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
         return rowData;
       });
       
+      // Convertir la couleur d'en-tête au format RGB pour autoTable
+      const hexToRgb = (hex: string) => {
+        // Supprimer le # si présent
+        hex = hex.replace(/^#/, '');
+        
+        // Convertir en RGB
+        const bigint = parseInt(hex, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        
+        return { r, g, b, array: [r, g, b] as [number, number, number] };
+      };
+      
+      const headerColor = hexToRgb(pdfConfig.headerColor);
+      
       // Générer le tableau
       autoTable(doc, {
         head: [headers],
         body: data,
-        startY: 30,
+        startY: yPos,
         theme: 'grid',
         headStyles: {
-          fillColor: [59, 130, 246], // Bleu
+          fillColor: headerColor.array,
           textColor: [255, 255, 255],
           fontStyle: 'bold'
         },
@@ -244,6 +305,22 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
           cellPadding: 3
         }
       });
+      
+      // Ajouter un pied de page
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        
+        // Pied de page personnalisé
+        if (pdfConfig.footerText) {
+          doc.text(pdfConfig.footerText, pageWidth / 2, pageHeight - 10, { align: 'center' } as any);
+        }
+        
+        // Numéro de page
+        doc.text(`Page ${i} / ${pageCount}`, pageWidth - 20, pageHeight - 10);
+      }
       
       // Sauvegarder le PDF
       doc.save(`${selectedLink.title}-reponses.pdf`);

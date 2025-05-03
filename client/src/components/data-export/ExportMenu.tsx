@@ -277,17 +277,17 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
         
         if (pdfConfig.companyAddress) {
           yPos += 5;
-          doc.text(pdfConfig.companyAddress, pageWidth - 60, yPos, { align: 'right' });
+          doc.text(pdfConfig.companyAddress, 15, yPos);
         }
         
         if (pdfConfig.companyPhone) {
           yPos += 4;
-          doc.text(`Tél: ${pdfConfig.companyPhone}`, pageWidth - 60, yPos, { align: 'right' });
+          doc.text(`Tél: ${pdfConfig.companyPhone}`, 15, yPos);
         }
         
         if (pdfConfig.companyEmail) {
           yPos += 4;
-          doc.text(`Email: ${pdfConfig.companyEmail}`, pageWidth - 60, yPos, { align: 'right' });
+          doc.text(`Email: ${pdfConfig.companyEmail}`, 15, yPos);
         }
         
         yPos += 8;

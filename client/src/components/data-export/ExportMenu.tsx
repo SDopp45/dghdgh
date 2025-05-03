@@ -249,9 +249,20 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
           title = "Liste des locataires";
         }
       }
+      else if (type === "maintenance") {
+        // Vérifier s'il y a un filtre de statut pour personnaliser le titre
+        if (currentFilters?.status === 'open') {
+          title = "Liste des maintenances - Demandes ouvertes";
+        } else if (currentFilters?.status === 'in_progress') {
+          title = "Liste des maintenances - Demandes en cours";
+        } else if (currentFilters?.status === 'completed') {
+          title = "Liste des maintenances - Demandes terminées";
+        } else {
+          title = "Liste des maintenances";
+        }
+      }
       else if (type === "visits") title = "Liste des visites";
       else if (type === "properties") title = "Liste des biens";
-      else if (type === "maintenance") title = "Liste des maintenances";
       else if (type === "transactions") title = "Liste des transactions";
       
       doc.setTextColor(0, 0, 0);
@@ -291,7 +302,7 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
         
         Object.entries(currentFilters).forEach(([key, value]) => {
           if (value) {
-            // Traduire les clés et valeurs pour une meilleure lisibilité
+            // Traduire les clés
             let displayKey = key;
             let displayValue = value;
             
@@ -299,10 +310,22 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
             if (key === 'search') displayKey = 'Recherche';
             else if (key === 'leaseType') displayKey = 'Type de bail';
             else if (key === 'status') displayKey = 'Statut';
+            else if (key === 'priority') displayKey = 'Priorité';
+            else if (key === 'property') displayKey = 'Propriété';
             
             // Traduire les valeurs
-            if (key === 'status' && value === 'actif') displayValue = 'Baux actifs';
-            else if (key === 'status' && value === 'fini') displayValue = 'Baux archivés';
+            if (key === 'status') {
+              if (value === 'actif') displayValue = 'Baux actifs';
+              else if (value === 'fini') displayValue = 'Baux archivés';
+              else if (value === 'open') displayValue = 'Demandes ouvertes';
+              else if (value === 'in_progress') displayValue = 'Demandes en cours';
+              else if (value === 'completed') displayValue = 'Demandes terminées';
+            }
+            else if (key === 'priority') {
+              if (value === 'high') displayValue = 'Haute';
+              else if (value === 'medium') displayValue = 'Moyenne';
+              else if (value === 'low') displayValue = 'Basse';
+            }
             else if (key === 'leaseType' && value.toString().startsWith('bail_')) {
               displayValue = value.toString().replace('bail_', '');
             }
@@ -343,16 +366,25 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
           tenant.user?.phoneNumber || tenant.phoneNumber || '-'
         ]);
       } else if (type === "maintenance") {
-        tableColumns = ['Titre', 'Propriété', 'Locataire', 'Date', 'Priorité', 'Statut', 'Coût'];
+        tableColumns = ['Date', 'Signalé par', 'Propriété', 'Titre', 'Description', 'Coût', 'Priorité'];
+        
+        // Log pour debug
+        console.log(`Export de ${exportData.length} maintenance - Statut: ${currentFilters?.status || 'tous'}`);
         
         tableData = exportData.map((item: any) => [
-          item.title || '-',
+          item.date ? format(new Date(item.date), 'dd/MM/yyyy', { locale: fr }) : 
+          item.createdAt ? format(new Date(item.createdAt), 'dd/MM/yyyy', { locale: fr }) : '-',
+          item.reportedBy || item.tenant?.user?.fullName || 
+            (item.tenant ? `${item.tenant.firstName || ''} ${item.tenant.lastName || ''}` : '-'),
           item.property?.name || item.property?.address || '-',
-          item.tenant ? `${item.tenant.firstName} ${item.tenant.lastName}` : '-',
-          item.date ? format(new Date(item.date), 'dd/MM/yyyy', { locale: fr }) : '-',
-          item.priority || '-',
-          item.status || '-',
-          item.totalCost ? `${item.totalCost} €` : '-'
+          item.title || '-',
+          item.description || '-',
+          item.totalCost ? `${item.totalCost} €` : '-',
+          item.priority ? (
+            item.priority === 'high' ? 'Haute' :
+            item.priority === 'medium' ? 'Moyenne' :
+            item.priority === 'low' ? 'Basse' : item.priority
+          ) : '-'
         ]);
       }
       
@@ -399,6 +431,13 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
       if (type === "tenants" && currentFilters?.status) {
         const statusLabel = currentFilters.status === 'actif' ? 'actifs' : 'archives';
         fileName = `locataires_${statusLabel}_${dateStr}.pdf`;
+      } else if (type === "maintenance" && currentFilters?.status) {
+        let statusLabel = '';
+        if (currentFilters.status === 'open') statusLabel = 'ouvertes';
+        else if (currentFilters.status === 'in_progress') statusLabel = 'en_cours';
+        else if (currentFilters.status === 'completed') statusLabel = 'terminees';
+        
+        fileName = `maintenance_${statusLabel}_${dateStr}.pdf`;
       }
       
       doc.save(fileName);

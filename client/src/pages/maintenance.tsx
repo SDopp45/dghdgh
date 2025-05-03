@@ -7,7 +7,7 @@ import { fr } from "date-fns/locale";
 import { AddMaintenanceDialog } from "@/components/maintenance/add-maintenance-dialog";
 import { EditMaintenanceDialog } from "@/components/maintenance/edit-maintenance-dialog";
 import { Progress } from "@/components/ui/progress";
-import { CircleSlash, Clock, AlertTriangle, CheckCircle2, Trash2, Download, MoreVertical, Pencil, FileText, Check, Plus, Wrench, Settings, Search, Loader2, Filter, SlidersHorizontal, RefreshCw, CalendarIcon, EuroIcon, EyeIcon, ChevronDown, CreditCard } from "lucide-react";
+import { CircleSlash, Clock, AlertTriangle, CheckCircle2, Trash2, Download, MoreVertical, Pencil, FileText, Check, Plus, Wrench, Settings, Search, Loader2, Filter, SlidersHorizontal, RefreshCw, CalendarIcon, EuroIcon, EyeIcon, ChevronDown, CreditCard, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -415,6 +415,7 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
                             <TableHeader className="bg-gray-50/50 dark:bg-muted/20">
                                 <TableRow className="hover:bg-gray-50/80 dark:hover:bg-muted/30">
                             <TableHead className="text-gray-700 dark:text-muted-foreground">Date</TableHead>
+                            <TableHead className="text-gray-700 dark:text-muted-foreground">Signalé par</TableHead>
                             <TableHead className="text-gray-700 dark:text-muted-foreground">Propriété</TableHead>
                                     <TableHead className="min-w-[300px] text-gray-700 dark:text-muted-foreground">Problème</TableHead>
                             <TableHead className="text-gray-700 dark:text-muted-foreground">Statut</TableHead>
@@ -426,6 +427,14 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
                         {displayedRequests.map((request) => (
                                     <TableRow key={request.id} className="hover:bg-gray-50/60 transition-colors">
                                         <TableCell className="font-medium">{format(new Date(request.createdAt), 'd MMM yyyy', { locale: fr })}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <User className="h-3 w-3 text-blue-500" />
+                                                </div>
+                                                <span>{request.reportedBy || 'N/A'}</span>
+                                            </div>
+                                        </TableCell>
                                 <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
@@ -436,9 +445,9 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
                                 </TableCell>
                                 <TableCell>
                                             <div>
-                                                <p className="font-medium text-gray-900">{request.title}</p>
+                                                <p className="font-medium text-gray-900 dark:text-orange-300">{request.title}</p>
                                                 <div className="flex items-start gap-1">
-                                                    <p className="text-sm text-gray-500 line-clamp-1">
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
                                                         {request.description?.length > 60 
                                                             ? `${request.description.substring(0, 60)}...` 
                                                             : request.description}
@@ -986,6 +995,7 @@ const Maintenance = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [showFilters, setShowFilters] = useState(false);
     const [popoverOpen, setPopoverOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<"open" | "in_progress" | "completed">("open");
     
     // États pour les filtres avancés
     const [filterPeriod, setFilterPeriod] = useState("all");
@@ -1446,13 +1456,23 @@ const Maintenance = () => {
                     type="maintenance"
                     allowImport={true}
                     currentFilters={{
-                        search: searchTerm
+                        search: searchTerm,
+                        priority: filterPriority !== "all" ? filterPriority : undefined,
+                        property: filterProperty !== "all" ? filterProperty : undefined,
+                        status: activeTab // Passer l'onglet actif comme filtre de statut
                     }}
+                    data={
+                        activeTab === "open" 
+                            ? openFilteredRequests 
+                            : activeTab === "in_progress" 
+                                ? inProgressFilteredRequests 
+                                : completedFilteredRequests
+                    }
                 />
             </div>
 
             <div className="mt-8">
-                <Tabs defaultValue="open">
+                <Tabs defaultValue="open" value={activeTab} onValueChange={(value) => setActiveTab(value as "open" | "in_progress" | "completed")}>
                     <TabsList className="grid w-full grid-cols-3 mb-8">
                         <TabsTrigger value="open" className="data-[state=active]:ring-2 data-[state=active]:ring-red-500">
                             Demandes ouvertes ({openFilteredRequests.length})

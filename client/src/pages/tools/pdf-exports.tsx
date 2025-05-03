@@ -56,6 +56,18 @@ export default function PDFExportsPage() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Récupérer les locataires pour l'aperçu
+  const { data: tenants = [] } = useQuery<any[]>({
+    queryKey: ["/api/tenants"],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Récupérer les maintenances pour l'aperçu
+  const { data: maintenances = [] } = useQuery<any[]>({
+    queryKey: ["/api/maintenance"],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   // Récupérer la configuration PDF enregistrée
   const { data: savedConfig, isLoading } = useQuery<PDFConfigFormValues>({
     queryKey: ["/api/pdf-config"],
@@ -188,10 +200,18 @@ export default function PDFExportsPage() {
   // Générer un PDF de test avec les données adaptées au type sélectionné
   const generatePdfPreview = (forPreview: boolean = false) => {
     // Vérification des données disponibles selon le type
-    if (selectedPdfType === "visits" && !visits.length) {
+    if (
+      (selectedPdfType === "visits" && !visits.length) ||
+      (selectedPdfType === "tenants" && !tenants.length) ||
+      (selectedPdfType === "maintenance" && !maintenances.length)
+    ) {
       toast({
-        title: "Aucune visite disponible",
-        description: "Il n'y a pas de visites à inclure dans le PDF",
+        title: `Aucune donnée disponible`,
+        description: `Il n'y a pas de ${
+          selectedPdfType === "visits" ? "visites" : 
+          selectedPdfType === "tenants" ? "locataires" : 
+          "demandes de maintenance"
+        } à inclure dans le PDF`,
         variant: "destructive",
       });
       return;
@@ -263,6 +283,9 @@ export default function PDFExportsPage() {
         case "tenants":
           documentTitle = "Liste des locataires";
           break;
+        case "maintenance":
+          documentTitle = "Suivi de maintenance";
+          break;
         default:
           documentTitle = "Document";
       }
@@ -298,6 +321,9 @@ export default function PDFExportsPage() {
           break;
         case "tenants":
           generateTenantsTable(doc);
+          break;
+        case "maintenance":
+          generateMaintenanceTable(doc);
           break;
         default:
           // Table par défaut avec message
@@ -410,26 +436,42 @@ export default function PDFExportsPage() {
 
   // Générer le tableau des locataires
   const generateTenantsTable = (doc: jsPDF) => {
+    if (!tenants.length) return;
+    
     const values = form.getValues();
     
-    // Exemple de données pour les locataires
-    const tableData = [
-      ["Jean Dupont", "Appartement 1A", "01/01/2023", "31/12/2023", "850,00 €", "Actif", "2 interventions"],
-      ["Marie Martin", "Villa Les Roses", "15/03/2022", "14/03/2024", "1250,00 €", "Actif", "Aucune"],
-      ["Pierre Durand", "Studio 3B", "01/09/2022", "31/08/2023", "550,00 €", "Résilié", "1 intervention"],
-      ["Sophie Bernard", "Appartement 2C", "01/05/2023", "30/04/2024", "900,00 €", "Actif", "En attente"],
-      ["Lucas Petit", "Maison Bleue", "01/02/2022", "31/01/2025", "1500,00 €", "Actif", "3 interventions"],
-    ];
+    // Convertir les données réelles pour autoTable
+    const tableData = tenants.slice(0, 10).map((tenant: any) => [
+      tenant.user?.fullName || `${tenant.firstName || ''} ${tenant.lastName || ''}`,
+      tenant.property?.name || tenant.property?.address || '-',
+      tenant.leaseType ? (
+        tenant.leaseType === "bail_meuble" ? "Meublé" :
+        tenant.leaseType === "bail_vide" ? "Vide" :
+        tenant.leaseType === "bail_mobilite" ? "Mobilité" :
+        tenant.leaseType === "bail_professionnel" ? "Professionnel" :
+        tenant.leaseType
+      ) : '-',
+      tenant.leaseStart ? format(new Date(tenant.leaseStart), 'dd/MM/yyyy', { locale: fr }) : '-',
+      tenant.leaseEnd ? format(new Date(tenant.leaseEnd), 'dd/MM/yyyy', { locale: fr }) : '-',
+      tenant.rentAmount ? `${tenant.rentAmount} €` : '-',
+      tenant.leaseStatus === "actif" ? "Actif" : 
+      tenant.leaseStatus === "fini" ? "Résilié" : 
+      tenant.leaseStatus || '-',
+      tenant.user?.email || tenant.email || '-',
+      tenant.user?.phoneNumber || tenant.phoneNumber || '-'
+    ]);
     
     // Définir les colonnes
     const tableColumns = [
       'Locataire',
       'Propriété',
+      'Type de bail',
       'Début bail',
       'Fin bail',
       'Loyer',
       'Statut',
-      'Maintenance'
+      'Email',
+      'Téléphone'
     ];
     
     // Créer le tableau
@@ -445,8 +487,68 @@ export default function PDFExportsPage() {
       alternateRowStyles: { fillColor: [245, 245, 255] as [number, number, number] },
       columnStyles: {
         0: { fontStyle: 'bold' }, // Nom du locataire en gras
-        5: { fontStyle: 'bold' }, // Statut en gras
-        6: { fontStyle: 'bold' }  // Maintenance en gras
+        2: { fontStyle: 'bold' }, // Type de bail en gras
+        5: { fontStyle: 'bold' }, // Loyer en gras
+        6: { fontStyle: 'bold' }, // Statut en gras
+        7: { fontStyle: 'bold' }, // Email en gras
+        8: { fontStyle: 'bold' }  // Téléphone en gras
+      },
+      margin: { top: 35 }
+    });
+  };
+  
+  // Générer le tableau de maintenance
+  const generateMaintenanceTable = (doc: jsPDF) => {
+    if (!maintenances.length) return;
+    
+    const values = form.getValues();
+    
+    // Convertir les données réelles pour autoTable
+    const tableData = maintenances.slice(0, 10).map((maintenance: any) => [
+      maintenance.createdAt ? format(new Date(maintenance.createdAt), 'dd/MM/yyyy', { locale: fr }) : '-',
+      maintenance.property?.name || maintenance.property?.address || '-',
+      maintenance.title || '-',
+      maintenance.description || '-',
+      maintenance.reportedBy || (maintenance.tenant ? `${maintenance.tenant.firstName || ''} ${maintenance.tenant.lastName || ''}` : '-'),
+      maintenance.totalCost ? `${maintenance.totalCost} €` : '-',
+      maintenance.priority === "high" ? "Urgent" : 
+      maintenance.priority === "medium" ? "Normal" : 
+      maintenance.priority === "low" ? "Basse" : 
+      maintenance.priority || '-',
+      maintenance.status === "open" ? "Ouvert" : 
+      maintenance.status === "in_progress" ? "En cours" : 
+      maintenance.status === "completed" ? "Terminé" : 
+      maintenance.status || '-'
+    ]);
+    
+    // Définir les colonnes
+    const tableColumns = [
+      'Date',
+      'Propriété',
+      'Titre',
+      'Description',
+      'Signalé par',
+      'Coût',
+      'Priorité',
+      'Statut'
+    ];
+    
+    // Créer le tableau
+    autoTable(doc, {
+      head: [tableColumns],
+      body: tableData,
+      startY: 60,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { 
+        fillColor: hexToRgb(values.headerColor).array as [number, number, number],
+        textColor: [255, 255, 255] as [number, number, number]
+      },
+      alternateRowStyles: { fillColor: [245, 245, 255] as [number, number, number] },
+      columnStyles: {
+        0: { fontStyle: 'bold' }, // Date en gras
+        2: { fontStyle: 'bold' }, // Titre en gras
+        6: { fontStyle: 'bold' }, // Priorité en gras
+        7: { fontStyle: 'bold' }  // Statut en gras
       },
       margin: { top: 35 }
     });
@@ -474,6 +576,7 @@ export default function PDFExportsPage() {
   const pdfTypes = [
     { id: "visits", label: "Visites", icon: Building },
     { id: "tenants", label: "Locataires", icon: Users },
+    { id: "maintenance", label: "Maintenance", icon: RefreshCw },
   ];
 
   if (isLoading) {
@@ -873,8 +976,14 @@ export default function PDFExportsPage() {
                   <div className="text-center">
                     <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
                     <p className="text-muted-foreground">
-                      {visits.length === 0 
-                        ? "Aucune visite disponible pour générer un aperçu"
+                      {(selectedPdfType === "visits" && visits.length === 0) || 
+                       (selectedPdfType === "tenants" && tenants.length === 0) ||
+                       (selectedPdfType === "maintenance" && maintenances.length === 0)
+                        ? `Aucune donnée de ${
+                            selectedPdfType === "visits" ? "visites" : 
+                            selectedPdfType === "tenants" ? "locataires" : 
+                            "maintenance"
+                          } disponible pour générer un aperçu`
                         : "Génération de l'aperçu en cours..."}
                     </p>
                   </div>

@@ -6,6 +6,7 @@ import { fr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import jsPDF from "jspdf";
 
 // UI Components
 import {
@@ -576,6 +577,7 @@ export function ImprovedVisitsTabs() {
 
   // Fonction pour exporter les données filtrées
   const exportVisitsData = (exportFormat: 'csv' | 'pdf', visits: Visit[]) => {
+    console.log("Exporting visits:", exportFormat, visits.length);
     // Fonction pour formater la date
     const formatDateStr = (dateStr: string) => {
       const date = new Date(dateStr);
@@ -634,11 +636,242 @@ export function ImprovedVisitsTabs() {
       link.click();
       document.body.removeChild(link);
     } else if (exportFormat === 'pdf') {
-      // Pour PDF, on informe l'utilisateur que cette fonctionnalité sera bientôt disponible
-      alert("L'export en PDF sera bientôt disponible. Veuillez utiliser l'export CSV pour le moment.");
-      
-      // Logique d'export PDF à implémenter ultérieurement
-      // Cela nécessiterait d'utiliser une bibliothèque comme jsPDF ou d'appeler une API backend
+      try {
+        // On récupère la configuration PDF stockée dans localStorage
+        let pdfConfig = {
+          companyName: "ImmoVault",
+          companyAddress: "",
+          companyPhone: "",
+          companyEmail: "",
+          useLogo: true,
+          logoPosition: "left" as "left" | "center" | "right",
+          headerColor: "#4B70E2",
+          footerText: "Document généré par ImmoVault",
+          includeDateInHeader: true,
+        };
+
+        // Récupérer les paramètres personnalisés si disponibles
+        const savedConfig = localStorage.getItem('pdfConfig');
+        if (savedConfig) {
+          pdfConfig = { ...pdfConfig, ...JSON.parse(savedConfig) };
+        }
+        
+        // Récupérer le logo s'il existe
+        const savedLogo = localStorage.getItem('pdfLogo');
+        
+        // Création du PDF avec jsPDF
+        const doc = new jsPDF();
+        
+        // Fonction pour convertir couleur hex en RGB
+        const hexToRgb = (hex: string) => {
+          // Enlever le # si présent
+          hex = hex.replace(/^#/, '');
+          
+          // Convertir les formats abrégés (par exemple, #03F en #0033FF)
+          if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+          }
+          
+          const bigint = parseInt(hex, 16);
+          const r = (bigint >> 16) & 255;
+          const g = (bigint >> 8) & 255;
+          const b = bigint & 255;
+          
+          return {r, g, b, array: [r, g, b] as [number, number, number]};
+        };
+        
+        // Appliquer la configuration
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        
+        // Ajouter l'en-tête avec la couleur personnalisée
+        const headerColor = hexToRgb(pdfConfig.headerColor);
+        doc.setFillColor(headerColor.r, headerColor.g, headerColor.b);
+        doc.rect(0, 0, pageWidth, 30, 'F');
+        
+        // Ajouter le logo si activé
+        if (pdfConfig.useLogo && savedLogo) {
+          let xPosition = 15; // default left
+          
+          if (pdfConfig.logoPosition === "center") {
+            xPosition = pageWidth / 2 - 10;
+          } else if (pdfConfig.logoPosition === "right") {
+            xPosition = pageWidth - 40;
+          }
+          
+          doc.addImage(savedLogo, 'PNG', xPosition, 5, 20, 20);
+        }
+        
+        // Ajouter le nom de l'entreprise
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        
+        // Positionner le texte en fonction du logo
+        let textX = 15;
+        
+        if (pdfConfig.useLogo && savedLogo) {
+          if (pdfConfig.logoPosition === "left") {
+            textX = 40;
+          } else if (pdfConfig.logoPosition === "center") {
+            textX = 15;
+          }
+        }
+        
+        doc.text(pdfConfig.companyName, textX, 16);
+        
+        // Ajouter la date si activé
+        if (pdfConfig.includeDateInHeader) {
+          doc.setFontSize(10);
+          const today = new Date();
+          const dateStr = format(today, 'dd MMMM yyyy', { locale: fr });
+          doc.text(`Généré le ${dateStr}`, pageWidth - 60, 10);
+        }
+        
+        // Titre et filtres
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(16);
+        
+        // Déterminer le titre en fonction de l'onglet actif
+        const statusName = statusConfig[activeTab as keyof typeof statusConfig]?.label || "Visites";
+        const documentTitle = `Liste des visites - ${statusName}`;
+        doc.text(documentTitle, 15, 40);
+        
+        // Information de la société sous le titre
+        let yPos = 48;
+        if (pdfConfig.companyAddress || pdfConfig.companyPhone || pdfConfig.companyEmail) {
+          doc.setFontSize(9);
+          doc.setTextColor(100, 100, 100);
+          
+          if (pdfConfig.companyAddress) {
+            yPos += 5;
+            doc.text(pdfConfig.companyAddress, pageWidth - 60, yPos, { align: 'right' });
+          }
+          
+          if (pdfConfig.companyPhone) {
+            yPos += 4;
+            doc.text(`Tél: ${pdfConfig.companyPhone}`, pageWidth - 60, yPos, { align: 'right' });
+          }
+          
+          if (pdfConfig.companyEmail) {
+            yPos += 4;
+            doc.text(`Email: ${pdfConfig.companyEmail}`, pageWidth - 60, yPos, { align: 'right' });
+          }
+          
+          yPos += 8;
+        } else {
+          yPos += 10;
+        }
+        
+        // Ajouter des infos sur les filtres appliqués
+        const filters: string[] = [];
+        
+        if (searchTerm) filters.push(`Recherche: ${searchTerm}`);
+        if (activeFilter === "today") filters.push("Période: Aujourd'hui");
+        if (activeFilter === "tomorrow") filters.push("Période: Demain");
+        if (activeFilter === "thisWeek") filters.push("Période: Cette semaine");
+        
+        if (visitTypeFilter) {
+          const typeName = visitTypeConfig[visitTypeFilter as keyof typeof visitTypeConfig]?.label || visitTypeFilter;
+          filters.push(`Type: ${typeName}`);
+        }
+        
+        if (propertyFilter) {
+          const property = properties.find(p => p.id === propertyFilter);
+          if (property) filters.push(`Bien: ${property.name}`);
+        }
+        
+        if (dateRangeFilter?.from) {
+          const fromDate = format(dateRangeFilter.from, 'dd/MM/yyyy', { locale: fr });
+          const toDate = dateRangeFilter.to 
+            ? format(dateRangeFilter.to, 'dd/MM/yyyy', { locale: fr })
+            : fromDate;
+          filters.push(`Dates: ${fromDate} à ${toDate}`);
+        }
+        
+        if (filters.length > 0) {
+          let filterText = 'Filtres appliqués : ' + filters.join(', ');
+          const textLines = doc.splitTextToSize(filterText, 180);
+          doc.text(textLines, 15, yPos);
+          yPos += textLines.length * 5 + 5;
+        }
+        
+        // Préparation des données pour le tableau
+        const tableData = visits.map(visit => [
+          `${visit.firstName || ''} ${visit.lastName || ''}`,
+          formatDateStr(visit.datetime),
+          visitTypeConfig[visit.visitType as keyof typeof visitTypeConfig]?.label || visit.visitType,
+          visit.property?.name || visit.manualAddress || '-',
+          statusConfig[visit.status as keyof typeof statusConfig]?.label || visit.status,
+          visit.email || '-',
+          visit.phone || '-'
+        ]);
+        
+        // Définir les colonnes
+        const tableColumns = [
+          'Visiteur',
+          'Date & Heure',
+          'Type',
+          'Bien',
+          'Statut',
+          'Email',
+          'Téléphone'
+        ];
+        
+        // Créer le tableau
+        import('jspdf-autotable').then((autoTable) => {
+          autoTable.default(doc, {
+            head: [tableColumns],
+            body: tableData,
+            startY: yPos,
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { 
+              fillColor: headerColor.array,
+              textColor: [255, 255, 255] 
+            },
+            alternateRowStyles: { fillColor: [245, 245, 255] },
+            columnStyles: {
+              0: { fontStyle: 'bold' }, // Nom du visiteur en gras
+              4: { fontStyle: 'bold' }  // Statut en gras
+            },
+            margin: { top: 35 }
+          });
+          
+          // Ajouter un pied de page avec numéros de page
+          const pageCount = doc.getNumberOfPages();
+          for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            
+            // Pied de page personnalisé
+            if (pdfConfig.footerText) {
+              doc.text(pdfConfig.footerText, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            }
+            
+            // Numéro de page
+            doc.text(`Page ${i} / ${pageCount}`, pageWidth - 20, pageHeight - 10);
+          }
+          
+          // Télécharger le fichier PDF
+          const statusSlug = activeTab || 'toutes';
+          const today = new Date();
+          const dateStr = format(today, 'yyyy-MM-dd');
+          doc.save(`visites_${statusSlug}_${dateStr}.pdf`);
+          
+          toast({
+            title: "Export PDF réussi",
+            description: "Le document a été généré avec succès",
+            variant: "default"
+          });
+        });
+      } catch (error) {
+        console.error('Erreur export PDF:', error);
+        toast({
+          title: "Erreur d'exportation",
+          description: "Impossible de générer le PDF. Veuillez réessayer.",
+          variant: "destructive"
+        });
+      }
     }
   };
 

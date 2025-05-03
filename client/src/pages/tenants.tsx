@@ -455,13 +455,13 @@ export default function Tenants() {
             </motion.p>
           </div>
           <div className="flex items-center gap-4">
-            <Button
-              className="gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 shadow-lg hover:shadow-xl transition-all duration-300 animate-gradient-x"
-              onClick={() => setOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Ajouter un locataire
-            </Button>
+          <Button
+            className="gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 shadow-lg hover:shadow-xl transition-all duration-300 animate-gradient-x"
+            onClick={() => setOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Ajouter un locataire
+          </Button>
           </div>
         </div>
       </div>

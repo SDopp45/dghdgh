@@ -20,6 +20,8 @@ import {
   DialogTitle 
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface FormField {
   id: string;
@@ -195,6 +197,59 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+  
+  const exportToPdf = () => {
+    if (!submissions.length || !selectedLink?.formDefinition) return;
+    
+    try {
+      // Création du document PDF
+      const doc = new jsPDF();
+      
+      // Définir le titre
+      doc.setFontSize(16);
+      doc.text(`Réponses du formulaire: ${selectedLink.title}`, 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Exporté le ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: fr })}`, 14, 22);
+      
+      // Préparer les données pour le tableau
+      const headers = ['Date'].concat(selectedLink.formDefinition.map(field => field.label));
+      
+      const data = submissions.map(submission => {
+        // Première colonne: date
+        const rowData = [format(new Date(submission.createdAt), 'dd/MM/yyyy HH:mm', { locale: fr })];
+        
+        // Ajouter les données de chaque champ
+        selectedLink.formDefinition?.forEach(field => {
+          const value = submission.formData[field.id];
+          rowData.push(value !== undefined && value !== null ? String(value) : '-');
+        });
+        
+        return rowData;
+      });
+      
+      // Générer le tableau
+      autoTable(doc, {
+        head: [headers],
+        body: data,
+        startY: 30,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [59, 130, 246], // Bleu
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 3
+        }
+      });
+      
+      // Sauvegarder le PDF
+      doc.save(`${selectedLink.title}-reponses.pdf`);
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+    }
   };
   
   const handleDeleteClick = (submission: FormSubmission) => {
@@ -482,6 +537,16 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
             >
               <Download className="h-4 w-4 mr-2" />
               Exporter CSV
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportToPdf} 
+              disabled={isLoading || submissions.length === 0}
+              className="border-gray-200 text-blue-600 hover:text-blue-700 hover:border-blue-200 hover:bg-blue-50"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exporter PDF
             </Button>
           </div>
         </div>

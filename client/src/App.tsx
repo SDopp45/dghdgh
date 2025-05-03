@@ -34,6 +34,7 @@ import MainLayout from "./components/layout/MainLayout";
 import ListingGenerator from "./pages/listing-generator";
 import Links from "./pages/links";
 import UserLinkPage from "./pages/u/[slug]";
+import PDFExportsPage from "./pages/tools/pdf-exports";
 
 function Router() {
   const { isLoading, user } = useUser();
@@ -114,6 +115,9 @@ function Router() {
             </Route>
             <Route path="/listing-generator">
               <ListingGenerator />
+            </Route>
+            <Route path="/tools/pdf-exports">
+              <PDFExportsPage />
             </Route>
             <Route path="/marketplace">
               <Marketplace />

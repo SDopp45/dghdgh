@@ -73,7 +73,8 @@ export function Sidebar({ className }: SidebarProps) {
       subMenu: [
         { href: "/image-enhancement", label: "Amélioration d'Images", icon: Image },
         { href: "/listing-generator", label: "Générateur d'Annonces", icon: FileText },
-        { href: "/contracts/letters", label: "Modèles de lettres", icon: FileText }
+        { href: "/contracts/letters", label: "Modèles de lettres", icon: FileText },
+        { href: "/tools/pdf-exports", label: "Exports PDF", icon: FileText }
       ],
     }
   ];

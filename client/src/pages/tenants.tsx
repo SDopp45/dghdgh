@@ -261,6 +261,7 @@ export default function Tenants() {
   const [selectedTenant, setSelectedTenant] = useState<TenantWithDetails | null>(null);
   const [isEditingTenant, setIsEditingTenant] = useState(false);
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
 
   const { data: tenants = [], isLoading: tenantsLoading } = useQuery<TenantWithDetails[]>({
     queryKey: ["/api/tenants"],
@@ -453,13 +454,15 @@ export default function Tenants() {
               Gérez vos locataires et leurs baux en toute simplicité
             </motion.p>
           </div>
-          <Button
-            className="gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 shadow-lg hover:shadow-xl transition-all duration-300 animate-gradient-x"
-            onClick={() => setOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Ajouter un locataire
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button
+              className="gap-2 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 shadow-lg hover:shadow-xl transition-all duration-300 animate-gradient-x"
+              onClick={() => setOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Ajouter un locataire
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -488,9 +491,19 @@ export default function Tenants() {
               onFilterChange={onFilterChange}
             />
           </div>
+          <ExportMenu
+            type="tenants"
+            allowImport={true}
+            currentFilters={{
+              search: filters.search,
+              leaseType: filters.leaseType !== "all" ? filters.leaseType : undefined,
+              status: activeTab === 'active' ? 'actif' : 'fini'
+            }}
+            data={activeTab === 'active' ? activeTenants : archivedTenants}
+          />
         </div>
 
-        <Tabs defaultValue="active" className="w-full">
+        <Tabs defaultValue="active" className="w-full" onValueChange={(value) => setActiveTab(value as 'active' | 'archived')}>
           <TabsList className="bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-900/80 dark:to-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
             <TabsTrigger
               value="active"
@@ -517,17 +530,6 @@ export default function Tenants() {
                     Liste des baux en cours
                   </CardDescription>
                 </div>
-                {activeTenants.length > 0 && (
-                  <ExportMenu
-                    type="tenants"
-                    allowImport={true}
-                    currentFilters={{
-                      search: filters.search,
-                      leaseType: filters.leaseType !== "all" ? filters.leaseType : undefined,
-                      status: "active"
-                    }}
-                  />
-                )}
               </CardHeader>
               <CardContent>
                 <TenantTable
@@ -549,17 +551,6 @@ export default function Tenants() {
                     Liste des baux terminés
                   </CardDescription>
                 </div>
-                {archivedTenants.length > 0 && (
-                  <ExportMenu
-                    type="tenants"
-                    allowImport={true}
-                    currentFilters={{
-                      search: filters.search,
-                      leaseType: filters.leaseType !== "all" ? filters.leaseType : undefined,
-                      status: "archived"
-                    }}
-                  />
-                )}
               </CardHeader>
               <CardContent>
                 <TenantTable

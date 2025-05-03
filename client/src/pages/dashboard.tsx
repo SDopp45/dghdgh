@@ -194,16 +194,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-3">
-            <WidgetMenu>
-              <Button className="gap-2 relative overflow-hidden group">
-                <span className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-600 to-blue-500 opacity-70 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="absolute inset-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJncmlkIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPjxwYXRoIGQ9Ik0gMTAgMCBMIDAgMCAwIDEwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIiAvPjwvc3ZnPg==')] opacity-20 group-hover:opacity-30 transition-opacity duration-300"></span>
-                <span className="relative flex items-center gap-2">
-                <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
-                Ajouter un widget
-                </span>
-              </Button>
-            </WidgetMenu>
+            {/* Bouton "Ajouter un widget" supprimé */}
           </div>
         </motion.div>
         
@@ -233,7 +224,7 @@ export default function Dashboard() {
         ) : (
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Tabs defaultValue="general" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="general" className="flex items-center gap-2">
                   <LayoutDashboard className="h-4 w-4" />
                   Général
@@ -241,14 +232,6 @@ export default function Dashboard() {
                 <TabsTrigger value="properties" className="flex items-center gap-2">
                   <Home className="h-4 w-4" />
                   Propriétés
-                </TabsTrigger>
-                <TabsTrigger value="tenants" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Locataires
-                </TabsTrigger>
-                <TabsTrigger value="maintenance" className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4" />
-                  Maintenance
                 </TabsTrigger>
                 <TabsTrigger value="finance" className="flex items-center gap-2">
                   <Wallet className="h-4 w-4" />
@@ -268,18 +251,6 @@ export default function Dashboard() {
                   <PropertyFinanceWidget />
                     <PropertyPerformanceWidget />
                   </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="tenants">
-                <div className="grid gap-6">
-                  {/* Widgets pour les locataires */}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="maintenance">
-                <div className="grid gap-6">
-                  {/* Widgets pour la maintenance */}
                 </div>
               </TabsContent>
               

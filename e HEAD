@@ -1,5 +1,0 @@
-[33mcommit c8e5dbfe17fd603b27701d4365c4c069aaf42d2a[m[33m ([m[1;36mHEAD[m[33m)[m
-Author: SDopp45 <hgfgh1482@gmail.com>
-Date:   Tue Mar 25 11:02:19 2025 +0000
-
-    Ajout de nouvelles fonctionnalités et améliorations dans l'application : - Mise à jour des fichiers de configuration et des dépendances. - Amélioration des composants de l'interface utilisateur, y compris les dialogues et les formulaires. - Optimisation des performances avec des ajustements dans les hooks et les utilitaires. - Nettoyage du code et suppression des éléments obsolètes pour une meilleure maintenabilité.

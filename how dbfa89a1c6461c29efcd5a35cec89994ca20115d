@@ -1,5 +1,0 @@
-[33mcommit dbfa89a1c6461c29efcd5a35cec89994ca20115d[m
-Author: SDopp45 <hgfgh1482@gmail.com>
-Date:   Fri Mar 28 19:21:54 2025 +0000
-
-    Update package dependencies and enhance document handling. Added @types/file-saver and file-saver package for improved file management. Refactored NewTransactionDialog and TransactionsList components for better form handling and document previews. Cleaned up log files and removed outdated document uploads.

@@ -1,5 +1,0 @@
-[33mcommit a5488ff229fd4caa268e5386df887a46477464fa[m[33m ([m[1;36mHEAD[m[33m, [m[1;32mCurs[m[33m)[m
-Author: SDopp45 <hgfgh1482@gmail.com>
-Date:   Fri Mar 28 21:42:31 2025 +0000
-
-    Enhance DocumentList component with improved folder management and document handling. Introduced dropdown menus for moving documents between folders, added pagination state management, and refined file upload handling. Removed outdated PDF documents from uploads directory.

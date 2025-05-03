@@ -141,18 +141,18 @@ export function Sidebar({ className }: SidebarProps) {
             {isCollapsed ? (
               <img 
                 src="/images/logos/Logo.svg" 
-                alt="Gestiobien Logo" 
-                className="h-8 w-8 object-contain filter drop-shadow-[0_0_1px_rgba(0,0,0,0.7)] dark:drop-shadow-[0_0_1px_rgba(255,255,255,0.7)] dark:invert dark:brightness-200" 
+                alt="ImmoVault Logo" 
+                className="h-8 w-8 object-contain filter drop-shadow-[0_0_1px_rgba(0,0,0,0.7)] dark:drop-shadow-[0_0_1px_rgba(255,255,255,0.7)] dark:brightness-0 dark:invert" 
               />
             ) : (
               <div className="flex items-center gap-2">
                 <img 
                   src="/images/logos/Logo.svg" 
-                  alt="Gestiobien Logo" 
-                  className="h-8 w-8 object-contain filter drop-shadow-[0_0_1px_rgba(0,0,0,0.7)] dark:drop-shadow-[0_0_1px_rgba(255,255,255,0.7)] dark:invert dark:brightness-200" 
+                  alt="ImmoVault Logo" 
+                  className="h-8 w-8 object-contain filter drop-shadow-[0_0_1px_rgba(0,0,0,0.7)] dark:drop-shadow-[0_0_1px_rgba(255,255,255,0.7)] dark:brightness-0 dark:invert" 
                 />
                 <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-[#70C7BA] to-[#49EACB] bg-clip-text text-transparent">
-                  Gestiobien
+                  ImmoVault
                 </span>
               </div>
             )}

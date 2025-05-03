@@ -612,12 +612,12 @@ export default function AuthPage() {
           >
             <img 
               src="/images/logos/Logo.svg" 
-              alt="Gestiobien Logo" 
-              className="w-full h-full object-contain filter drop-shadow-[0_0_1px_rgba(0,0,0,0.2)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] brightness-100 dark:brightness-110" 
+              alt="ImmoVault Logo" 
+              className="w-full h-full object-contain filter drop-shadow-[0_0_1px_rgba(0,0,0,0.2)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] brightness-100 dark:brightness-0 dark:invert" 
             />
           </motion.div>
           <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-cyan-500 to-teal-500 dark:from-cyan-400 dark:to-teal-400 bg-clip-text text-transparent tracking-tight">
-            Gestiobien
+            ImmoVault
           </h1>
           <p className="text-sm text-muted-foreground text-center mt-2">
             Système de gestion immobilière intelligent

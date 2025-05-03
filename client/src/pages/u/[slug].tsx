@@ -706,7 +706,7 @@ export default function UserLinkPage() {
           className="hover:opacity-100 transition-opacity"
           style={{ color: profile.textColor || '#000000' }}
         >
-          Créé avec Gestiobien
+          Créé avec ImmoVault
         </a>
       </div>
       

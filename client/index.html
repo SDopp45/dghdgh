@@ -2,9 +2,43 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/images/logos/Logo.png" />
+    <link rel="icon" type="image/svg+xml" href="/images/logos/Logo.svg" id="favicon" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ImmoVault - Gestion immobilière</title>
+    <script>
+      // Changer la favicon selon le mode (clair/sombre)
+      try {
+        const darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (localStorage.theme === 'dark' || (!localStorage.theme && darkMode)) {
+          document.getElementById('favicon').href = '/images/logos/LogoDark.svg';
+        }
+        
+        // Observer les changements de mode
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+          if (localStorage.theme !== 'light' && localStorage.theme !== 'dark') {
+            document.getElementById('favicon').href = e.matches ? 
+              '/images/logos/LogoDark.svg' : 
+              '/images/logos/Logo.svg';
+          }
+        });
+        
+        // Observer les changements de thème
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class') {
+              const isDark = document.documentElement.classList.contains('dark');
+              document.getElementById('favicon').href = isDark ? 
+                '/images/logos/LogoDark.svg' : 
+                '/images/logos/Logo.svg';
+            }
+          });
+        });
+        
+        observer.observe(document.documentElement, { attributes: true });
+      } catch (e) {
+        console.error("Erreur lors du changement de favicon:", e);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

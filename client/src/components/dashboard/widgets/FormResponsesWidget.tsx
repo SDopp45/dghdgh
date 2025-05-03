@@ -152,7 +152,7 @@ export function FormResponsesWidget() {
     
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const nextWeek = addDays(today, 7);
+    const oneWeekAgo = addDays(today, -7);
     
     return submissions.filter(submission => {
       const submissionDate = parseISO(submission.createdAt);
@@ -161,8 +161,7 @@ export function FormResponsesWidget() {
         case 'today':
           return isToday(submissionDate);
         case 'week':
-          return (isAfter(submissionDate, today) || isToday(submissionDate)) && 
-                 isAfter(nextWeek, submissionDate);
+          return isAfter(submissionDate, oneWeekAgo) || isToday(submissionDate);
         case 'all':
         default:
           return true;
@@ -392,7 +391,7 @@ export function FormResponsesWidget() {
                         title="Voir le détail"
                         onClick={() => window.location.href = `/links/form/${currentLink?.id}/submissions/${currentSubmission.id}`}
                       >
-                        <Mail className="h-4 w-4 text-blue-500" />
+                        <FileText className="h-4 w-4 text-blue-500" />
                       </Button>
                     </div>
                   </div>

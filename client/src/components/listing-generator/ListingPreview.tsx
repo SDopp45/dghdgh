@@ -9,7 +9,7 @@ import {
   CheckCircle2, ClipboardCopy, ImageIcon, FileText, Home, PenSquare,
   Users, Building, Briefcase, GraduationCap, Building2, User, MessageCircle,
   Globe, Calendar, UsersRound, HeartPulse, Lightbulb, Leaf, ExternalLink,
-  Sparkles, CheckCheck, ArrowUpRight, Code
+  Sparkles, CheckCheck
 } from "lucide-react";
 import { GeneratedListing } from "@/pages/listing-generator";
 import {
@@ -166,10 +166,6 @@ export function ListingPreview({
               <FileText className="h-3.5 w-3.5 mr-1" />
               Aperçu
             </TabsTrigger>
-            <TabsTrigger value="raw" className="text-xs rounded-md data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 dark:data-[state=active]:bg-indigo-900/40 dark:data-[state=active]:text-indigo-300">
-              <Code className="h-3.5 w-3.5 mr-1" />
-              Code
-            </TabsTrigger>
             <TabsTrigger value="seo" className="text-xs rounded-md data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 dark:data-[state=active]:bg-indigo-900/40 dark:data-[state=active]:text-indigo-300">
               <Globe className="h-3.5 w-3.5 mr-1" />
               SEO
@@ -210,14 +206,6 @@ export function ListingPreview({
                         <p key={i}>{paragraph}</p>
                       ))}
                     </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="raw" className="h-full">
-                  <div className="h-full p-4">
-                    <pre className="whitespace-pre-wrap font-mono text-xs bg-slate-50 dark:bg-slate-800 p-4 rounded-lg overflow-auto h-full border border-slate-100 dark:border-slate-700">
-                      {listing.longDescription}
-                    </pre>
                   </div>
                 </TabsContent>
                 
@@ -348,10 +336,10 @@ export function ListingPreview({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 rounded-full hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300"
-                  onClick={() => handleCopy(listing.longDescription, 'raw')}
+                  onClick={() => handleCopy(listing.longDescription, 'preview')}
                   disabled={isLoading}
                 >
-                  {copied === 'raw' ? (
+                  {copied === 'preview' ? (
                     <CheckCheck className="h-4 w-4 text-green-500 dark:text-green-400" />
                   ) : (
                     <Copy className="h-4 w-4" />
@@ -382,15 +370,6 @@ export function ListingPreview({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-700 dark:to-blue-800 text-white border-0 h-8 px-3 hover:opacity-90"
-          >
-            <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
-            <span className="text-xs">Publier</span>
-          </Button>
         </div>
       </CardFooter>
     </Card>

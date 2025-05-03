@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Visit } from "@/types/visits";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 // UI Components
 import {
@@ -33,13 +34,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuGroup,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar } from "@/components/ui/calendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
 // Icons
@@ -64,7 +78,12 @@ import {
   Phone,
   CalendarRange,
   Users,
-  History
+  History,
+  Video,
+  Home,
+  Sliders,
+  X,
+  Building
 } from "lucide-react";
 
 // Dialogs
@@ -146,6 +165,14 @@ const visitTypeConfig = {
 
 const ITEMS_PER_PAGE = 15;
 
+// Définition du type Property
+interface Property {
+  id: number;
+  name: string;
+  address: string;
+  // Ajoutez d'autres champs si nécessaire
+}
+
 export function ImprovedVisitsTabs() {
   const [activeTab, setActiveTab] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
@@ -156,6 +183,20 @@ export function ImprovedVisitsTabs() {
   const [editVisitDialogOpen, setEditVisitDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  
+  // Nouveaux états pour les filtres supplémentaires
+  const [visitTypeFilter, setVisitTypeFilter] = useState<string | null>(null);
+  const [propertyFilter, setPropertyFilter] = useState<number | null>(null);
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  
+  // Compter le nombre total de filtres actifs
+  const activeFiltersCount = [
+    activeFilter !== null,
+    visitTypeFilter !== null,
+    propertyFilter !== null,
+    dateRangeFilter?.from !== undefined
+  ].filter(Boolean).length;
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -163,6 +204,12 @@ export function ImprovedVisitsTabs() {
   // Récupération des visites depuis l'API
   const { data: visits = [], isLoading } = useQuery<Visit[]>({
     queryKey: ["/api/visits"],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+  
+  // Récupération des propriétés pour le filtre de biens
+  const { data: properties = [] } = useQuery<Property[]>({
+    queryKey: ["/api/properties"],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -181,7 +228,7 @@ export function ImprovedVisitsTabs() {
 
     // Filtrer par statut sélectionné
     const statusFiltered = searchFiltered.filter(visit => visit.status === activeTab);
-
+ 
     // Appliquer les filtres par date
     const dateFiltered = statusFiltered.filter(visit => {
       if (!activeFilter) return true;
@@ -214,9 +261,33 @@ export function ImprovedVisitsTabs() {
       
       return true;
     });
-
-    // Trier selon le champ et l'ordre sélectionnés
-    return dateFiltered.sort((a, b) => {
+    
+    // Appliquer les filtres supplémentaires
+    return dateFiltered.filter(visit => {
+      // Filtre par type de visite
+      if (visitTypeFilter && visit.visitType !== visitTypeFilter) {
+        return false;
+      }
+      
+      // Filtre par propriété
+      if (propertyFilter && visit.propertyId !== propertyFilter) {
+        return false;
+      }
+      
+      // Filtre par plage de dates
+      if (dateRangeFilter?.from) {
+        const visitDate = new Date(visit.datetime);
+        
+        const fromDate = startOfDay(dateRangeFilter.from);
+        const toDate = dateRangeFilter.to ? endOfDay(dateRangeFilter.to) : endOfDay(dateRangeFilter.from);
+        
+        if (!isWithinInterval(visitDate, { start: fromDate, end: toDate })) {
+          return false;
+        }
+      }
+      
+      return true;
+    }).sort((a, b) => {
       let valueA, valueB;
       
       if (sortField === "datetime") {
@@ -237,7 +308,7 @@ export function ImprovedVisitsTabs() {
         ? valueA > valueB ? 1 : -1
         : valueA < valueB ? 1 : -1;
     });
-  }, [visits, activeTab, searchTerm, sortOrder, sortField, activeFilter]);
+  }, [visits, activeTab, searchTerm, sortOrder, sortField, activeFilter, visitTypeFilter, propertyFilter, dateRangeFilter]);
 
   // Compter les visites par statut
   const statusCounts = useMemo(() => {
@@ -248,24 +319,111 @@ export function ImprovedVisitsTabs() {
       no_show: 0
     };
 
+    // Appliquer les filtres avant de compter
     visits.forEach(visit => {
-      if (!visit.archived && counts[visit.status as keyof typeof counts] !== undefined) {
+      if (visit.archived) return;
+
+      // Filtres de recherche
+      if (searchTerm) {
+        const matchesSearch = 
+          visit.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          visit.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (visit.property?.name && visit.property.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (visit.manualAddress && visit.manualAddress.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (visit.email && visit.email.toLowerCase().includes(searchTerm.toLowerCase()));
+        if (!matchesSearch) return;
+      }
+
+      // Filtre de type de visite
+      if (visitTypeFilter && visit.visitType !== visitTypeFilter) return;
+      
+      // Filtre de propriété
+      if (propertyFilter && visit.propertyId !== propertyFilter) return;
+      
+      // Filtre de date prédéfini
+      if (activeFilter) {
+        const visitDate = new Date(visit.datetime);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+
+        if (activeFilter === "today") {
+          const endOfDay = new Date(today);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (!(visitDate >= today && visitDate <= endOfDay)) return;
+        }
+        
+        if (activeFilter === "tomorrow") {
+          const endOfTomorrow = new Date(tomorrow);
+          endOfTomorrow.setHours(23, 59, 59, 999);
+          if (!(visitDate >= tomorrow && visitDate <= endOfTomorrow)) return;
+        }
+        
+        if (activeFilter === "thisWeek") {
+          if (!(visitDate >= today && visitDate < nextWeek)) return;
+        }
+      }
+      
+      // Filtre de plage de dates spécifique
+      if (dateRangeFilter?.from) {
+        const visitDate = new Date(visit.datetime);
+        
+        const fromDate = startOfDay(dateRangeFilter.from);
+        const toDate = dateRangeFilter.to ? endOfDay(dateRangeFilter.to) : endOfDay(dateRangeFilter.from);
+        
+        if (!isWithinInterval(visitDate, { start: fromDate, end: toDate })) return;
+      }
+
+      // Si la visite passe tous les filtres, on l'ajoute au compteur correspondant
+      if (counts[visit.status as keyof typeof counts] !== undefined) {
         counts[visit.status as keyof typeof counts]++;
       }
     });
 
     return counts;
-  }, [visits]);
+  }, [visits, searchTerm, visitTypeFilter, propertyFilter, activeFilter, dateRangeFilter]);
 
-  // Compter les visites passées en attente
+  // Compter le nombre total de visites filtrées (pour l'affichage "X visites trouvées")
+  const totalFilteredVisits = useMemo(() => {
+    return statusCounts.pending + statusCounts.completed + statusCounts.cancelled + statusCounts.no_show;
+  }, [statusCounts]);
+
+  // Compter les visites passées en attente qui correspondent aussi aux filtres
   const pastVisitsCount = useMemo(() => {
     const currentDate = new Date();
 
     return visits.filter(visit => {
       const visitDate = new Date(visit.datetime);
-      return !visit.archived && visitDate < currentDate && visit.status === "pending";
+      
+      // Condition de base: passée, en attente, non archivée
+      const isPassedPending = !visit.archived && visitDate < currentDate && visit.status === "pending";
+      if (!isPassedPending) return false;
+      
+      // Appliquer les filtres
+      if (searchTerm) {
+        const matchesSearch = 
+          visit.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          visit.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (visit.property?.name && visit.property.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (visit.manualAddress && visit.manualAddress.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (visit.email && visit.email.toLowerCase().includes(searchTerm.toLowerCase()));
+        if (!matchesSearch) return false;
+      }
+
+      if (visitTypeFilter && visit.visitType !== visitTypeFilter) return false;
+      if (propertyFilter && visit.propertyId !== propertyFilter) return false;
+      
+      // Note: on n'applique pas les filtres de date aux visites passées
+      // car l'utilisateur veut généralement voir toutes les visites passées en attente
+      
+      return true;
     }).length;
-  }, [visits]);
+  }, [visits, searchTerm, visitTypeFilter, propertyFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredVisits.length / ITEMS_PER_PAGE);
@@ -364,6 +522,55 @@ export function ImprovedVisitsTabs() {
     }
   };
 
+  // Réinitialiser tous les filtres
+  const resetAllFilters = () => {
+    setActiveFilter(null);
+    setVisitTypeFilter(null);
+    setPropertyFilter(null);
+    setDateRangeFilter(undefined);
+    setFilterMenuOpen(false);
+  };
+  
+  // Mise à jour des dates lorsqu'un filtre prédéfini est sélectionné
+  useEffect(() => {
+    if (activeFilter) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (activeFilter === "today") {
+        const endOfDay = new Date(today);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        setDateRangeFilter({
+          from: today,
+          to: endOfDay
+        });
+      } 
+      else if (activeFilter === "tomorrow") {
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const endOfTomorrow = new Date(tomorrow);
+        endOfTomorrow.setHours(23, 59, 59, 999);
+        
+        setDateRangeFilter({
+          from: tomorrow,
+          to: endOfTomorrow
+        });
+      } 
+      else if (activeFilter === "thisWeek") {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 6); // 7 jours au total (aujourd'hui + 6)
+        nextWeek.setHours(23, 59, 59, 999);
+        
+        setDateRangeFilter({
+          from: today,
+          to: nextWeek
+        });
+      }
+    }
+  }, [activeFilter]);
+
   return (
     <div className="space-y-4">
       {/* Notification pour les visites passées */}
@@ -393,40 +600,362 @@ export function ImprovedVisitsTabs() {
           />
         </div>
         <div className="flex gap-2">
+          <Popover open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="relative group gap-1 hover:bg-primary/5 transition-colors"
+              >
+                <Filter className="h-4 w-4 mr-1 group-hover:text-primary" />
+                <span className="group-hover:text-primary">Filtres</span>
+                {activeFiltersCount > 0 && (
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute -top-2 -right-2 py-0 h-5 min-w-[20px] flex items-center justify-center bg-primary text-primary-foreground"
+                  >
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent 
+              className="w-[340px] p-0 sm:w-[420px] md:w-[480px] shadow-lg border-primary/10" 
+              align="end"
+              sideOffset={5}
+            >
+              <div className="p-5 space-y-5">
+                <div className="flex justify-between items-center border-b pb-3">
+                  <h4 className="font-medium text-lg flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filtres avancés
+                  </h4>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={resetAllFilters}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5 mr-1.5" />
+                    Réinitialiser
+                  </Button>
+                </div>
+                
+                {/* Filtres prédéfinis */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium flex items-center gap-1.5">
+                    <CalendarIcon className="h-4 w-4 text-primary" />
+                    Période
+                  </h5>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button 
+                      variant={activeFilter === "today" ? "default" : "outline"}
+                      size="sm" 
+                      className="justify-start h-9 transition-all"
+                      onClick={() => {
+                        setActiveFilter(activeFilter === "today" ? null : "today");
+                        setDateRangeFilter(undefined);
+                      }}
+                    >
+                      <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                      Aujourd'hui
+                    </Button>
+                    <Button 
+                      variant={activeFilter === "tomorrow" ? "default" : "outline"}
+                      size="sm" 
+                      className="justify-start h-9 transition-all"
+                      onClick={() => {
+                        setActiveFilter(activeFilter === "tomorrow" ? null : "tomorrow");
+                        setDateRangeFilter(undefined);
+                      }}
+                    >
+                      <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                      Demain
+                    </Button>
+                    <Button 
+                      variant={activeFilter === "thisWeek" ? "default" : "outline"}
+                      size="sm" 
+                      className="justify-start h-9 transition-all"
+                      onClick={() => {
+                        setActiveFilter(activeFilter === "thisWeek" ? null : "thisWeek");
+                        setDateRangeFilter(undefined);
+                      }}
+                    >
+                      <CalendarRange className="h-3.5 w-3.5 mr-1.5" />
+                      Cette semaine
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Calendrier pour sélection de dates spécifiques */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-sm font-medium flex items-center gap-1.5">
+                      <CalendarRange className="h-4 w-4 text-primary" />
+                      Dates spécifiques
+                    </h5>
+                    {(dateRangeFilter?.from || dateRangeFilter?.to) && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setDateRangeFilter(undefined);
+                          if (activeFilter) {
+                            setActiveFilter(null);
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Effacer
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <div className="text-xs text-muted-foreground">Date de début</div>
+                      <Input 
+                        type="date" 
+                        className="h-9"
+                        value={dateRangeFilter?.from ? format(dateRangeFilter.from, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                          const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                          const to = dateRangeFilter?.to;
+                          
+                          if (newDate) {
+                            setDateRangeFilter({ 
+                              from: newDate,
+                              to: to || newDate // Utilisez la même date si pas de date de fin
+                            });
+                            setActiveFilter(null); // Désactiver les filtres prédéfinis
+                          } else if (to) {
+                            // On ne peut pas avoir seulement "to" sans "from" dans DateRange
+                            setDateRangeFilter({ 
+                              from: to, // Utilisez la date de fin comme début aussi
+                              to: to 
+                            });
+                          } else {
+                            setDateRangeFilter(undefined);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="text-xs text-muted-foreground">Date de fin</div>
+                      <Input 
+                        type="date" 
+                        className="h-9"
+                        value={dateRangeFilter?.to ? format(dateRangeFilter.to, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                          const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                          const from = dateRangeFilter?.from;
+                          
+                          if (newDate && from) {
+                            setDateRangeFilter({ 
+                              from,
+                              to: newDate
+                            });
+                          } else if (newDate) {
+                            // Si on a une date de fin mais pas de début, utiliser la même date pour les deux
+                            setDateRangeFilter({ 
+                              from: newDate,
+                              to: newDate
+                            });
+                            setActiveFilter(null);
+                          } else if (from) {
+                            // On ne peut pas avoir seulement "from" sans "to" dans l'UI
+                            // alors on utilise la même date pour le début et la fin
+                            setDateRangeFilter({ 
+                              from: from,
+                              to: from
+                            });
+                          } else {
+                            setDateRangeFilter(undefined);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <Separator className="my-1" />
+                
+                {/* Type de visite */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-sm font-medium flex items-center gap-1.5">
+                      <Home className="h-4 w-4 text-primary" />
+                      Type de visite
+                    </h5>
+                    {visitTypeFilter && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setVisitTypeFilter(null)}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Effacer
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button 
+                      variant={visitTypeFilter === "physical" ? "default" : "outline"}
+                      size="sm" 
+                      className="justify-start h-9 transition-all"
+                      onClick={() => setVisitTypeFilter(visitTypeFilter === "physical" ? null : "physical")}
+                    >
+                      <Home className="h-3.5 w-3.5 mr-1.5" />
+                      En personne
+                    </Button>
+                    <Button 
+                      variant={visitTypeFilter === "virtual" ? "default" : "outline"}
+                      size="sm" 
+                      className="justify-start h-9 transition-all"
+                      onClick={() => setVisitTypeFilter(visitTypeFilter === "virtual" ? null : "virtual")}
+                    >
+                      <span className="mr-1.5">💻</span>
+                      Virtuelle
+                    </Button>
+                    <Button 
+                      variant={visitTypeFilter === "video" ? "default" : "outline"}
+                      size="sm" 
+                      className="justify-start h-9 transition-all"
+                      onClick={() => setVisitTypeFilter(visitTypeFilter === "video" ? null : "video")}
+                    >
+                      <Video className="h-3.5 w-3.5 mr-1.5" />
+                      Vidéo
+                    </Button>
+                  </div>
+                </div>
+                
+                <Separator className="my-1" />
+                
+                {/* Biens */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-sm font-medium flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      Biens immobiliers
+                    </h5>
+                    {propertyFilter && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setPropertyFilter(null)}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Effacer
+                      </Button>
+                    )}
+                  </div>
+                  <ScrollArea 
+                    className="h-[120px] rounded-md p-1 border border-primary/10 bg-card"
+                    type="always"
+                  >
+                    <div className="space-y-1 pr-3">
+                      {properties.length === 0 ? (
+                        <div className="text-sm text-muted-foreground text-center py-6 flex flex-col items-center gap-2">
+                          <Building className="h-5 w-5 text-muted-foreground" />
+                          Aucun bien disponible
+                        </div>
+                      ) : (
+                        properties.map((property: Property) => (
+                          <Button
+                            key={property.id}
+                            variant={propertyFilter === property.id ? "default" : "ghost"}
+                            size="sm"
+                            className={cn(
+                              "w-full justify-start h-8 transition-all",
+                              propertyFilter === property.id ? "" : "hover:bg-muted"
+                            )}
+                            onClick={() => setPropertyFilter(propertyFilter === property.id ? null : property.id)}
+                          >
+                            <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                            {property.name || property.address}
+                          </Button>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+              
+              <div className="flex border-t p-4 gap-3 bg-muted/50">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setFilterMenuOpen(false)}
+                >
+                  Fermer
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  disabled={activeFiltersCount === 0}
+                  onClick={resetAllFilters}
+                >
+                  Effacer les filtres
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-1">
-                <Filter className="h-4 w-4 mr-1" />
+              <Button 
+                variant="outline" 
+                className="gap-1 hover:bg-primary/5 transition-colors"
+              >
                 {activeFilter ? (
-                  <span>
+                  <span className="flex items-center">
+                    <CalendarIcon className="h-4 w-4 mr-1.5" />
                     {activeFilter === "today" && "Aujourd'hui"}
                     {activeFilter === "tomorrow" && "Demain"}
                     {activeFilter === "thisWeek" && "Cette semaine"}
                   </span>
                 ) : (
-                  "Filtres"
+                  <span className="flex items-center gap-1">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span className="hidden sm:inline">Période</span>
+                  </span>
                 )}
-                {activeFilter && <Badge variant="secondary" className="ml-1.5 py-0 h-5">1</Badge>}
+                {activeFilter && (
+                  <Badge variant="secondary" className="ml-1.5 py-0 h-5 bg-primary/20">1</Badge>
+                )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 p-1">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Filtrer par période
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => setActiveFilter("today")}
-                className={cn(activeFilter === "today" && "bg-primary/10 font-medium")}
+                className={cn(
+                  "flex items-center cursor-pointer",
+                  activeFilter === "today" && "bg-primary/10 text-primary font-medium"
+                )}
               >
                 <CalendarIcon className="h-4 w-4 mr-2" />
                 Aujourd'hui
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => setActiveFilter("tomorrow")}
-                className={cn(activeFilter === "tomorrow" && "bg-primary/10 font-medium")}
+                className={cn(
+                  "flex items-center cursor-pointer",
+                  activeFilter === "tomorrow" && "bg-primary/10 text-primary font-medium"
+                )}
               >
                 <CalendarIcon className="h-4 w-4 mr-2" />
                 Demain
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => setActiveFilter("thisWeek")}
-                className={cn(activeFilter === "thisWeek" && "bg-primary/10 font-medium")}
+                className={cn(
+                  "flex items-center cursor-pointer",
+                  activeFilter === "thisWeek" && "bg-primary/10 text-primary font-medium"
+                )}
               >
                 <CalendarRange className="h-4 w-4 mr-2" />
                 Cette semaine
@@ -435,9 +964,10 @@ export function ImprovedVisitsTabs() {
               <DropdownMenuItem 
                 onClick={() => setActiveFilter(null)}
                 disabled={!activeFilter}
+                className="text-muted-foreground"
               >
                 <XCircle className="h-4 w-4 mr-2" />
-                Effacer les filtres
+                Effacer le filtre
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -445,6 +975,102 @@ export function ImprovedVisitsTabs() {
           <CalendarSyncMenu />
         </div>
       </div>
+      
+      {/* Filtres actifs */}
+      {activeFiltersCount > 0 && (
+        <motion.div 
+          className="flex flex-wrap gap-2 items-center py-2 px-3 rounded-md border border-primary/10 bg-primary/5"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <span className="text-xs text-muted-foreground font-medium">Filtres actifs:</span>
+          {activeFilter && (
+            <Badge 
+              className="flex gap-1.5 items-center bg-white hover:bg-white/80 text-primary border-primary/20 shadow-sm transition-all"
+              variant="outline"
+            >
+              <CalendarIcon className="h-3 w-3 text-primary" />
+              {activeFilter === "today" && "Aujourd'hui"}
+              {activeFilter === "tomorrow" && "Demain"}
+              {activeFilter === "thisWeek" && "Cette semaine"}
+              <X 
+                className="h-3 w-3 ml-1 cursor-pointer text-muted-foreground hover:text-foreground" 
+                onClick={() => setActiveFilter(null)}
+              />
+            </Badge>
+          )}
+          
+          {dateRangeFilter?.from && (
+            <Badge 
+              className="flex gap-1.5 items-center bg-white hover:bg-white/80 text-primary border-primary/20 shadow-sm transition-all"
+              variant="outline"
+            >
+              <CalendarRange className="h-3 w-3 text-primary" />
+              {format(dateRangeFilter.from, "dd/MM/yyyy", { locale: fr })}
+              {dateRangeFilter.to && ` - ${format(dateRangeFilter.to, "dd/MM/yyyy", { locale: fr })}`}
+              <X 
+                className="h-3 w-3 ml-1 cursor-pointer text-muted-foreground hover:text-foreground" 
+                onClick={() => setDateRangeFilter(undefined)}
+              />
+            </Badge>
+          )}
+          
+          {visitTypeFilter && (
+            <Badge 
+              className="flex gap-1.5 items-center bg-white hover:bg-white/80 text-primary border-primary/20 shadow-sm transition-all"
+              variant="outline"
+            >
+              {visitTypeFilter === "physical" && (
+                <>
+                  <Home className="h-3 w-3 text-primary" />
+                  <span>En personne</span>
+                </>
+              )}
+              {visitTypeFilter === "virtual" && (
+                <>
+                  <span>💻</span>
+                  <span>Virtuelle</span>
+                </>
+              )}
+              {visitTypeFilter === "video" && (
+                <>
+                  <Video className="h-3 w-3 text-primary" />
+                  <span>Vidéo</span>
+                </>
+              )}
+              <X 
+                className="h-3 w-3 ml-1 cursor-pointer text-muted-foreground hover:text-foreground" 
+                onClick={() => setVisitTypeFilter(null)}
+              />
+            </Badge>
+          )}
+          
+          {propertyFilter && (
+            <Badge 
+              className="flex gap-1.5 items-center bg-white hover:bg-white/80 text-primary border-primary/20 shadow-sm transition-all"
+              variant="outline"
+            >
+              <MapPin className="h-3 w-3 text-primary" />
+              {properties.find((p: Property) => p.id === propertyFilter)?.name || "Bien sélectionné"}
+              <X 
+                className="h-3 w-3 ml-1 cursor-pointer text-muted-foreground hover:text-foreground" 
+                onClick={() => setPropertyFilter(null)}
+              />
+            </Badge>
+          )}
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="ml-auto h-7 text-xs text-muted-foreground hover:text-primary hover:bg-primary/5"
+            onClick={resetAllFilters}
+          >
+            <X className="h-3.5 w-3.5 mr-1" />
+            Effacer tous les filtres
+          </Button>
+        </motion.div>
+      )}
 
       {/* Onglets par statut */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -482,11 +1108,22 @@ export function ImprovedVisitsTabs() {
               <CardTitle className="text-xl flex items-center justify-between">
                 <span>Visites {statusConfig[activeTab as keyof typeof statusConfig].label}</span>
                 <Badge variant="outline" className="font-normal">
-                  {filteredVisits.length} visite{filteredVisits.length > 1 ? "s" : ""}
+                  {totalFilteredVisits} visite{totalFilteredVisits > 1 ? "s" : ""}
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-1 text-xs text-muted-foreground">(filtré)</span>
+                  )}
                 </Badge>
               </CardTitle>
               <CardDescription>
-                Gérez et suivez toutes vos visites organisées par statut
+                {activeFiltersCount > 0 ? (
+                  <>
+                    Résultats filtrés selon les critères sélectionnés
+                  </>
+                ) : (
+                  <>
+                    Gérez et suivez toutes vos visites organisées par statut
+                  </>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -656,7 +1293,7 @@ export function ImprovedVisitsTabs() {
                 <div className="flex items-center justify-between mt-6">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      Affichage de {Math.min(1 + (currentPage - 1) * ITEMS_PER_PAGE, filteredVisits.length)} à {Math.min(currentPage * ITEMS_PER_PAGE, filteredVisits.length)} sur {filteredVisits.length} visites
+                      Affichage de {Math.min(1 + (currentPage - 1) * ITEMS_PER_PAGE, totalFilteredVisits)} à {Math.min(currentPage * ITEMS_PER_PAGE, totalFilteredVisits)} sur {totalFilteredVisits} visites
                     </p>
                   </div>
                   <div className="flex items-center gap-1">

@@ -90,10 +90,10 @@ export function CreditWidget() {
 
   return (
     <Card className="w-1/2 h-[140px] bg-gradient-to-br from-background/90 to-background/50 backdrop-blur-sm border-t-2 border-t-primary/30 hover:border-primary/50 transition-all duration-300 hover:shadow-lg overflow-hidden relative">
-      <div className="absolute inset-0 w-[5px] h-full bg-gradient-to-b from-orange-500/70 to-orange-500/30" />
+      <div className="absolute inset-0 w-[5px] h-full bg-gradient-to-b from-blue-500/70 to-blue-500/30" />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 p-2 pl-4 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="p-1 rounded-full bg-background/80 shadow-md backdrop-blur-sm border border-border/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 text-orange-500">
+          <div className="p-1 rounded-full bg-background/80 shadow-md backdrop-blur-sm border border-border/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 text-blue-500">
             <CreditCard className="h-4 w-4" />
           </div>
           <CardTitle className="text-sm font-medium flex items-center gap-1">
@@ -192,7 +192,7 @@ export function CreditWidget() {
                 <div className="flex items-start justify-between w-full">
                   <div className="flex items-start gap-2 max-w-[60%]">
                     <div className="p-1 rounded-full bg-background/80 shadow-sm border border-border/20 mt-0.5">
-                      <CreditCard className="h-3 w-3 text-orange-500" />
+                      <CreditCard className="h-3 w-3 text-blue-500" />
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium truncate">
@@ -214,7 +214,7 @@ export function CreditWidget() {
 
                   <div className="flex flex-col items-end gap-1 max-w-[40%]">
                     <div className="flex items-center gap-2">
-                      <div className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 truncate">
+                      <div className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 truncate">
                         {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(pendingCredits[currentCreditIndex].amount)}
                       </div>
                     </div>

@@ -1177,14 +1177,20 @@ export function DashboardWidgetScroller({ className }: DashboardWidgetScrollerPr
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       </Card>
 
-        {/* Nouveau widget des loyers en attente */}
+        {/* Widget Fin de baux */}
+        <LeaseEndWidget />
+      </div>
+
+      {/* Nouvelle rangée pour les widgets financiers */}
+      <div className="flex gap-4 mt-4">
+        {/* Widget des loyers en attente */}
         <Card className="w-1/2 h-[140px] bg-gradient-to-br from-background/90 to-background/50 backdrop-blur-sm border-t-2 border-t-primary/30 hover:border-primary/50 transition-all duration-300 hover:shadow-lg overflow-hidden relative">
           <div className="absolute inset-0 w-[5px] h-full bg-gradient-to-b from-blue-500/70 to-blue-500/30" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 p-2 pl-4 relative z-10">
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-full bg-background/80 shadow-md backdrop-blur-sm border border-border/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 text-blue-500">
                 <Wallet className="h-4 w-4" />
-    </div>
+              </div>
               <CardTitle className="text-sm font-medium flex items-center gap-1">
                 <span>Loyers à encaisser{rentFilterMode === 'today' ? " (aujourd'hui)" : rentFilterMode === 'week' ? " (7j)" : ""}</span>
                 {getPendingRents().length > 0 && (
@@ -1386,12 +1392,9 @@ export function DashboardWidgetScroller({ className }: DashboardWidgetScrollerPr
           </CardContent>
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         </Card>
-      </div>
-
-      {/* Nouvelle rangée pour le widget des crédits */}
-      <div className="flex gap-4 mt-4">
+        
+        {/* Widget des crédits à payer */}
         <CreditWidget />
-        <LeaseEndWidget />
       </div>
 
       {/* Dialogue de confirmation pour la mise à jour du statut */}

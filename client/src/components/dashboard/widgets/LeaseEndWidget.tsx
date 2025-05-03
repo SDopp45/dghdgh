@@ -102,10 +102,10 @@ export function LeaseEndWidget() {
 
   return (
     <Card className="w-1/2 h-[140px] bg-gradient-to-br from-background/90 to-background/50 backdrop-blur-sm border-t-2 border-t-primary/30 hover:border-primary/50 transition-all duration-300 hover:shadow-lg overflow-hidden relative">
-      <div className="absolute inset-0 w-[5px] h-full bg-gradient-to-b from-green-500/70 to-green-500/30" />
+      <div className="absolute inset-0 w-[5px] h-full bg-gradient-to-b from-orange-500/70 to-orange-500/30" />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 p-2 pl-4 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="p-1 rounded-full bg-background/80 shadow-md backdrop-blur-sm border border-border/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 text-green-500">
+          <div className="p-1 rounded-full bg-background/80 shadow-md backdrop-blur-sm border border-border/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 text-orange-500">
             <Calendar className="h-4 w-4" />
           </div>
           <CardTitle className="text-sm font-medium flex items-center gap-1">
@@ -204,7 +204,7 @@ export function LeaseEndWidget() {
                 <div className="flex items-start justify-between w-full">
                   <div className="flex items-start gap-2 max-w-[60%]">
                     <div className="p-1 rounded-full bg-background/80 shadow-sm border border-border/20 mt-0.5">
-                      <Home className="h-3 w-3 text-green-500" />
+                      <Home className="h-3 w-3 text-orange-500" />
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium truncate">
@@ -250,11 +250,11 @@ export function LeaseEndWidget() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7 hover:bg-green-100 dark:hover:bg-green-900/20 rounded-full" 
+                        className="h-7 w-7 hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded-full" 
                         title="Voir la propriété"
                         onClick={() => window.location.href = `/properties/${endingSoonLeases[currentTenantIndex].propertyId}`}
                       >
-                        <Home className="h-4 w-4 text-green-500" />
+                        <Home className="h-4 w-4 text-orange-500" />
                       </Button>
                     </div>
                   </div>

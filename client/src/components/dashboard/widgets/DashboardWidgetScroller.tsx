@@ -62,6 +62,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CreditWidget } from "./CreditWidget";
 
 interface DashboardWidgetScrollerProps {
   className?: string;
@@ -1383,6 +1384,12 @@ export function DashboardWidgetScroller({ className }: DashboardWidgetScrollerPr
           </CardContent>
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         </Card>
+      </div>
+
+      {/* Nouvelle rangée pour le widget des crédits */}
+      <div className="flex gap-4 mt-4">
+        <CreditWidget />
+        <div className="w-1/2"></div>
       </div>
 
       {/* Dialogue de confirmation pour la mise à jour du statut */}

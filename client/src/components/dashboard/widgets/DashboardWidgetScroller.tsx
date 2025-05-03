@@ -63,6 +63,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CreditWidget } from "./CreditWidget";
+import { PendingCreditsWidgetBlue } from "@/components/dashboard/widgets/PendingCreditsWidgetBlue";
+import { LeaseEndWidget } from "@/components/dashboard/widgets/LeaseEndWidget";
 
 interface DashboardWidgetScrollerProps {
   className?: string;
@@ -1389,7 +1391,7 @@ export function DashboardWidgetScroller({ className }: DashboardWidgetScrollerPr
       {/* Nouvelle rangée pour le widget des crédits */}
       <div className="flex gap-4 mt-4">
         <CreditWidget />
-        <div className="w-1/2"></div>
+        <LeaseEndWidget />
       </div>
 
       {/* Dialogue de confirmation pour la mise à jour du statut */}

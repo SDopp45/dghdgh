@@ -55,6 +55,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       case '/maintenance': return 'Maintenance';
       case '/finance': return 'Finances';
       case '/documents': return 'Documents';
+      case '/links': return 'Liens';
+      case '/marketplace': return 'Prestataires';
+      case '/image-enhancement': return 'Amélioration d\'images';
+      case '/listing-generator': return 'Générateur d\'annonces';
+      case '/contracts/letters': return 'Modèles de lettres';
       case '/settings': return 'Paramètres';
       default: return '';
     }

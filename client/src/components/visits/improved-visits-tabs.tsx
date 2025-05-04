@@ -167,6 +167,14 @@ const visitTypeConfig = {
   }
 };
 
+// Configuration des colonnes par type de vue
+const columnsByViewType = {
+  default: ["visitor", "datetime", "property", "contact", "type", "actions"],
+  locataires: ["visitor", "datetime", "property", "type", "actions"],
+  maintenance: ["visitor", "datetime", "property", "contact", "actions"],
+  transactions: ["visitor", "property", "contact", "type", "actions"]
+};
+
 const ITEMS_PER_PAGE = 15;
 
 // Définition du type Property
@@ -186,13 +194,20 @@ export function ImprovedVisitsTabs() {
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const [editVisitDialogOpen, setEditVisitDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>("today");
   
   // Nouveaux états pour les filtres supplémentaires
   const [visitTypeFilter, setVisitTypeFilter] = useState<string | null>(null);
   const [propertyFilter, setPropertyFilter] = useState<number | null>(null);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  
+  // Type de vue sélectionné (par défaut, vue standard)
+  const [activeViewType, setActiveViewType] = useState<keyof typeof columnsByViewType>(() => {
+    // Récupérer la préférence utilisateur du localStorage
+    const savedViewType = localStorage.getItem('visitsViewType');
+    return (savedViewType as keyof typeof columnsByViewType) || "default";
+  });
   
   // Compter le nombre total de filtres actifs
   const activeFiltersCount = [
@@ -268,12 +283,12 @@ export function ImprovedVisitsTabs() {
     
     // Appliquer les filtres supplémentaires
     return dateFiltered.filter(visit => {
-      // Filtre par type de visite
+      // Filtre par type de visite (par défaut, afficher tous les types si aucun filtre n'est sélectionné)
       if (visitTypeFilter && visit.visitType !== visitTypeFilter) {
         return false;
       }
       
-      // Filtre par propriété
+      // Filtre par propriété (par défaut, afficher toutes les propriétés si aucun filtre n'est sélectionné)
       if (propertyFilter && visit.propertyId !== propertyFilter) {
         return false;
       }
@@ -574,6 +589,26 @@ export function ImprovedVisitsTabs() {
       }
     }
   }, [activeFilter]);
+
+  // Sauvegarder le type de vue dans localStorage
+  useEffect(() => {
+    localStorage.setItem('visitsViewType', activeViewType);
+  }, [activeViewType]);
+
+  // Initialiser le filtre de date au chargement de la page
+  useEffect(() => {
+    // Appliquer le filtre "today" au chargement initial
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    setDateRangeFilter({
+      from: today,
+      to: endOfDay
+    });
+  }, []);
 
   // Fonction pour exporter les données filtrées
   const exportVisitsData = (exportFormat: 'csv' | 'pdf', visits: Visit[]) => {
@@ -952,7 +987,7 @@ export function ImprovedVisitsTabs() {
                   </h5>
                   <div className="grid grid-cols-3 gap-2">
                     <Button 
-                      variant={activeFilter === "today" ? "default" : "outline"}
+                      variant={!activeFilter || activeFilter === "today" ? "default" : "outline"}
                       size="sm" 
                       className="justify-start h-9 transition-all"
                       onClick={() => {
@@ -964,7 +999,7 @@ export function ImprovedVisitsTabs() {
                       Aujourd'hui
                     </Button>
                     <Button 
-                      variant={activeFilter === "tomorrow" ? "default" : "outline"}
+                      variant={!activeFilter || activeFilter === "tomorrow" ? "default" : "outline"}
                       size="sm" 
                       className="justify-start h-9 transition-all"
                       onClick={() => {
@@ -976,7 +1011,7 @@ export function ImprovedVisitsTabs() {
                       Demain
                     </Button>
                     <Button 
-                      variant={activeFilter === "thisWeek" ? "default" : "outline"}
+                      variant={!activeFilter || activeFilter === "thisWeek" ? "default" : "outline"}
                       size="sm" 
                       className="justify-start h-9 transition-all"
                       onClick={() => {
@@ -1104,28 +1139,46 @@ export function ImprovedVisitsTabs() {
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <Button 
-                      variant={visitTypeFilter === "physical" ? "default" : "outline"}
+                      variant={!visitTypeFilter || visitTypeFilter === "physical" ? "default" : "outline"}
                       size="sm" 
                       className="justify-start h-9 transition-all"
-                      onClick={() => setVisitTypeFilter(visitTypeFilter === "physical" ? null : "physical")}
+                      onClick={() => {
+                        if (visitTypeFilter === "physical") {
+                          setVisitTypeFilter(null);
+                        } else {
+                          setVisitTypeFilter("physical");
+                        }
+                      }}
                     >
                       <Home className="h-3.5 w-3.5 mr-1.5" />
                       En personne
                     </Button>
                     <Button 
-                      variant={visitTypeFilter === "virtual" ? "default" : "outline"}
+                      variant={!visitTypeFilter || visitTypeFilter === "virtual" ? "default" : "outline"}
                       size="sm" 
                       className="justify-start h-9 transition-all"
-                      onClick={() => setVisitTypeFilter(visitTypeFilter === "virtual" ? null : "virtual")}
+                      onClick={() => {
+                        if (visitTypeFilter === "virtual") {
+                          setVisitTypeFilter(null);
+                        } else {
+                          setVisitTypeFilter("virtual");
+                        }
+                      }}
                     >
                       <span className="mr-1.5">💻</span>
                       Virtuelle
                     </Button>
                     <Button 
-                      variant={visitTypeFilter === "video" ? "default" : "outline"}
+                      variant={!visitTypeFilter || visitTypeFilter === "video" ? "default" : "outline"}
                       size="sm" 
                       className="justify-start h-9 transition-all"
-                      onClick={() => setVisitTypeFilter(visitTypeFilter === "video" ? null : "video")}
+                      onClick={() => {
+                        if (visitTypeFilter === "video") {
+                          setVisitTypeFilter(null);
+                        } else {
+                          setVisitTypeFilter("video");
+                        }
+                      }}
                     >
                       <Video className="h-3.5 w-3.5 mr-1.5" />
                       Vidéo
@@ -1168,7 +1221,7 @@ export function ImprovedVisitsTabs() {
                         properties.map((property: Property) => (
                           <Button
                             key={property.id}
-                            variant={propertyFilter === property.id ? "default" : "ghost"}
+                            variant={!propertyFilter || propertyFilter === property.id ? "default" : "ghost"}
                             size="sm"
                             className={cn(
                               "w-full justify-start h-8 transition-all",
@@ -1238,7 +1291,7 @@ export function ImprovedVisitsTabs() {
                 onClick={() => setActiveFilter("today")}
                 className={cn(
                   "flex items-center cursor-pointer",
-                  activeFilter === "today" && "bg-primary/10 text-primary font-medium"
+                  !activeFilter || activeFilter === "today" ? "bg-primary/10 text-primary font-medium" : ""
                 )}
               >
                 <CalendarIcon className="h-4 w-4 mr-2" />
@@ -1248,7 +1301,7 @@ export function ImprovedVisitsTabs() {
                 onClick={() => setActiveFilter("tomorrow")}
                 className={cn(
                   "flex items-center cursor-pointer",
-                  activeFilter === "tomorrow" && "bg-primary/10 text-primary font-medium"
+                  !activeFilter || activeFilter === "tomorrow" ? "bg-primary/10 text-primary font-medium" : ""
                 )}
               >
                 <CalendarIcon className="h-4 w-4 mr-2" />
@@ -1258,7 +1311,7 @@ export function ImprovedVisitsTabs() {
                 onClick={() => setActiveFilter("thisWeek")}
                 className={cn(
                   "flex items-center cursor-pointer",
-                  activeFilter === "thisWeek" && "bg-primary/10 text-primary font-medium"
+                  !activeFilter || activeFilter === "thisWeek" ? "bg-primary/10 text-primary font-medium" : ""
                 )}
               >
                 <CalendarRange className="h-4 w-4 mr-2" />
@@ -1316,6 +1369,52 @@ export function ImprovedVisitsTabs() {
           </DropdownMenu>
 
           <CalendarSyncMenu />
+        </div>
+      </div>
+      
+      {/* Sélecteur de type de vue */}
+      <div className="flex items-center pb-3">
+        <div className="w-full bg-muted/30 p-2 rounded-lg border">
+          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <span className="text-sm font-medium flex items-center gap-1.5">
+              <Sliders className="h-4 w-4 text-primary" /> 
+              Colonnes à afficher:
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant={activeViewType === "default" ? "default" : "outline"}
+                size="sm"
+                className="h-8"
+                onClick={() => setActiveViewType("default")}
+              >
+                Standard
+              </Button>
+              <Button 
+                variant={activeViewType === "locataires" ? "default" : "outline"}
+                size="sm"
+                className="h-8"
+                onClick={() => setActiveViewType("locataires")}
+              >
+                Locataires
+              </Button>
+              <Button 
+                variant={activeViewType === "maintenance" ? "default" : "outline"}
+                size="sm"
+                className="h-8"
+                onClick={() => setActiveViewType("maintenance")}
+              >
+                Maintenance
+              </Button>
+              <Button 
+                variant={activeViewType === "transactions" ? "default" : "outline"}
+                size="sm"
+                className="h-8"
+                onClick={() => setActiveViewType("transactions")}
+              >
+                Transactions
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -1464,7 +1563,7 @@ export function ImprovedVisitsTabs() {
                   </>
                 ) : (
                   <>
-                    Gérez et suivez toutes vos visites organisées par statut
+                    Affichage de toutes les visites {statusConfig[activeTab as keyof typeof statusConfig].label.toLowerCase()}
                   </>
                 )}
               </CardDescription>
@@ -1479,33 +1578,50 @@ export function ImprovedVisitsTabs() {
                   <Table className="min-w-full">
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
-                        <TableHead onClick={() => handleSort("name")} className="cursor-pointer hover:bg-muted/50 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <span>Visiteur</span>
-                            {sortField === "name" && (
-                              <ArrowDownUp className={`h-3.5 w-3.5 ml-1 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
-                            )}
-                          </div>
-                        </TableHead>
-                        <TableHead onClick={() => handleSort("datetime")} className="cursor-pointer hover:bg-muted/50 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <span>Date & Heure</span>
-                            {sortField === "datetime" && (
-                              <ArrowDownUp className={`h-3.5 w-3.5 ml-1 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
-                            )}
-                          </div>
-                        </TableHead>
-                        <TableHead onClick={() => handleSort("property")} className="cursor-pointer hover:bg-muted/50 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <span>Bien</span>
-                            {sortField === "property" && (
-                              <ArrowDownUp className={`h-3.5 w-3.5 ml-1 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
-                            )}
-                          </div>
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap">Contact</TableHead>
-                        <TableHead className="whitespace-nowrap">Type</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        {columnsByViewType[activeViewType].includes("visitor") && (
+                          <TableHead onClick={() => handleSort("name")} className="cursor-pointer hover:bg-muted/50 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <span>Visiteur</span>
+                              {sortField === "name" && (
+                                <ArrowDownUp className={`h-3.5 w-3.5 ml-1 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
+                              )}
+                            </div>
+                          </TableHead>
+                        )}
+                        
+                        {columnsByViewType[activeViewType].includes("datetime") && (
+                          <TableHead onClick={() => handleSort("datetime")} className="cursor-pointer hover:bg-muted/50 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <span>Date & Heure</span>
+                              {sortField === "datetime" && (
+                                <ArrowDownUp className={`h-3.5 w-3.5 ml-1 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
+                              )}
+                            </div>
+                          </TableHead>
+                        )}
+                        
+                        {columnsByViewType[activeViewType].includes("property") && (
+                          <TableHead onClick={() => handleSort("property")} className="cursor-pointer hover:bg-muted/50 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <span>Bien</span>
+                              {sortField === "property" && (
+                                <ArrowDownUp className={`h-3.5 w-3.5 ml-1 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
+                              )}
+                            </div>
+                          </TableHead>
+                        )}
+                        
+                        {columnsByViewType[activeViewType].includes("contact") && (
+                          <TableHead className="whitespace-nowrap">Contact</TableHead>
+                        )}
+                        
+                        {columnsByViewType[activeViewType].includes("type") && (
+                          <TableHead className="whitespace-nowrap">Type</TableHead>
+                        )}
+                        
+                        {columnsByViewType[activeViewType].includes("actions") && (
+                          <TableHead className="text-right">Actions</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1523,106 +1639,123 @@ export function ImprovedVisitsTabs() {
                               setEditVisitDialogOpen(true);
                             }}
                           >
-                            <TableCell className="font-medium py-4">
-                              <div className="flex items-center gap-1.5">
-                                <Badge 
-                                  variant="outline" 
-                                  className={`h-6 w-2 p-0 mr-2 ${statusConfig[visit.status as keyof typeof statusConfig].dot}`}
-                                />
-                                {visit.firstName} {visit.lastName}
-                              </div>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <div className="flex items-center">
-                                <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                                {formatVisitDate(visit.datetime)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center overflow-hidden">
-                                <MapPin className="h-3.5 w-3.5 mr-1.5 shrink-0 text-muted-foreground" />
-                                <span className="truncate">
-                                  {visit.property?.name || visit.manualAddress || "Non spécifié"}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center">
-                                  <Mail className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                                  <span className="truncate">{visit.email}</span>
+                            {columnsByViewType[activeViewType].includes("visitor") && (
+                              <TableCell className="font-medium py-4">
+                                <div className="flex items-center gap-1.5">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`h-6 w-2 p-0 mr-2 ${statusConfig[visit.status as keyof typeof statusConfig].dot}`}
+                                  />
+                                  {visit.firstName} {visit.lastName}
                                 </div>
+                              </TableCell>
+                            )}
+                            
+                            {columnsByViewType[activeViewType].includes("datetime") && (
+                              <TableCell className="whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <Phone className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                                  <span>{visit.phone}</span>
+                                  <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                                  {formatVisitDate(visit.datetime)}
                                 </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Badge variant="outline" className="whitespace-nowrap">
-                                      <span className="mr-1">{visitTypeConfig[visit.visitType as keyof typeof visitTypeConfig].icon}</span>
-                                      <span className="hidden sm:inline">
-                                        {visitTypeConfig[visit.visitType as keyof typeof visitTypeConfig].label}
-                                      </span>
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {visitTypeConfig[visit.visitType as keyof typeof visitTypeConfig].label}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-end gap-1">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  onClick={() => {
-                                    setSelectedVisit(visit);
-                                    setEditVisitDialogOpen(true);
-                                  }}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive hover:text-destructive/90"
-                                  onClick={() => handleDeleteVisit(visit.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {Object.entries(statusConfig).map(([status, config]) => (
-                                      status !== visit.status && (
-                                        <DropdownMenuItem
-                                          key={status}
-                                          onClick={() => handleStatusChange(visit.id, status)}
-                                          className="flex items-center gap-2"
-                                        >
-                                          {config.icon}
-                                          <span>Marquer comme {config.label}</span>
-                                        </DropdownMenuItem>
-                                      )
-                                    ))}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem>
-                                      <ExternalLink className="h-4 w-4 mr-2" />
-                                      <span>Voir les détails</span>
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </TableCell>
+                              </TableCell>
+                            )}
+                            
+                            {columnsByViewType[activeViewType].includes("property") && (
+                              <TableCell>
+                                <div className="flex items-center overflow-hidden">
+                                  <MapPin className="h-3.5 w-3.5 mr-1.5 shrink-0 text-muted-foreground" />
+                                  <span className="truncate">
+                                    {visit.property?.name || visit.manualAddress || "Non spécifié"}
+                                  </span>
+                                </div>
+                              </TableCell>
+                            )}
+                            
+                            {columnsByViewType[activeViewType].includes("contact") && (
+                              <TableCell>
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center">
+                                    <Mail className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                                    <span className="truncate">{visit.email}</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <Phone className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                                    <span>{visit.phone}</span>
+                                  </div>
+                                </div>
+                              </TableCell>
+                            )}
+                            
+                            {columnsByViewType[activeViewType].includes("type") && (
+                              <TableCell>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Badge variant="outline" className="whitespace-nowrap">
+                                        <span className="mr-1">{visitTypeConfig[visit.visitType as keyof typeof visitTypeConfig].icon}</span>
+                                        <span className="hidden sm:inline">
+                                          {visitTypeConfig[visit.visitType as keyof typeof visitTypeConfig].label}
+                                        </span>
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {visitTypeConfig[visit.visitType as keyof typeof visitTypeConfig].label}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            )}
+                            
+                            {columnsByViewType[activeViewType].includes("actions") && (
+                              <TableCell className="text-right">
+                                <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-end gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => {
+                                      setSelectedVisit(visit);
+                                      setEditVisitDialogOpen(true);
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:text-destructive/90"
+                                    onClick={() => handleDeleteVisit(visit.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      {Object.entries(statusConfig).map(([status, config]) => (
+                                        status !== visit.status && (
+                                          <DropdownMenuItem
+                                            key={status}
+                                            onClick={() => handleStatusChange(visit.id, status)}
+                                            className="flex items-center gap-2"
+                                          >
+                                            {config.icon}
+                                            <span>Marquer comme {config.label}</span>
+                                          </DropdownMenuItem>
+                                        )
+                                      ))}
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem>
+                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                        <span>Voir les détails</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableCell>
+                            )}
                           </motion.tr>
                         ))}
                       </AnimatePresence>

@@ -22,6 +22,7 @@ import { fr } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Schéma pour le formulaire de configuration
 const pdfConfigSchema = z.object({
@@ -40,7 +41,22 @@ const pdfConfigSchema = z.object({
   includeDateInHeader: z.boolean().default(true),
 });
 
-type PDFConfigFormValues = z.infer<typeof pdfConfigSchema>;
+// Schéma pour les préférences spécifiques au type de document
+const documentPreferencesSchema = z.object({
+  customTitle: z.string().optional(),
+  columnsToDisplay: z.array(z.string()),
+  tableHeaderColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide").default("#4B70E2"),
+  tableTextColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide").default("#000000"),
+  tableAlternateColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide").default("#F5F5FF"),
+  maxItemsPerPage: z.number().min(1).max(50).default(10)
+});
+
+// Étendre le schéma principal pour inclure les préférences par type
+const extendedPdfConfigSchema = pdfConfigSchema.extend({
+  documentPreferences: z.record(z.string(), documentPreferencesSchema).optional()
+});
+
+type ExtendedPDFConfigFormValues = z.infer<typeof extendedPdfConfigSchema>;
 
 export default function PDFExportsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -49,6 +65,8 @@ export default function PDFExportsPage() {
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [autoPreview, setAutoPreview] = useState(true);
   const [selectedPdfType, setSelectedPdfType] = useState<string>("visits");
+  const [isColorDragging, setIsColorDragging] = useState(false);
+  const [configTab, setConfigTab] = useState<string>("general");
   const { toast } = useToast();
 
   // Référence pour le conteneur d'aperçu
@@ -86,7 +104,7 @@ export default function PDFExportsPage() {
   });
 
   // Récupérer la configuration PDF enregistrée
-  const { data: savedConfig, isLoading } = useQuery<PDFConfigFormValues>({
+  const { data: savedConfig, isLoading } = useQuery<ExtendedPDFConfigFormValues>({
     queryKey: ["/api/pdf-config"],
     queryFn: async () => {
       try {
@@ -111,6 +129,41 @@ export default function PDFExportsPage() {
           companyEmailColor: "#646464",
           footerText: "Document généré par ImmoVault",
           includeDateInHeader: true,
+          // Préférences par défaut pour chaque type de document
+          documentPreferences: {
+            visits: {
+              customTitle: "Liste des visites",
+              columnsToDisplay: ['visitor', 'datetime', 'type', 'property', 'status', 'email', 'phone'],
+              tableHeaderColor: "#4B70E2",
+              tableTextColor: "#000000",
+              tableAlternateColor: "#F5F5FF",
+              maxItemsPerPage: 10
+            },
+            tenants: {
+              customTitle: "Liste des locataires",
+              columnsToDisplay: ['name', 'property', 'lease_type', 'lease_start', 'lease_end', 'rent', 'status', 'email', 'phone'],
+              tableHeaderColor: "#4B70E2",
+              tableTextColor: "#000000",
+              tableAlternateColor: "#F5F5FF",
+              maxItemsPerPage: 10
+            },
+            maintenance: {
+              customTitle: "Suivi de maintenance",
+              columnsToDisplay: ['date', 'property', 'title', 'description', 'reporter', 'cost', 'priority', 'status'],
+              tableHeaderColor: "#4B70E2",
+              tableTextColor: "#000000",
+              tableAlternateColor: "#F5F5FF",
+              maxItemsPerPage: 10
+            },
+            transactions: {
+              customTitle: "Transactions financières",
+              columnsToDisplay: ['date', 'property', 'description', 'category', 'type', 'method', 'amount'],
+              tableHeaderColor: "#4B70E2",
+              tableTextColor: "#000000",
+              tableAlternateColor: "#F5F5FF",
+              maxItemsPerPage: 10
+            }
+          }
         };
       } catch (error) {
         console.error("Erreur lors du chargement de la configuration PDF", error);
@@ -120,8 +173,8 @@ export default function PDFExportsPage() {
   });
 
   // Formulaire avec valeurs par défaut
-  const form = useForm<PDFConfigFormValues>({
-    resolver: zodResolver(pdfConfigSchema),
+  const form = useForm<ExtendedPDFConfigFormValues>({
+    resolver: zodResolver(extendedPdfConfigSchema),
     defaultValues: savedConfig || {
       companyName: "ImmoVault",
       companyAddress: "",
@@ -136,11 +189,42 @@ export default function PDFExportsPage() {
       companyEmailColor: "#646464",
       footerText: "Document généré par ImmoVault",
       includeDateInHeader: true,
+      documentPreferences: {
+        visits: {
+          customTitle: "Liste des visites",
+          columnsToDisplay: ['visitor', 'datetime', 'type', 'property', 'status', 'email', 'phone'],
+          tableHeaderColor: "#4B70E2",
+          tableTextColor: "#000000",
+          tableAlternateColor: "#F5F5FF",
+          maxItemsPerPage: 10
+        },
+        tenants: {
+          customTitle: "Liste des locataires",
+          columnsToDisplay: ['name', 'property', 'lease_type', 'lease_start', 'lease_end', 'rent', 'status', 'email', 'phone'],
+          tableHeaderColor: "#4B70E2",
+          tableTextColor: "#000000",
+          tableAlternateColor: "#F5F5FF",
+          maxItemsPerPage: 10
+        },
+        maintenance: {
+          customTitle: "Suivi de maintenance",
+          columnsToDisplay: ['date', 'property', 'title', 'description', 'reporter', 'cost', 'priority', 'status'],
+          tableHeaderColor: "#4B70E2",
+          tableTextColor: "#000000",
+          tableAlternateColor: "#F5F5FF",
+          maxItemsPerPage: 10
+        },
+        transactions: {
+          customTitle: "Transactions financières",
+          columnsToDisplay: ['date', 'property', 'description', 'category', 'type', 'method', 'amount'],
+          tableHeaderColor: "#4B70E2",
+          tableTextColor: "#000000",
+          tableAlternateColor: "#F5F5FF",
+          maxItemsPerPage: 10
+        }
+      }
     },
   });
-
-  // Ajouter un état pour suivre si l'utilisateur est en train de glisser une couleur
-  const [isColorDragging, setIsColorDragging] = useState(false);
 
   // Observer les changements dans le formulaire
   const watchedValues = form.watch();
@@ -163,7 +247,49 @@ export default function PDFExportsPage() {
   // Mettre à jour le formulaire quand les données sont chargées
   useEffect(() => {
     if (savedConfig) {
-      form.reset(savedConfig);
+      // Débogage pour voir ce qui est chargé
+      console.log("Configuration PDF chargée:", savedConfig);
+      
+      // S'assurer que les valeurs columnsToDisplay sont initialisées pour tous les types
+      const updatedConfig = { ...savedConfig };
+      
+      // Vérifier et initialiser les valeurs par défaut pour chaque type si nécessaire
+      ["visits", "tenants", "maintenance", "transactions"].forEach(type => {
+        if (!updatedConfig.documentPreferences) {
+          updatedConfig.documentPreferences = {};
+        }
+        
+        // Toujours sélectionner toutes les colonnes disponibles par défaut
+        const allAvailableColumns = availableColumns[type as keyof typeof availableColumns].map(col => col.value);
+        
+        if (!updatedConfig.documentPreferences[type]) {
+          updatedConfig.documentPreferences[type] = {
+            customTitle: type === "visits" ? "Liste des visites" :
+                         type === "tenants" ? "Liste des locataires" :
+                         type === "maintenance" ? "Suivi de maintenance" : 
+                         "Transactions financières",
+            columnsToDisplay: allAvailableColumns,
+            tableHeaderColor: updatedConfig.headerColor || "#4B70E2",
+            tableTextColor: "#000000",
+            tableAlternateColor: "#F5F5FF",
+            maxItemsPerPage: 10
+          };
+        } else {
+          // Correction des titres si nécessaire
+          if (type === "visits" && updatedConfig.documentPreferences[type].customTitle === "Suivi de maintenance") {
+            updatedConfig.documentPreferences[type].customTitle = "Liste des visites";
+          } else if (type === "tenants" && updatedConfig.documentPreferences[type].customTitle === "Suivi de maintenance") {
+            updatedConfig.documentPreferences[type].customTitle = "Liste des locataires";
+          } else if (type === "transactions" && updatedConfig.documentPreferences[type].customTitle === "Suivi de maintenance") {
+            updatedConfig.documentPreferences[type].customTitle = "Transactions financières";
+          }
+          
+          // Remplacer columnsToDisplay par toutes les colonnes disponibles
+          updatedConfig.documentPreferences[type].columnsToDisplay = allAvailableColumns;
+        }
+      });
+      
+      form.reset(updatedConfig);
       
       // Récupérer le logo du localStorage s'il existe
       const savedLogo = localStorage.getItem('pdfLogo');
@@ -253,7 +379,7 @@ export default function PDFExportsPage() {
   };
 
   // Enregistrer la configuration
-  const onSubmit = (data: PDFConfigFormValues) => {
+  const onSubmit = (data: ExtendedPDFConfigFormValues) => {
     try {
       localStorage.setItem('pdfConfig', JSON.stringify(data));
       
@@ -354,6 +480,7 @@ export default function PDFExportsPage() {
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(16);
       
+      // Déterminer le titre par défaut selon le type
       let documentTitle = "Document";
       switch (selectedPdfType) {
         case "visits":
@@ -372,7 +499,16 @@ export default function PDFExportsPage() {
           documentTitle = "Document";
       }
       
-      doc.text(documentTitle, 15, 40);
+      // Vérifier si un titre personnalisé est défini pour ce type
+      const typePrefs = values.documentPreferences?.[selectedPdfType];
+      const hasCustomTitle = typePrefs && typePrefs.customTitle && typePrefs.customTitle.trim() !== '';
+      
+      // Afficher le titre approprié (personnalisé ou par défaut)
+      if (hasCustomTitle && typePrefs) {
+        doc.text(typePrefs.customTitle, 15, 40);
+      } else {
+        doc.text(documentTitle, 15, 40);
+      }
       
       // Information de la société sous le titre
       if (values.companyAddress || values.companyPhone || values.companyEmail) {
@@ -401,16 +537,16 @@ export default function PDFExportsPage() {
       // Contenu spécifique au type de document
       switch (selectedPdfType) {
         case "visits":
-          generateVisitsTable(doc);
+          generateVisitsTable(doc, values.documentPreferences?.visits);
           break;
         case "tenants":
-          generateTenantsTable(doc);
+          generateTenantsTable(doc, values.documentPreferences?.tenants);
           break;
         case "maintenance":
-          generateMaintenanceTable(doc);
+          generateMaintenanceTable(doc, values.documentPreferences?.maintenance);
           break;
         case "transactions":
-          generateTransactionsTable(doc);
+          generateTransactionsTable(doc, values.documentPreferences?.transactions);
           break;
         default:
           // Table par défaut avec message
@@ -487,13 +623,24 @@ export default function PDFExportsPage() {
   };
 
   // Générer le tableau de visites
-  const generateVisitsTable = (doc: jsPDF) => {
+  const generateVisitsTable = (doc: jsPDF, prefs?: any) => {
     if (!visits.length) return;
     
     const values = form.getValues();
+    const preferences = prefs || {
+      customTitle: "Liste des visites",
+      columnsToDisplay: ['visitor', 'datetime', 'type', 'property', 'status', 'email', 'phone'],
+      tableHeaderColor: values.headerColor,
+      tableTextColor: "#000000",
+      tableAlternateColor: "#F5F5FF",
+      maxItemsPerPage: 10
+    };
+    
+    // Note: Le titre est maintenant géré uniquement par la fonction principale generatePdfPreview
+    // pour éviter la superposition des titres
     
     // Convertir les données pour autoTable
-    const tableData = visits.slice(0, 10).map(visit => [
+    const tableData = visits.slice(0, preferences.maxItemsPerPage || 10).map(visit => [
       `${visit.firstName} ${visit.lastName}`,
       format(new Date(visit.datetime), 'dd/MM/yyyy HH:mm', { locale: fr }),
       visit.visitType === "physical" ? "En personne" : 
@@ -508,8 +655,8 @@ export default function PDFExportsPage() {
       visit.phone || '-'
     ]);
     
-    // Définir les colonnes
-    const tableColumns = [
+    // Définir les colonnes disponibles
+    const allColumns = [
       { header: 'Visiteur', dataKey: 'visitor' },
       { header: 'Date & Heure', dataKey: 'datetime' },
       { header: 'Type', dataKey: 'type' },
@@ -519,33 +666,51 @@ export default function PDFExportsPage() {
       { header: 'Téléphone', dataKey: 'phone' }
     ];
     
+    // Filtrer les colonnes selon les préférences
+    const selectedColumns = allColumns.filter(col => 
+      preferences.columnsToDisplay.includes(col.dataKey)
+    );
+    
     // Créer le tableau
     autoTable(doc, {
-      head: [tableColumns.map(col => col.header)],
-      body: tableData,
+      head: [selectedColumns.map(col => col.header)],
+      body: tableData.map(row => {
+        // Filtrer les données selon les colonnes sélectionnées
+        const columnIndices = selectedColumns.map(col => allColumns.findIndex(c => c.dataKey === col.dataKey));
+        return columnIndices.map(index => row[index]);
+      }),
       startY: 60,
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { 
-        fillColor: hexToRgb(values.headerColor).array as [number, number, number],
+        fillColor: hexToRgb(preferences.tableHeaderColor || values.headerColor).array as [number, number, number],
         textColor: [255, 255, 255] as [number, number, number]
       },
-      alternateRowStyles: { fillColor: [245, 245, 255] as [number, number, number] },
-      columnStyles: {
-        0: { fontStyle: 'bold' }, // Nom du visiteur en gras
-        4: { fontStyle: 'bold' }  // Statut en gras
+      alternateRowStyles: { 
+        fillColor: hexToRgb(preferences.tableAlternateColor || "#F5F5FF").array as [number, number, number] 
       },
       margin: { top: 35 }
     });
   };
 
   // Générer le tableau des locataires
-  const generateTenantsTable = (doc: jsPDF) => {
+  const generateTenantsTable = (doc: jsPDF, prefs?: any) => {
     if (!tenants.length) return;
     
     const values = form.getValues();
+    const preferences = prefs || {
+      customTitle: "Liste des locataires",
+      columnsToDisplay: ['name', 'property', 'lease_type', 'lease_start', 'lease_end', 'rent', 'status', 'email', 'phone'],
+      tableHeaderColor: values.headerColor,
+      tableTextColor: "#000000",
+      tableAlternateColor: "#F5F5FF",
+      maxItemsPerPage: 10
+    };
+    
+    // Note: Le titre est maintenant géré uniquement par la fonction principale generatePdfPreview
+    // pour éviter la superposition des titres
     
     // Convertir les données réelles pour autoTable
-    const tableData = tenants.slice(0, 10).map((tenant: any) => [
+    const tableData = tenants.slice(0, preferences.maxItemsPerPage || 10).map((tenant: any) => [
       tenant.user?.fullName || `${tenant.firstName || ''} ${tenant.lastName || ''}`,
       tenant.property?.name || tenant.property?.address || '-',
       tenant.leaseType ? (
@@ -565,50 +730,64 @@ export default function PDFExportsPage() {
       tenant.user?.phoneNumber || tenant.phoneNumber || '-'
     ]);
     
-    // Définir les colonnes
-    const tableColumns = [
-      'Locataire',
-      'Propriété',
-      'Type de bail',
-      'Début bail',
-      'Fin bail',
-      'Loyer',
-      'Statut',
-      'Email',
-      'Téléphone'
+    // Définir les colonnes disponibles
+    const allColumns = [
+      { header: 'Locataire', dataKey: 'name' },
+      { header: 'Propriété', dataKey: 'property' },
+      { header: 'Type de bail', dataKey: 'lease_type' },
+      { header: 'Début bail', dataKey: 'lease_start' },
+      { header: 'Fin bail', dataKey: 'lease_end' },
+      { header: 'Loyer', dataKey: 'rent' },
+      { header: 'Statut', dataKey: 'status' },
+      { header: 'Email', dataKey: 'email' },
+      { header: 'Téléphone', dataKey: 'phone' }
     ];
+    
+    // Filtrer les colonnes selon les préférences
+    const selectedColumns = allColumns.filter(col => 
+      preferences.columnsToDisplay.includes(col.dataKey)
+    );
     
     // Créer le tableau
     autoTable(doc, {
-      head: [tableColumns],
-      body: tableData,
+      head: [selectedColumns.map(col => col.header)],
+      body: tableData.map(row => {
+        // Filtrer les données selon les colonnes sélectionnées
+        const columnIndices = selectedColumns.map(col => allColumns.findIndex(c => c.dataKey === col.dataKey));
+        return columnIndices.map(index => row[index]);
+      }),
       startY: 60,
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { 
-        fillColor: hexToRgb(values.headerColor).array as [number, number, number],
+        fillColor: hexToRgb(preferences.tableHeaderColor || values.headerColor).array as [number, number, number],
         textColor: [255, 255, 255] as [number, number, number]
       },
-      alternateRowStyles: { fillColor: [245, 245, 255] as [number, number, number] },
-      columnStyles: {
-        0: { fontStyle: 'bold' }, // Nom du locataire en gras
-        2: { fontStyle: 'bold' }, // Type de bail en gras
-        5: { fontStyle: 'bold' }, // Loyer en gras
-        6: { fontStyle: 'bold' }, // Statut en gras
-        7: { fontStyle: 'bold' }, // Email en gras
-        8: { fontStyle: 'bold' }  // Téléphone en gras
+      alternateRowStyles: { 
+        fillColor: hexToRgb(preferences.tableAlternateColor || "#F5F5FF").array as [number, number, number] 
       },
       margin: { top: 35 }
     });
   };
   
   // Générer le tableau de maintenance
-  const generateMaintenanceTable = (doc: jsPDF) => {
+  const generateMaintenanceTable = (doc: jsPDF, prefs?: any) => {
     if (!maintenances.length) return;
     
     const values = form.getValues();
+    const preferences = prefs || {
+      customTitle: "Suivi de maintenance",
+      columnsToDisplay: ['date', 'property', 'title', 'description', 'reporter', 'cost', 'priority', 'status'],
+      tableHeaderColor: values.headerColor,
+      tableTextColor: "#000000",
+      tableAlternateColor: "#F5F5FF",
+      maxItemsPerPage: 10
+    };
+    
+    // Note: Le titre est maintenant géré uniquement par la fonction principale generatePdfPreview
+    // pour éviter la superposition des titres
     
     // Convertir les données pour autoTable
-    const tableData = maintenances.slice(0, 10).map((maintenance: any) => [
+    const tableData = maintenances.slice(0, preferences.maxItemsPerPage || 10).map((maintenance: any) => [
       format(new Date(maintenance.reportDate), 'dd/MM/yyyy'),
       maintenance.property?.name || '-',
       maintenance.title || '-',
@@ -625,8 +804,8 @@ export default function PDFExportsPage() {
       maintenance.status === "cancelled" ? "Annulé" : maintenance.status || '-'
     ]);
     
-    // Définir les colonnes
-    const tableColumns = [
+    // Définir les colonnes disponibles
+    const allColumns = [
       { header: 'Date', dataKey: 'date' },
       { header: 'Propriété', dataKey: 'property' },
       { header: 'Titre', dataKey: 'title' },
@@ -637,34 +816,51 @@ export default function PDFExportsPage() {
       { header: 'Statut', dataKey: 'status' }
     ];
     
+    // Filtrer les colonnes selon les préférences
+    const selectedColumns = allColumns.filter(col => 
+      preferences.columnsToDisplay.includes(col.dataKey)
+    );
+    
     // Créer le tableau
     autoTable(doc, {
-      head: [tableColumns.map(col => col.header)],
-      body: tableData,
+      head: [selectedColumns.map(col => col.header)],
+      body: tableData.map(row => {
+        // Filtrer les données selon les colonnes sélectionnées
+        const columnIndices = selectedColumns.map(col => allColumns.findIndex(c => c.dataKey === col.dataKey));
+        return columnIndices.map(index => row[index]);
+      }),
       startY: 60,
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { 
-        fillColor: hexToRgb(values.headerColor).array as [number, number, number],
+        fillColor: hexToRgb(preferences.tableHeaderColor || values.headerColor).array as [number, number, number],
         textColor: [255, 255, 255] as [number, number, number]
       },
-      alternateRowStyles: { fillColor: [245, 245, 255] as [number, number, number] },
-      columnStyles: {
-        0: { fontStyle: 'bold' }, // Date en gras
-        6: { fontStyle: 'bold' }, // Priorité en gras
-        7: { fontStyle: 'bold' }  // Statut en gras
+      alternateRowStyles: { 
+        fillColor: hexToRgb(preferences.tableAlternateColor || "#F5F5FF").array as [number, number, number] 
       },
       margin: { top: 35 }
     });
   };
 
   // Générer le tableau des transactions
-  const generateTransactionsTable = (doc: jsPDF) => {
+  const generateTransactionsTable = (doc: jsPDF, prefs?: any) => {
     if (!transactions.length) return;
     
     const values = form.getValues();
+    const preferences = prefs || {
+      customTitle: "Transactions financières",
+      columnsToDisplay: ['date', 'property', 'description', 'category', 'type', 'method', 'amount'],
+      tableHeaderColor: values.headerColor,
+      tableTextColor: "#000000",
+      tableAlternateColor: "#F5F5FF",
+      maxItemsPerPage: 10
+    };
+    
+    // Note: Le titre est maintenant géré uniquement par la fonction principale generatePdfPreview
+    // pour éviter la superposition des titres
     
     // Convertir les données pour autoTable
-    const tableData = transactions.slice(0, 10).map((transaction: any) => {
+    const tableData = transactions.slice(0, preferences.maxItemsPerPage || 10).map((transaction: any) => {
       // S'assurer que la date est bien formatée
       const transactionDate = transaction.date ? new Date(transaction.date) : new Date();
       const formattedDate = format(transactionDate, 'dd/MM/yyyy');
@@ -691,8 +887,8 @@ export default function PDFExportsPage() {
       ];
     });
     
-    // Définir les colonnes
-    const tableColumns = [
+    // Définir les colonnes disponibles
+    const allColumns = [
       { header: 'Date', dataKey: 'date' },
       { header: 'Propriété', dataKey: 'property' },
       { header: 'Description', dataKey: 'description' },
@@ -702,20 +898,27 @@ export default function PDFExportsPage() {
       { header: 'Montant', dataKey: 'amount' }
     ];
     
+    // Filtrer les colonnes selon les préférences
+    const selectedColumns = allColumns.filter(col => 
+      preferences.columnsToDisplay.includes(col.dataKey)
+    );
+    
     // Créer le tableau
     autoTable(doc, {
-      head: [tableColumns.map(col => col.header)],
-      body: tableData,
+      head: [selectedColumns.map(col => col.header)],
+      body: tableData.map(row => {
+        // Filtrer les données selon les colonnes sélectionnées
+        const columnIndices = selectedColumns.map(col => allColumns.findIndex(c => c.dataKey === col.dataKey));
+        return columnIndices.map(index => row[index]);
+      }),
       startY: 60,
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { 
-        fillColor: hexToRgb(values.headerColor).array as [number, number, number],
+        fillColor: hexToRgb(preferences.tableHeaderColor || values.headerColor).array as [number, number, number],
         textColor: [255, 255, 255] as [number, number, number]
       },
-      alternateRowStyles: { fillColor: [245, 245, 255] as [number, number, number] },
-      columnStyles: {
-        0: { fontStyle: 'bold' }, // Date en gras
-        6: { fontStyle: 'bold' }  // Montant en gras
+      alternateRowStyles: { 
+        fillColor: hexToRgb(preferences.tableAlternateColor || "#F5F5FF").array as [number, number, number] 
       },
       margin: { top: 35 }
     });
@@ -746,6 +949,49 @@ export default function PDFExportsPage() {
     { id: "maintenance", label: "Maintenance", icon: RefreshCw },
     { id: "transactions", label: "Transactions", icon: DollarSign },
   ];
+
+  // Configurations disponibles par type de document
+  const availableColumns = {
+    visits: [
+      { value: 'visitor', label: 'Visiteur' },
+      { value: 'datetime', label: 'Date & Heure' },
+      { value: 'type', label: 'Type' },
+      { value: 'property', label: 'Bien' },
+      { value: 'status', label: 'Statut' },
+      { value: 'email', label: 'Email' },
+      { value: 'phone', label: 'Téléphone' }
+    ],
+    tenants: [
+      { value: 'name', label: 'Locataire' },
+      { value: 'property', label: 'Propriété' },
+      { value: 'lease_type', label: 'Type de bail' },
+      { value: 'lease_start', label: 'Début bail' },
+      { value: 'lease_end', label: 'Fin bail' },
+      { value: 'rent', label: 'Loyer' },
+      { value: 'status', label: 'Statut' },
+      { value: 'email', label: 'Email' },
+      { value: 'phone', label: 'Téléphone' }
+    ],
+    maintenance: [
+      { value: 'date', label: 'Date' },
+      { value: 'property', label: 'Propriété' },
+      { value: 'title', label: 'Titre' },
+      { value: 'description', label: 'Description' },
+      { value: 'reporter', label: 'Signalé par' },
+      { value: 'cost', label: 'Coût' },
+      { value: 'priority', label: 'Priorité' },
+      { value: 'status', label: 'Statut' }
+    ],
+    transactions: [
+      { value: 'date', label: 'Date' },
+      { value: 'property', label: 'Propriété' },
+      { value: 'description', label: 'Description' },
+      { value: 'category', label: 'Catégorie' },
+      { value: 'type', label: 'Type' },
+      { value: 'method', label: 'Méthode' },
+      { value: 'amount', label: 'Montant' }
+    ]
+  };
 
   if (isLoading) {
     return (
@@ -789,7 +1035,11 @@ export default function PDFExportsPage() {
                     "flex flex-col h-24 items-center justify-center gap-2 text-xs font-normal",
                     selectedPdfType === type.id ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   )}
-                  onClick={() => setSelectedPdfType(type.id)}
+                  onClick={() => {
+                    setSelectedPdfType(type.id);
+                    // Revenir automatiquement à l'onglet Configuration générale
+                    setConfigTab("general");
+                  }}
                 >
                   <Icon className="h-8 w-8" />
                   <span>{type.label}</span>
@@ -816,60 +1066,28 @@ export default function PDFExportsPage() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="companyName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nom de l'entreprise</FormLabel>
-                          <div className="flex items-center gap-2">
-                            <FormControl>
-                              <Input {...field} placeholder="Votre entreprise" />
-                            </FormControl>
-                            <FormField
-                              control={form.control}
-                              name="companyNameColor"
-                              render={({ field: colorField }) => (
-                                <FormControl>
-                                  <div className="flex items-center">
-                                    <div 
-                                      className="h-6 w-6 rounded border mr-1"
-                                      style={{ backgroundColor: colorField.value }}
-                                    />
-                                    <Input
-                                      type="color"
-                                      {...colorField}
-                                      className="w-8 p-0 h-6"
-                                      onMouseDown={handleColorDragStart}
-                                      onMouseUp={handleColorDragEnd}
-                                      onTouchStart={handleColorDragStart}
-                                      onTouchEnd={handleColorDragEnd}
-                                    />
-                                  </div>
-                                </FormControl>
-                              )}
-                            />
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 gap-4">
+                  {/* Tabs pour les différentes sections de configuration */}
+                  <Tabs value={configTab} onValueChange={setConfigTab}>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="general">Configuration générale</TabsTrigger>
+                      <TabsTrigger value="advanced">Configuration avancée</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="general" className="space-y-4 mt-4">
+                      {/* Configuration générale existante */}
                       <FormField
                         control={form.control}
-                        name="companyAddress"
+                        name="companyName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Adresse</FormLabel>
+                            <FormLabel>Nom de l'entreprise</FormLabel>
                             <div className="flex items-center gap-2">
                               <FormControl>
-                                <Input {...field} placeholder="123 rue des Exemples, 75000 Paris" />
+                                <Input {...field} placeholder="Votre entreprise" />
                               </FormControl>
                               <FormField
                                 control={form.control}
-                                name="companyAddressColor"
+                                name="companyNameColor"
                                 render={({ field: colorField }) => (
                                   <FormControl>
                                     <div className="flex items-center">
@@ -896,20 +1114,20 @@ export default function PDFExportsPage() {
                         )}
                       />
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <FormField
                           control={form.control}
-                          name="companyPhone"
+                          name="companyAddress"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Téléphone</FormLabel>
+                              <FormLabel>Adresse</FormLabel>
                               <div className="flex items-center gap-2">
                                 <FormControl>
-                                  <Input {...field} placeholder="01 23 45 67 89" />
+                                  <Input {...field} placeholder="123 rue des Exemples, 75000 Paris" />
                                 </FormControl>
                                 <FormField
                                   control={form.control}
-                                  name="companyPhoneColor"
+                                  name="companyAddressColor"
                                   render={({ field: colorField }) => (
                                     <FormControl>
                                       <div className="flex items-center">
@@ -936,100 +1154,254 @@ export default function PDFExportsPage() {
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="companyEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <div className="flex items-center gap-2">
-                                <FormControl>
-                                  <Input {...field} placeholder="contact@entreprise.com" />
-                                </FormControl>
-                                <FormField
-                                  control={form.control}
-                                  name="companyEmailColor"
-                                  render={({ field: colorField }) => (
-                                    <FormControl>
-                                      <div className="flex items-center">
-                                        <div 
-                                          className="h-6 w-6 rounded border mr-1"
-                                          style={{ backgroundColor: colorField.value }}
-                                        />
-                                        <Input
-                                          type="color"
-                                          {...colorField}
-                                          className="w-8 p-0 h-6"
-                                          onMouseDown={handleColorDragStart}
-                                          onMouseUp={handleColorDragEnd}
-                                          onTouchStart={handleColorDragStart}
-                                          onTouchEnd={handleColorDragEnd}
-                                        />
-                                      </div>
-                                    </FormControl>
-                                  )}
-                                />
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="companyPhone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Téléphone</FormLabel>
+                                <div className="flex items-center gap-2">
+                                  <FormControl>
+                                    <Input {...field} placeholder="01 23 45 67 89" />
+                                  </FormControl>
+                                  <FormField
+                                    control={form.control}
+                                    name="companyPhoneColor"
+                                    render={({ field: colorField }) => (
+                                      <FormControl>
+                                        <div className="flex items-center">
+                                          <div 
+                                            className="h-6 w-6 rounded border mr-1"
+                                            style={{ backgroundColor: colorField.value }}
+                                          />
+                                          <Input
+                                            type="color"
+                                            {...colorField}
+                                            className="w-8 p-0 h-6"
+                                            onMouseDown={handleColorDragStart}
+                                            onMouseUp={handleColorDragEnd}
+                                            onTouchStart={handleColorDragStart}
+                                            onTouchEnd={handleColorDragEnd}
+                                          />
+                                        </div>
+                                      </FormControl>
+                                    )}
+                                  />
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="companyEmail"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <div className="flex items-center gap-2">
+                                  <FormControl>
+                                    <Input {...field} placeholder="contact@entreprise.com" />
+                                  </FormControl>
+                                  <FormField
+                                    control={form.control}
+                                    name="companyEmailColor"
+                                    render={({ field: colorField }) => (
+                                      <FormControl>
+                                        <div className="flex items-center">
+                                          <div 
+                                            className="h-6 w-6 rounded border mr-1"
+                                            style={{ backgroundColor: colorField.value }}
+                                          />
+                                          <Input
+                                            type="color"
+                                            {...colorField}
+                                            className="w-8 p-0 h-6"
+                                            onMouseDown={handleColorDragStart}
+                                            onMouseUp={handleColorDragEnd}
+                                            onTouchStart={handleColorDragStart}
+                                            onTouchEnd={handleColorDragEnd}
+                                          />
+                                        </div>
+                                      </FormControl>
+                                    )}
+                                  />
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    <Separator className="my-2" />
-                    
-                    <FormField
-                      control={form.control}
-                      name="headerColor"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Couleur d'accentuation</FormLabel>
-                          <div className="flex gap-2 items-center">
-                            <div 
-                              className="h-8 w-8 rounded-md border"
-                              style={{ backgroundColor: field.value }}
-                            />
-                            <FormControl>
-                              <Input
-                                type="color"
-                                {...field}
-                                className="w-12 p-1 h-8"
-                                onMouseDown={handleColorDragStart}
-                                onMouseUp={handleColorDragEnd}
-                                onTouchStart={handleColorDragStart}
-                                onTouchEnd={handleColorDragEnd}
-                              />
-                            </FormControl>
-                            <Input
-                              type="text"
-                              value={field.value}
-                              onChange={(e) => {
-                                handleColorDragStart();
-                                field.onChange(e);
-                                setTimeout(handleColorDragEnd, 500);
-                              }}
-                              className="w-32"
-                            />
-                          </div>
-                          <FormDescription>
-                            Couleur utilisée pour les en-têtes et titres
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex flex-col gap-3">
+                      <Separator className="my-2" />
+                      
                       <FormField
                         control={form.control}
-                        name="useLogo"
+                        name="headerColor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Couleur d'accentuation</FormLabel>
+                            <div className="flex gap-2 items-center">
+                              <div 
+                                className="h-8 w-8 rounded-md border"
+                                style={{ backgroundColor: field.value }}
+                              />
+                              <FormControl>
+                                <Input
+                                  type="color"
+                                  {...field}
+                                  className="w-12 p-1 h-8"
+                                  onMouseDown={handleColorDragStart}
+                                  onMouseUp={handleColorDragEnd}
+                                  onTouchStart={handleColorDragStart}
+                                  onTouchEnd={handleColorDragEnd}
+                                />
+                              </FormControl>
+                              <Input
+                                type="text"
+                                value={field.value}
+                                onChange={(e) => {
+                                  handleColorDragStart();
+                                  field.onChange(e);
+                                  setTimeout(handleColorDragEnd, 500);
+                                }}
+                                className="w-32"
+                              />
+                            </div>
+                            <FormDescription>
+                              Couleur utilisée pour les en-têtes et titres
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex flex-col gap-3">
+                        <FormField
+                          control={form.control}
+                          name="useLogo"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">Logo de l'entreprise</FormLabel>
+                                <FormDescription>
+                                  Ajouter votre logo dans les documents PDF
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        {form.watch("useLogo") && (
+                          <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                            <div className="flex justify-between items-center">
+                              <Label>Télécharger un logo</Label>
+                              {logoPreview && (
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={handleRemoveLogo}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Supprimer
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="flex gap-4 items-center">
+                              <div className="h-20 w-20 rounded-lg border flex items-center justify-center bg-white">
+                                {logoPreview ? (
+                                  <img 
+                                    src={logoPreview} 
+                                    alt="Logo preview" 
+                                    className="max-h-16 max-w-16 object-contain" 
+                                  />
+                                ) : (
+                                  <Upload className="h-6 w-6 text-gray-400" />
+                                )}
+                              </div>
+                              
+                              <div className="flex-1">
+                                <Input
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/svg+xml"
+                                  onChange={handleLogoUpload}
+                                  ref={logoInputRef}
+                                  className="cursor-pointer"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  PNG, JPG ou SVG. 2 Mo maximum.
+                                </p>
+                              </div>
+                            </div>
+
+                            <FormField
+                              control={form.control}
+                              name="logoPosition"
+                              render={({ field }) => (
+                                <FormItem className="space-y-2">
+                                  <FormLabel>Position du logo</FormLabel>
+                                  <FormControl>
+                                    <RadioGroup
+                                      onValueChange={field.onChange}
+                                      defaultValue={field.value}
+                                      className="flex space-x-1"
+                                    >
+                                      <FormItem className="flex items-center space-x-1 space-y-0">
+                                        <FormControl>
+                                          <RadioGroupItem value="left" />
+                                        </FormControl>
+                                        <FormLabel className="cursor-pointer text-sm font-normal">
+                                          Gauche
+                                        </FormLabel>
+                                      </FormItem>
+                                      <FormItem className="flex items-center space-x-1 space-y-0">
+                                        <FormControl>
+                                          <RadioGroupItem value="center" />
+                                        </FormControl>
+                                        <FormLabel className="cursor-pointer text-sm font-normal">
+                                          Centre
+                                        </FormLabel>
+                                      </FormItem>
+                                      <FormItem className="flex items-center space-x-1 space-y-0">
+                                        <FormControl>
+                                          <RadioGroupItem value="right" />
+                                        </FormControl>
+                                        <FormLabel className="cursor-pointer text-sm font-normal">
+                                          Droite
+                                        </FormLabel>
+                                      </FormItem>
+                                    </RadioGroup>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator className="my-2" />
+
+                      <FormField
+                        control={form.control}
+                        name="includeDateInHeader"
                         render={({ field }) => (
                           <FormItem className="flex items-center justify-between rounded-lg border p-3">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-base">Logo de l'entreprise</FormLabel>
+                              <FormLabel className="text-base">Date de génération</FormLabel>
                               <FormDescription>
-                                Ajouter votre logo dans les documents PDF
+                                Inclure la date de génération dans l'en-tête
                               </FormDescription>
                             </div>
                             <FormControl>
@@ -1042,162 +1414,282 @@ export default function PDFExportsPage() {
                         )}
                       />
 
-                      {form.watch("useLogo") && (
-                        <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-                          <div className="flex justify-between items-center">
-                            <Label>Télécharger un logo</Label>
-                            {logoPreview && (
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={handleRemoveLogo}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Supprimer
-                              </Button>
-                            )}
-                          </div>
-                          
-                          <div className="flex gap-4 items-center">
-                            <div className="h-20 w-20 rounded-lg border flex items-center justify-center bg-white">
-                              {logoPreview ? (
-                                <img 
-                                  src={logoPreview} 
-                                  alt="Logo preview" 
-                                  className="max-h-16 max-w-16 object-contain" 
-                                />
-                              ) : (
-                                <Upload className="h-6 w-6 text-gray-400" />
-                              )}
-                            </div>
-                            
-                            <div className="flex-1">
+                      <FormField
+                        control={form.control}
+                        name="footerText"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Texte de pied de page</FormLabel>
+                            <FormControl>
                               <Input
-                                type="file"
-                                accept="image/png,image/jpeg,image/svg+xml"
-                                onChange={handleLogoUpload}
-                                ref={logoInputRef}
-                                className="cursor-pointer"
+                                {...field}
+                                placeholder="Document généré par ImmoVault"
                               />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                PNG, JPG ou SVG. 2 Mo maximum.
-                              </p>
-                            </div>
-                          </div>
-
-                          <FormField
-                            control={form.control}
-                            name="logoPosition"
-                            render={({ field }) => (
-                              <FormItem className="space-y-2">
-                                <FormLabel>Position du logo</FormLabel>
-                                <FormControl>
-                                  <RadioGroup
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                    className="flex space-x-1"
-                                  >
-                                    <FormItem className="flex items-center space-x-1 space-y-0">
-                                      <FormControl>
-                                        <RadioGroupItem value="left" />
-                                      </FormControl>
-                                      <FormLabel className="cursor-pointer text-sm font-normal">
-                                        Gauche
-                                      </FormLabel>
-                                    </FormItem>
-                                    <FormItem className="flex items-center space-x-1 space-y-0">
-                                      <FormControl>
-                                        <RadioGroupItem value="center" />
-                                      </FormControl>
-                                      <FormLabel className="cursor-pointer text-sm font-normal">
-                                        Centre
-                                      </FormLabel>
-                                    </FormItem>
-                                    <FormItem className="flex items-center space-x-1 space-y-0">
-                                      <FormControl>
-                                        <RadioGroupItem value="right" />
-                                      </FormControl>
-                                      <FormLabel className="cursor-pointer text-sm font-normal">
-                                        Droite
-                                      </FormLabel>
-                                    </FormItem>
-                                  </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <Separator className="my-2" />
-
-                    <FormField
-                      control={form.control}
-                      name="includeDateInHeader"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">Date de génération</FormLabel>
+                            </FormControl>
                             <FormDescription>
-                              Inclure la date de génération dans l'en-tête
+                              Ce texte sera affiché en bas de chaque page
                             </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="footerText"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Texte de pied de page</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="Document généré par ImmoVault"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Ce texte sera affiché en bas de chaque page
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Aperçu automatique</FormLabel>
-                        <FormDescription>
-                          Mettre à jour l'aperçu à chaque modification
-                        </FormDescription>
-                      </div>
-                      <Switch
-                        checked={autoPreview}
-                        onCheckedChange={setAutoPreview}
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormItem>
-                  </div>
+
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Aperçu automatique</FormLabel>
+                          <FormDescription>
+                            Mettre à jour l'aperçu à chaque modification
+                          </FormDescription>
+                        </div>
+                        <Switch
+                          checked={autoPreview}
+                          onCheckedChange={setAutoPreview}
+                        />
+                      </FormItem>
+                    </TabsContent>
+                    
+                    <TabsContent value="advanced" className="space-y-4 mt-4">
+                      {/* Configuration avancée par type de document */}
+                      <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                        <p className="text-sm font-medium mb-1">Configuration avancée pour: {
+                          selectedPdfType === "visits" ? "Visites" :
+                          selectedPdfType === "tenants" ? "Locataires" :
+                          selectedPdfType === "maintenance" ? "Maintenance" :
+                          "Transactions"
+                        }</p>
+                        <p className="text-xs text-muted-foreground">
+                          Ces paramètres s'appliquent uniquement aux exports de {
+                            selectedPdfType === "visits" ? "visites" :
+                            selectedPdfType === "tenants" ? "locataires" :
+                            selectedPdfType === "maintenance" ? "maintenance" :
+                            "transactions"
+                          }
+                        </p>
+                      </div>
+                      
+                      <FormField
+                        control={form.control}
+                        name={`documentPreferences.${selectedPdfType}.customTitle`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Titre personnalisé</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                placeholder={
+                                  selectedPdfType === "visits" ? "Liste des visites" :
+                                  selectedPdfType === "tenants" ? "Liste des locataires" :
+                                  selectedPdfType === "maintenance" ? "Suivi de maintenance" :
+                                  "Transactions financières"
+                                }
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Ce titre remplacera le titre par défaut du document
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name={`documentPreferences.${selectedPdfType}.columnsToDisplay`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex justify-between">
+                                <FormLabel>Colonnes à afficher</FormLabel>
+                                <Button 
+                                  type="button" 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    // S'assurer que le tableau est initialisé avant d'utiliser map
+                                    const columnsToSelect = availableColumns[selectedPdfType as keyof typeof availableColumns].map(col => col.value);
+                                    form.setValue(`documentPreferences.${selectedPdfType}.columnsToDisplay`, columnsToSelect);
+                                  }}
+                                >
+                                  Tout sélectionner
+                                </Button>
+                              </div>
+                              <FormDescription>
+                                Sélectionnez les colonnes à inclure dans l'export PDF (toutes sélectionnées par défaut)
+                              </FormDescription>
+                              <FormControl>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-2">
+                                  {availableColumns[selectedPdfType as keyof typeof availableColumns].map(column => (
+                                    <div key={column.value} className="flex items-center space-x-2">
+                                      <Checkbox 
+                                        id={`col-${selectedPdfType}-${column.value}`}
+                                        checked={field.value?.includes(column.value)}
+                                        onCheckedChange={(checked) => {
+                                          // Initialiser un tableau vide si field.value est undefined
+                                          const currentValues = Array.isArray(field.value) ? field.value : [];
+                                          if (checked) {
+                                            form.setValue(`documentPreferences.${selectedPdfType}.columnsToDisplay`, 
+                                              [...currentValues, column.value]);
+                                          } else {
+                                            form.setValue(`documentPreferences.${selectedPdfType}.columnsToDisplay`, 
+                                              currentValues.filter(v => v !== column.value));
+                                          }
+                                        }}
+                                      />
+                                      <Label 
+                                        htmlFor={`col-${selectedPdfType}-${column.value}`} 
+                                        className="text-sm cursor-pointer"
+                                      >
+                                        {column.label}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name={`documentPreferences.${selectedPdfType}.tableHeaderColor`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Couleur d'en-tête du tableau</FormLabel>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="h-6 w-6 rounded border"
+                                  style={{ backgroundColor: field.value }}
+                                />
+                                <FormControl>
+                                  <Input 
+                                    type="color" 
+                                    {...field} 
+                                    className="w-10 p-0 h-8"
+                                    onMouseDown={handleColorDragStart}
+                                    onMouseUp={handleColorDragEnd}
+                                    onTouchStart={handleColorDragStart}
+                                    onTouchEnd={handleColorDragEnd}
+                                  />
+                                </FormControl>
+                                <Input
+                                  type="text"
+                                  value={field.value}
+                                  onChange={(e) => {
+                                    handleColorDragStart();
+                                    field.onChange(e);
+                                    setTimeout(handleColorDragEnd, 500);
+                                  }}
+                                  className="w-24"
+                                />
+                              </div>
+                              <FormDescription>
+                                Couleur des en-têtes de colonnes
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name={`documentPreferences.${selectedPdfType}.tableAlternateColor`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Couleur alternée des lignes</FormLabel>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="h-6 w-6 rounded border"
+                                  style={{ backgroundColor: field.value }}
+                                />
+                                <FormControl>
+                                  <Input 
+                                    type="color" 
+                                    {...field} 
+                                    className="w-10 p-0 h-8"
+                                    onMouseDown={handleColorDragStart}
+                                    onMouseUp={handleColorDragEnd}
+                                    onTouchStart={handleColorDragStart}
+                                    onTouchEnd={handleColorDragEnd}
+                                  />
+                                </FormControl>
+                                <Input
+                                  type="text"
+                                  value={field.value}
+                                  onChange={(e) => {
+                                    handleColorDragStart();
+                                    field.onChange(e);
+                                    setTimeout(handleColorDragEnd, 500);
+                                  }}
+                                  className="w-24"
+                                />
+                              </div>
+                              <FormDescription>
+                                Couleur de fond alternée pour les lignes du tableau
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <FormField
+                        control={form.control}
+                        name={`documentPreferences.${selectedPdfType}.maxItemsPerPage`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Éléments par page</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                {...field}
+                                min={1}
+                                max={50}
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Nombre maximum d'éléments à afficher sur une page du PDF
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TabsContent>
+                  </Tabs>
 
                   <div className="flex gap-2 justify-between">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => form.reset()}
-                    >
-                      Réinitialiser
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => form.reset()}
+                        size="sm"
+                      >
+                        Réinitialiser
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => {
+                          // Supprimer complètement la configuration du localStorage
+                          localStorage.removeItem('pdfConfig');
+                          localStorage.removeItem('pdfLogo');
+                          
+                          toast({
+                            title: "Configuration supprimée",
+                            description: "Toutes les préférences d'export PDF ont été réinitialisées",
+                            variant: "default",
+                          });
+                          
+                          // Recharger la page pour appliquer les valeurs par défaut
+                          window.location.reload();
+                        }}
+                        size="sm"
+                      >
+                        Réinitialiser complètement
+                      </Button>
+                    </div>
                     
                     <div className="flex gap-2">
                       {!autoPreview && (

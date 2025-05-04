@@ -194,7 +194,7 @@ export function ImprovedVisitsTabs() {
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const [editVisitDialogOpen, setEditVisitDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeFilter, setActiveFilter] = useState<string | null>("today");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   
   // Nouveaux états pour les filtres supplémentaires
   const [visitTypeFilter, setVisitTypeFilter] = useState<string | null>(null);
@@ -594,21 +594,6 @@ export function ImprovedVisitsTabs() {
   useEffect(() => {
     localStorage.setItem('visitsViewType', activeViewType);
   }, [activeViewType]);
-
-  // Initialiser le filtre de date au chargement de la page
-  useEffect(() => {
-    // Appliquer le filtre "today" au chargement initial
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(today);
-    endOfDay.setHours(23, 59, 59, 999);
-    
-    setDateRangeFilter({
-      from: today,
-      to: endOfDay
-    });
-  }, []);
 
   // Fonction pour exporter les données filtrées
   const exportVisitsData = (exportFormat: 'csv' | 'pdf', visits: Visit[]) => {
@@ -1372,148 +1357,6 @@ export function ImprovedVisitsTabs() {
         </div>
       </div>
       
-      {/* Sélecteur de type de vue */}
-      <div className="flex items-center pb-3">
-        <div className="w-full bg-muted/30 p-2 rounded-lg border">
-          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-            <span className="text-sm font-medium flex items-center gap-1.5">
-              <Sliders className="h-4 w-4 text-primary" /> 
-              Colonnes à afficher:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant={activeViewType === "default" ? "default" : "outline"}
-                size="sm"
-                className="h-8"
-                onClick={() => setActiveViewType("default")}
-              >
-                Standard
-              </Button>
-              <Button 
-                variant={activeViewType === "locataires" ? "default" : "outline"}
-                size="sm"
-                className="h-8"
-                onClick={() => setActiveViewType("locataires")}
-              >
-                Locataires
-              </Button>
-              <Button 
-                variant={activeViewType === "maintenance" ? "default" : "outline"}
-                size="sm"
-                className="h-8"
-                onClick={() => setActiveViewType("maintenance")}
-              >
-                Maintenance
-              </Button>
-              <Button 
-                variant={activeViewType === "transactions" ? "default" : "outline"}
-                size="sm"
-                className="h-8"
-                onClick={() => setActiveViewType("transactions")}
-              >
-                Transactions
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Filtres actifs */}
-      {activeFiltersCount > 0 && (
-        <motion.div 
-          className="flex flex-wrap gap-2 items-center py-2 px-3 rounded-md border border-primary/10 bg-primary/5"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <span className="text-xs text-muted-foreground font-medium">Filtres actifs:</span>
-          {activeFilter && (
-            <Badge 
-              className="flex gap-1.5 items-center bg-white hover:bg-white/80 text-primary border-primary/20 shadow-sm transition-all"
-              variant="outline"
-            >
-              <CalendarIcon className="h-3 w-3 text-primary" />
-              {activeFilter === "today" && "Aujourd'hui"}
-              {activeFilter === "tomorrow" && "Demain"}
-              {activeFilter === "thisWeek" && "Cette semaine"}
-              <X 
-                className="h-3 w-3 ml-1 cursor-pointer text-muted-foreground hover:text-foreground" 
-                onClick={() => setActiveFilter(null)}
-              />
-            </Badge>
-          )}
-          
-          {dateRangeFilter?.from && (
-            <Badge 
-              className="flex gap-1.5 items-center bg-white hover:bg-white/80 text-primary border-primary/20 shadow-sm transition-all"
-              variant="outline"
-            >
-              <CalendarRange className="h-3 w-3 text-primary" />
-              {format(dateRangeFilter.from, "dd/MM/yyyy", { locale: fr })}
-              {dateRangeFilter.to && ` - ${format(dateRangeFilter.to, "dd/MM/yyyy", { locale: fr })}`}
-              <X 
-                className="h-3 w-3 ml-1 cursor-pointer text-muted-foreground hover:text-foreground" 
-                onClick={() => setDateRangeFilter(undefined)}
-              />
-            </Badge>
-          )}
-          
-          {visitTypeFilter && (
-            <Badge 
-              className="flex gap-1.5 items-center bg-white hover:bg-white/80 text-primary border-primary/20 shadow-sm transition-all"
-              variant="outline"
-            >
-              {visitTypeFilter === "physical" && (
-                <>
-                  <Home className="h-3 w-3 text-primary" />
-                  <span>En personne</span>
-                </>
-              )}
-              {visitTypeFilter === "virtual" && (
-                <>
-                  <span>💻</span>
-                  <span>Virtuelle</span>
-                </>
-              )}
-              {visitTypeFilter === "video" && (
-                <>
-                  <Video className="h-3 w-3 text-primary" />
-                  <span>Vidéo</span>
-                </>
-              )}
-              <X 
-                className="h-3 w-3 ml-1 cursor-pointer text-muted-foreground hover:text-foreground" 
-                onClick={() => setVisitTypeFilter(null)}
-              />
-            </Badge>
-          )}
-          
-          {propertyFilter && (
-            <Badge 
-              className="flex gap-1.5 items-center bg-white hover:bg-white/80 text-primary border-primary/20 shadow-sm transition-all"
-              variant="outline"
-            >
-              <MapPin className="h-3 w-3 text-primary" />
-              {properties.find((p: Property) => p.id === propertyFilter)?.name || "Bien sélectionné"}
-              <X 
-                className="h-3 w-3 ml-1 cursor-pointer text-muted-foreground hover:text-foreground" 
-                onClick={() => setPropertyFilter(null)}
-              />
-            </Badge>
-          )}
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="ml-auto h-7 text-xs text-muted-foreground hover:text-primary hover:bg-primary/5"
-            onClick={resetAllFilters}
-          >
-            <X className="h-3.5 w-3.5 mr-1" />
-            Effacer tous les filtres
-          </Button>
-        </motion.div>
-      )}
-
       {/* Onglets par statut */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-4 mb-2">

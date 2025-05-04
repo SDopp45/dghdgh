@@ -130,6 +130,26 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
         pdfConfig = { ...pdfConfig, ...JSON.parse(savedConfig) };
       }
       
+      // Make sure TypeScript knows about the new color properties
+      interface PDFConfig {
+        companyName: string;
+        companyAddress: string;
+        companyPhone: string;
+        companyEmail: string;
+        useLogo: boolean;
+        logoPosition: "left" | "center" | "right";
+        headerColor: string;
+        companyNameColor?: string;
+        companyAddressColor?: string;
+        companyPhoneColor?: string;
+        companyEmailColor?: string;
+        footerText: string;
+        includeDateInHeader: boolean;
+      }
+      
+      // Type assertion to let TypeScript know about the additional properties
+      const typedPdfConfig = pdfConfig as PDFConfig;
+      
       // Récupérer le logo s'il existe
       const savedLogo = localStorage.getItem('pdfLogo');
       
@@ -195,17 +215,17 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
       const pageHeight = doc.internal.pageSize.getHeight();
       
       // Ajouter l'en-tête avec la couleur personnalisée
-      const headerColor = hexToRgb(pdfConfig.headerColor);
+      const headerColor = hexToRgb(typedPdfConfig.headerColor);
       doc.setFillColor(headerColor.r, headerColor.g, headerColor.b);
       doc.rect(0, 0, pageWidth, 30, 'F');
       
       // Ajouter le logo si activé
-      if (pdfConfig.useLogo && savedLogo) {
+      if (typedPdfConfig.useLogo && savedLogo) {
         let xPosition = 15; // default left
         
-        if (pdfConfig.logoPosition === "center") {
+        if (typedPdfConfig.logoPosition === "center") {
           xPosition = pageWidth / 2 - 10;
-        } else if (pdfConfig.logoPosition === "right") {
+        } else if (typedPdfConfig.logoPosition === "right") {
           xPosition = pageWidth - 40;
         }
         
@@ -213,24 +233,27 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
       }
       
       // Ajouter le nom de l'entreprise
-      doc.setTextColor(255, 255, 255);
+      const companyNameColor = typedPdfConfig.companyNameColor ? 
+        hexToRgb(typedPdfConfig.companyNameColor) : 
+        { r: 255, g: 255, b: 255 };
+      doc.setTextColor(companyNameColor.r, companyNameColor.g, companyNameColor.b);
       doc.setFontSize(18);
       
       // Positionner le texte en fonction du logo
       let textX = 15;
       
-      if (pdfConfig.useLogo && savedLogo) {
-        if (pdfConfig.logoPosition === "left") {
+      if (typedPdfConfig.useLogo && savedLogo) {
+        if (typedPdfConfig.logoPosition === "left") {
           textX = 40;
-        } else if (pdfConfig.logoPosition === "center") {
+        } else if (typedPdfConfig.logoPosition === "center") {
           textX = 15;
         }
       }
       
-      doc.text(pdfConfig.companyName, textX, 16);
+      doc.text(typedPdfConfig.companyName, textX, 16);
       
       // Ajouter la date si activé
-      if (pdfConfig.includeDateInHeader) {
+      if (typedPdfConfig.includeDateInHeader) {
         doc.setFontSize(10);
         const today = new Date();
         const dateStr = format(today, 'dd MMMM yyyy', { locale: fr });
@@ -271,23 +294,34 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
       
       // Information de la société sous le titre
       let yPos = 48;
-      if (pdfConfig.companyAddress || pdfConfig.companyPhone || pdfConfig.companyEmail) {
+      if (typedPdfConfig.companyAddress || typedPdfConfig.companyPhone || typedPdfConfig.companyEmail) {
         doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
         
-        if (pdfConfig.companyAddress) {
+        if (typedPdfConfig.companyAddress) {
+          const addressColor = typedPdfConfig.companyAddressColor ? 
+            hexToRgb(typedPdfConfig.companyAddressColor) : 
+            { r: 100, g: 100, b: 100 };
+          doc.setTextColor(addressColor.r, addressColor.g, addressColor.b);
           yPos += 5;
-          doc.text(pdfConfig.companyAddress, 15, yPos);
+          doc.text(typedPdfConfig.companyAddress, 15, yPos);
         }
         
-        if (pdfConfig.companyPhone) {
+        if (typedPdfConfig.companyPhone) {
+          const phoneColor = typedPdfConfig.companyPhoneColor ? 
+            hexToRgb(typedPdfConfig.companyPhoneColor) : 
+            { r: 100, g: 100, b: 100 };
+          doc.setTextColor(phoneColor.r, phoneColor.g, phoneColor.b);
           yPos += 4;
-          doc.text(`Tél: ${pdfConfig.companyPhone}`, 15, yPos);
+          doc.text(`Tél: ${typedPdfConfig.companyPhone}`, 15, yPos);
         }
         
-        if (pdfConfig.companyEmail) {
+        if (typedPdfConfig.companyEmail) {
+          const emailColor = typedPdfConfig.companyEmailColor ? 
+            hexToRgb(typedPdfConfig.companyEmailColor) : 
+            { r: 100, g: 100, b: 100 };
+          doc.setTextColor(emailColor.r, emailColor.g, emailColor.b);
           yPos += 4;
-          doc.text(`Email: ${pdfConfig.companyEmail}`, 15, yPos);
+          doc.text(`Email: ${typedPdfConfig.companyEmail}`, 15, yPos);
         }
         
         yPos += 8;
@@ -412,8 +446,8 @@ export function ExportMenu({ type, allowImport = false, currentFilters, selected
         doc.setTextColor(100, 100, 100);
         
         // Pied de page personnalisé
-        if (pdfConfig.footerText) {
-          doc.text(pdfConfig.footerText, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        if (typedPdfConfig.footerText) {
+          doc.text(typedPdfConfig.footerText, pageWidth / 2, pageHeight - 10, { align: 'center' });
         }
         
         // Numéro de page

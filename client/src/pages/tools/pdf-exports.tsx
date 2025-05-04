@@ -32,6 +32,10 @@ const pdfConfigSchema = z.object({
   useLogo: z.boolean().default(true),
   logoPosition: z.enum(["left", "center", "right"]).default("left"),
   headerColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide").default("#4B70E2"),
+  companyNameColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide").default("#FFFFFF"),
+  companyAddressColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide").default("#646464"),
+  companyPhoneColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide").default("#646464"),
+  companyEmailColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide").default("#646464"),
   footerText: z.string().optional(),
   includeDateInHeader: z.boolean().default(true),
 });
@@ -101,6 +105,10 @@ export default function PDFExportsPage() {
           useLogo: true,
           logoPosition: "left",
           headerColor: "#4B70E2",
+          companyNameColor: "#FFFFFF",
+          companyAddressColor: "#646464",
+          companyPhoneColor: "#646464",
+          companyEmailColor: "#646464",
           footerText: "Document généré par ImmoVault",
           includeDateInHeader: true,
         };
@@ -122,14 +130,35 @@ export default function PDFExportsPage() {
       useLogo: true,
       logoPosition: "left",
       headerColor: "#4B70E2",
+      companyNameColor: "#FFFFFF",
+      companyAddressColor: "#646464",
+      companyPhoneColor: "#646464",
+      companyEmailColor: "#646464",
       footerText: "Document généré par ImmoVault",
       includeDateInHeader: true,
     },
   });
 
+  // Ajouter un état pour suivre si l'utilisateur est en train de glisser une couleur
+  const [isColorDragging, setIsColorDragging] = useState(false);
+
   // Observer les changements dans le formulaire
   const watchedValues = form.watch();
-  const formValueJSON = useMemo(() => JSON.stringify(watchedValues), [watchedValues]);
+  const formValueJSON = useMemo(() => {
+    // Ne pas déclencher de mise à jour pendant le glissement des couleurs
+    if (isColorDragging) return null;
+    return JSON.stringify(watchedValues);
+  }, [watchedValues, isColorDragging]);
+
+  // Fonction utilitaire pour gérer le début et la fin du glissement de couleur
+  const handleColorDragStart = () => setIsColorDragging(true);
+  const handleColorDragEnd = () => {
+    setIsColorDragging(false);
+    // Générer un aperçu une fois le glissement terminé
+    if (autoPreview) {
+      setTimeout(() => generatePdfPreview(true), 100);
+    }
+  };
 
   // Mettre à jour le formulaire quand les données sont chargées
   useEffect(() => {
@@ -146,14 +175,50 @@ export default function PDFExportsPage() {
 
   // Générer automatiquement l'aperçu lorsque les valeurs du formulaire changent
   useEffect(() => {
-    if (autoPreview && visits.length > 0) {
-      const timer = setTimeout(() => {
-        generatePdfPreview(true);
-      }, 1000);
+    // Ne pas déclencher si formValueJSON est null (pendant le glissement)
+    if (!formValueJSON) return;
+    
+    if (autoPreview) {
+      // Vérifier que des données sont disponibles pour le type sélectionné
+      const hasData = (
+        (selectedPdfType === "visits" && visits.length > 0) ||
+        (selectedPdfType === "tenants" && tenants.length > 0) ||
+        (selectedPdfType === "maintenance" && maintenances.length > 0) ||
+        (selectedPdfType === "transactions" && transactions.length > 0)
+      );
       
-      return () => clearTimeout(timer);
+      if (hasData) {
+        console.log(`Scheduling preview for ${selectedPdfType}...`);
+        const timer = setTimeout(() => {
+          if (!isColorDragging) {  // Vérification supplémentaire
+            console.log(`Generating preview for ${selectedPdfType}...`);
+            generatePdfPreview(true);
+          }
+        }, 1500); // Augmenter le délai pour laisser le temps aux composants de se stabiliser
+        
+        return () => clearTimeout(timer);
+      } else {
+        console.log(`No data available for ${selectedPdfType}`);
+      }
     }
-  }, [formValueJSON, logoPreview, autoPreview, visits, selectedPdfType]);
+  }, [formValueJSON, logoPreview, autoPreview, visits, tenants, maintenances, transactions, selectedPdfType, isColorDragging]);
+
+  // Gérer le relâchement de la souris en dehors du composant
+  useEffect(() => {
+    if (isColorDragging) {
+      const handleMouseUp = () => {
+        handleColorDragEnd();
+      };
+      
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchend', handleMouseUp);
+      
+      return () => {
+        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchend', handleMouseUp);
+      };
+    }
+  }, [isColorDragging]);
 
   // Gérer le chargement du logo
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,9 +297,8 @@ export default function PDFExportsPage() {
       return;
     }
 
-    if (!forPreview) {
-      setIsGeneratingPreview(true);
-    }
+    // Mettre à jour l'état de chargement
+    setIsGeneratingPreview(true);
 
     try {
       const values = form.getValues();
@@ -262,7 +326,7 @@ export default function PDFExportsPage() {
       }
       
       // Ajouter le nom de l'entreprise
-      doc.setTextColor(255, 255, 255);
+      doc.setTextColor(hexToRgb(values.companyNameColor).r, hexToRgb(values.companyNameColor).g, hexToRgb(values.companyNameColor).b);
       doc.setFontSize(18);
       
       // Positionner le texte en fonction du logo
@@ -313,20 +377,22 @@ export default function PDFExportsPage() {
       // Information de la société sous le titre
       if (values.companyAddress || values.companyPhone || values.companyEmail) {
         doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
         let yPos = 45;
         
         if (values.companyAddress) {
+          doc.setTextColor(hexToRgb(values.companyAddressColor).r, hexToRgb(values.companyAddressColor).g, hexToRgb(values.companyAddressColor).b);
           doc.text(values.companyAddress, 15, yPos);
           yPos += 5;
         }
         
         if (values.companyPhone) {
+          doc.setTextColor(hexToRgb(values.companyPhoneColor).r, hexToRgb(values.companyPhoneColor).g, hexToRgb(values.companyPhoneColor).b);
           doc.text(`Tél: ${values.companyPhone}`, 15, yPos);
           yPos += 5;
         }
         
         if (values.companyEmail) {
+          doc.setTextColor(hexToRgb(values.companyEmailColor).r, hexToRgb(values.companyEmailColor).g, hexToRgb(values.companyEmailColor).b);
           doc.text(`Email: ${values.companyEmail}`, 15, yPos);
           yPos += 5;
         }
@@ -376,13 +442,31 @@ export default function PDFExportsPage() {
       }
       
       if (forPreview) {
-        // Générer une URL pour l'aperçu
-        const pdfBlob = doc.output('blob');
-        if (pdfPreviewUrl) {
-          URL.revokeObjectURL(pdfPreviewUrl);
+        try {
+          // Générer une URL pour l'aperçu
+          const pdfBlob = doc.output('blob');
+          
+          // Libérer l'ancienne URL si elle existe
+          if (pdfPreviewUrl) {
+            try {
+              URL.revokeObjectURL(pdfPreviewUrl);
+            } catch (error) {
+              console.error("Erreur lors de la libération de l'URL précédente:", error);
+            }
+          }
+          
+          // Créer une nouvelle URL
+          const url = URL.createObjectURL(pdfBlob);
+          console.log("Nouvelle URL d'aperçu générée:", url);
+          setPdfPreviewUrl(url);
+        } catch (error) {
+          console.error("Erreur lors de la création de l'URL d'aperçu:", error);
+          toast({
+            title: "Erreur d'aperçu",
+            description: "Impossible de générer l'aperçu du PDF",
+            variant: "destructive",
+          });
         }
-        const url = URL.createObjectURL(pdfBlob);
-        setPdfPreviewUrl(url);
       } else {
         // Télécharger le fichier PDF
         doc.save(`${documentTitle.toLowerCase().replace(/ /g, '_')}_apercu.pdf`);
@@ -397,9 +481,8 @@ export default function PDFExportsPage() {
         });
       }
     } finally {
-      if (!forPreview) {
-        setIsGeneratingPreview(false);
-      }
+      // Réinitialiser l'état de chargement dans tous les cas
+      setIsGeneratingPreview(false);
     }
   };
 
@@ -740,9 +823,34 @@ export default function PDFExportsPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Nom de l'entreprise</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Votre entreprise" />
-                          </FormControl>
+                          <div className="flex items-center gap-2">
+                            <FormControl>
+                              <Input {...field} placeholder="Votre entreprise" />
+                            </FormControl>
+                            <FormField
+                              control={form.control}
+                              name="companyNameColor"
+                              render={({ field: colorField }) => (
+                                <FormControl>
+                                  <div className="flex items-center">
+                                    <div 
+                                      className="h-6 w-6 rounded border mr-1"
+                                      style={{ backgroundColor: colorField.value }}
+                                    />
+                                    <Input
+                                      type="color"
+                                      {...colorField}
+                                      className="w-8 p-0 h-6"
+                                      onMouseDown={handleColorDragStart}
+                                      onMouseUp={handleColorDragEnd}
+                                      onTouchStart={handleColorDragStart}
+                                      onTouchEnd={handleColorDragEnd}
+                                    />
+                                  </div>
+                                </FormControl>
+                              )}
+                            />
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -755,9 +863,34 @@ export default function PDFExportsPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Adresse</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="123 rue des Exemples, 75000 Paris" />
-                            </FormControl>
+                            <div className="flex items-center gap-2">
+                              <FormControl>
+                                <Input {...field} placeholder="123 rue des Exemples, 75000 Paris" />
+                              </FormControl>
+                              <FormField
+                                control={form.control}
+                                name="companyAddressColor"
+                                render={({ field: colorField }) => (
+                                  <FormControl>
+                                    <div className="flex items-center">
+                                      <div 
+                                        className="h-6 w-6 rounded border mr-1"
+                                        style={{ backgroundColor: colorField.value }}
+                                      />
+                                      <Input
+                                        type="color"
+                                        {...colorField}
+                                        className="w-8 p-0 h-6"
+                                        onMouseDown={handleColorDragStart}
+                                        onMouseUp={handleColorDragEnd}
+                                        onTouchStart={handleColorDragStart}
+                                        onTouchEnd={handleColorDragEnd}
+                                      />
+                                    </div>
+                                  </FormControl>
+                                )}
+                              />
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -770,9 +903,34 @@ export default function PDFExportsPage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Téléphone</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="01 23 45 67 89" />
-                              </FormControl>
+                              <div className="flex items-center gap-2">
+                                <FormControl>
+                                  <Input {...field} placeholder="01 23 45 67 89" />
+                                </FormControl>
+                                <FormField
+                                  control={form.control}
+                                  name="companyPhoneColor"
+                                  render={({ field: colorField }) => (
+                                    <FormControl>
+                                      <div className="flex items-center">
+                                        <div 
+                                          className="h-6 w-6 rounded border mr-1"
+                                          style={{ backgroundColor: colorField.value }}
+                                        />
+                                        <Input
+                                          type="color"
+                                          {...colorField}
+                                          className="w-8 p-0 h-6"
+                                          onMouseDown={handleColorDragStart}
+                                          onMouseUp={handleColorDragEnd}
+                                          onTouchStart={handleColorDragStart}
+                                          onTouchEnd={handleColorDragEnd}
+                                        />
+                                      </div>
+                                    </FormControl>
+                                  )}
+                                />
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -784,9 +942,34 @@ export default function PDFExportsPage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="contact@entreprise.com" />
-                              </FormControl>
+                              <div className="flex items-center gap-2">
+                                <FormControl>
+                                  <Input {...field} placeholder="contact@entreprise.com" />
+                                </FormControl>
+                                <FormField
+                                  control={form.control}
+                                  name="companyEmailColor"
+                                  render={({ field: colorField }) => (
+                                    <FormControl>
+                                      <div className="flex items-center">
+                                        <div 
+                                          className="h-6 w-6 rounded border mr-1"
+                                          style={{ backgroundColor: colorField.value }}
+                                        />
+                                        <Input
+                                          type="color"
+                                          {...colorField}
+                                          className="w-8 p-0 h-6"
+                                          onMouseDown={handleColorDragStart}
+                                          onMouseUp={handleColorDragEnd}
+                                          onTouchStart={handleColorDragStart}
+                                          onTouchEnd={handleColorDragEnd}
+                                        />
+                                      </div>
+                                    </FormControl>
+                                  )}
+                                />
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -812,12 +995,20 @@ export default function PDFExportsPage() {
                                 type="color"
                                 {...field}
                                 className="w-12 p-1 h-8"
+                                onMouseDown={handleColorDragStart}
+                                onMouseUp={handleColorDragEnd}
+                                onTouchStart={handleColorDragStart}
+                                onTouchEnd={handleColorDragEnd}
                               />
                             </FormControl>
                             <Input
                               type="text"
                               value={field.value}
-                              onChange={field.onChange}
+                              onChange={(e) => {
+                                handleColorDragStart();
+                                field.onChange(e);
+                                setTimeout(handleColorDragEnd, 500);
+                              }}
                               className="w-32"
                             />
                           </div>
@@ -1059,20 +1250,29 @@ export default function PDFExportsPage() {
               ) : (
                 <div className="w-full h-[700px] flex items-center justify-center bg-gray-50 rounded-md border">
                   <div className="text-center">
-                    <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                    <p className="text-muted-foreground">
-                      {(selectedPdfType === "visits" && visits.length === 0) || 
-                       (selectedPdfType === "tenants" && tenants.length === 0) ||
-                       (selectedPdfType === "maintenance" && maintenances.length === 0) ||
-                       (selectedPdfType === "transactions" && transactions.length === 0)
-                        ? `Aucune donnée de ${
-                            selectedPdfType === "visits" ? "visites" : 
-                            selectedPdfType === "tenants" ? "locataires" : 
-                            selectedPdfType === "maintenance" ? "maintenance" :
-                            "transactions"
-                          } disponible pour générer un aperçu`
-                        : "Génération de l'aperçu en cours..."}
-                    </p>
+                    {isGeneratingPreview ? (
+                      <>
+                        <div className="h-16 w-16 mx-auto mb-4 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                        <p className="text-muted-foreground">Génération de l'aperçu en cours...</p>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                        <p className="text-muted-foreground">
+                          {(selectedPdfType === "visits" && visits.length === 0) || 
+                           (selectedPdfType === "tenants" && tenants.length === 0) ||
+                           (selectedPdfType === "maintenance" && maintenances.length === 0) ||
+                           (selectedPdfType === "transactions" && transactions.length === 0)
+                            ? `Aucune donnée de ${
+                                selectedPdfType === "visits" ? "visites" : 
+                                selectedPdfType === "tenants" ? "locataires" : 
+                                selectedPdfType === "maintenance" ? "maintenance" :
+                                "transactions"
+                              } disponible pour générer un aperçu`
+                            : "Cliquez sur 'Actualiser l'aperçu' pour générer une prévisualisation"}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

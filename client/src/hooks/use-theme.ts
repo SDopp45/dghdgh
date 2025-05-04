@@ -33,24 +33,7 @@ export function useTheme() {
     // Stocker le thème dans localStorage
     localStorage.setItem('theme', theme);
     
-    // Sync avec l'API
-    const syncThemeWithApi = async () => {
-      try {
-        await fetch('/api/user/preferences', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            appearance: { theme }
-          }),
-        });
-      } catch (error) {
-        console.error('Erreur lors de la synchronisation du thème:', error);
-      }
-    };
-    
-    syncThemeWithApi();
+    // Note: API sync removed to prevent 404 errors
   }, [theme]);
 
   return { theme, setTheme };

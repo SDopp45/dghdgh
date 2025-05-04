@@ -388,6 +388,8 @@ export default function UserLinkPage() {
                       borderColor: link.customColor || profile.accentColor || '#70C7BA',
                         backgroundColor: profile.backgroundColor || '#ffffff',
                         fontFamily: profile.fontFamily || 'Inter',
+                        position: 'relative',
+                        zIndex: 20,
                       }}
                     >
                       <form
@@ -477,6 +479,9 @@ export default function UserLinkPage() {
                                   textShadow: profile.buttonStyle === 'neon'
                                     ? `0 0 5px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}`
                                     : 'none',
+                                  position: 'relative', 
+                                  zIndex: 25,
+                                  pointerEvents: 'auto',
                                 }}
                                 rows={4}
                               />
@@ -514,6 +519,9 @@ export default function UserLinkPage() {
                                   textShadow: profile.buttonStyle === 'neon'
                                     ? `0 0 5px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}`
                                     : 'none',
+                                  position: 'relative', 
+                                  zIndex: 25,
+                                  pointerEvents: 'auto',
                                 }}
                               >
                                 <option value="">Sélectionner...</option>
@@ -533,6 +541,9 @@ export default function UserLinkPage() {
                                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                   style={{
                                     borderColor: link.customColor || profile.accentColor || '#70C7BA',
+                                    position: 'relative', 
+                                    zIndex: 25,
+                                    pointerEvents: 'auto',
                                   }}
                                 />
                                 <span className="text-sm" style={{
@@ -575,6 +586,9 @@ export default function UserLinkPage() {
                                   textShadow: profile.buttonStyle === 'neon'
                                     ? `0 0 5px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}`
                                     : 'none',
+                                  position: 'relative', 
+                                  zIndex: 25,
+                                  pointerEvents: 'auto',
                                 }}
                               />
                             )}
@@ -611,6 +625,9 @@ export default function UserLinkPage() {
                             textShadow: profile.buttonStyle === 'neon'
                               ? `0 0 5px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}`
                               : 'none',
+                            position: 'relative', 
+                            zIndex: 25,
+                            pointerEvents: 'auto',
                           }}
                         >
                           Envoyer
@@ -842,11 +859,23 @@ export default function UserLinkPage() {
         .form-input-optimized {
           transform: translateZ(0);
           will-change: transform, opacity;
+          position: relative;
+          z-index: 25;
+          pointer-events: auto !important;
         }
         
         .form-container-optimized {
           contain: content;
           will-change: transform;
+          position: relative;
+          z-index: 20;
+        }
+        
+        /* Fix pour les problèmes de formulaires */
+        input, textarea, select, button {
+          pointer-events: auto !important;
+          position: relative;
+          z-index: 25;
         }
       `}</style>
     </div>

@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { FileText, Upload, Download, Save, Trash2, Check, Settings, Building, RefreshCw, Eye, Users, DollarSign } from "lucide-react";
+import { FileText, Upload, Download, Save, Trash2, Check, Settings, Building, Eye, Users, DollarSign, Wrench, BadgeDollarSign, Sliders, RotateCw } from "lucide-react";
 import { Visit } from "@/types/visits";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -85,9 +85,15 @@ export default function PDFExportsPage() {
   });
 
   // Récupérer les maintenances pour l'aperçu
-  const { data: maintenances = [] } = useQuery<any[]>({
+  const { data: maintenances = [] } = useQuery<any[], Error>({
     queryKey: ["/api/maintenance"],
     staleTime: 1000 * 60 * 5, // 5 minutes
+    onSuccess: (data: any[]) => {
+      console.log("Données de maintenance récupérées:", data);
+    },
+    onError: (error: Error) => {
+      console.error("Erreur lors de la récupération des données de maintenance:", error);
+    }
   });
 
   // Récupérer les transactions pour l'aperçu
@@ -504,7 +510,7 @@ export default function PDFExportsPage() {
       const hasCustomTitle = typePrefs && typePrefs.customTitle && typePrefs.customTitle.trim() !== '';
       
       // Afficher le titre approprié (personnalisé ou par défaut)
-      if (hasCustomTitle && typePrefs) {
+      if (hasCustomTitle && typePrefs && typePrefs.customTitle) {
         doc.text(typePrefs.customTitle, 15, 40);
       } else {
         doc.text(documentTitle, 15, 40);
@@ -543,6 +549,10 @@ export default function PDFExportsPage() {
           generateTenantsTable(doc, values.documentPreferences?.tenants);
           break;
         case "maintenance":
+          console.log("Génération du PDF de type maintenance", {
+            maintenancesData: maintenances,
+            preferences: values.documentPreferences?.maintenance
+          });
           generateMaintenanceTable(doc, values.documentPreferences?.maintenance);
           break;
         case "transactions":
@@ -771,7 +781,12 @@ export default function PDFExportsPage() {
   
   // Générer le tableau de maintenance
   const generateMaintenanceTable = (doc: jsPDF, prefs?: any) => {
-    if (!maintenances.length) return;
+    console.log("Génération du tableau de maintenance avec données:", maintenances);
+    
+    if (!maintenances || !maintenances.length) {
+      console.warn("Aucune donnée de maintenance disponible");
+      return;
+    }
     
     const values = form.getValues();
     const preferences = prefs || {
@@ -783,26 +798,33 @@ export default function PDFExportsPage() {
       maxItemsPerPage: 10
     };
     
+    console.log("Préférences pour le tableau de maintenance:", preferences);
+    
     // Note: Le titre est maintenant géré uniquement par la fonction principale generatePdfPreview
     // pour éviter la superposition des titres
     
     // Convertir les données pour autoTable
-    const tableData = maintenances.slice(0, preferences.maxItemsPerPage || 10).map((maintenance: any) => [
-      format(new Date(maintenance.reportDate), 'dd/MM/yyyy'),
-      maintenance.property?.name || '-',
-      maintenance.title || '-',
-      maintenance.description || '-',
-      maintenance.reportedBy?.fullName || '-',
-      maintenance.cost ? `${maintenance.cost} €` : '-',
-      maintenance.priority === "low" ? "Basse" :
-      maintenance.priority === "medium" ? "Moyenne" :
-      maintenance.priority === "high" ? "Haute" :
-      maintenance.priority === "urgent" ? "Urgente" : maintenance.priority || '-',
-      maintenance.status === "pending" ? "En attente" :
-      maintenance.status === "in_progress" ? "En cours" :
-      maintenance.status === "completed" ? "Terminé" :
-      maintenance.status === "cancelled" ? "Annulé" : maintenance.status || '-'
-    ]);
+    const tableData = maintenances.slice(0, preferences.maxItemsPerPage || 10).map((maintenance: any) => {
+      console.log("Traitement de la maintenance:", maintenance);
+      const reportDate = maintenance.reportDate || maintenance.createdAt || new Date();
+      
+      return [
+        format(new Date(reportDate), 'dd/MM/yyyy'),
+        maintenance.property?.name || '-',
+        maintenance.title || '-',
+        maintenance.description || '-',
+        maintenance.reportedBy?.fullName || '-',
+        maintenance.totalCost || maintenance.cost ? `${maintenance.totalCost || maintenance.cost} €` : '-',
+        maintenance.priority === "low" ? "Basse" :
+        maintenance.priority === "medium" ? "Moyenne" :
+        maintenance.priority === "high" ? "Haute" :
+        maintenance.priority === "urgent" ? "Urgente" : maintenance.priority || '-',
+        maintenance.status === "pending" ? "En attente" :
+        maintenance.status === "in_progress" ? "En cours" :
+        maintenance.status === "completed" ? "Terminé" :
+        maintenance.status === "cancelled" ? "Annulé" : maintenance.status || '-'
+      ];
+    });
     
     // Définir les colonnes disponibles
     const allColumns = [
@@ -820,6 +842,9 @@ export default function PDFExportsPage() {
     const selectedColumns = allColumns.filter(col => 
       preferences.columnsToDisplay.includes(col.dataKey)
     );
+    
+    console.log("Colonnes sélectionnées:", selectedColumns);
+    console.log("Données du tableau:", tableData);
     
     // Créer le tableau
     autoTable(doc, {
@@ -840,6 +865,8 @@ export default function PDFExportsPage() {
       },
       margin: { top: 35 }
     });
+    
+    console.log("Tableau de maintenance généré avec succès");
   };
 
   // Générer le tableau des transactions
@@ -946,7 +973,7 @@ export default function PDFExportsPage() {
   const pdfTypes = [
     { id: "visits", label: "Visites", icon: Building },
     { id: "tenants", label: "Locataires", icon: Users },
-    { id: "maintenance", label: "Maintenance", icon: RefreshCw },
+    { id: "maintenance", label: "Maintenance", icon: Wrench },
     { id: "transactions", label: "Transactions", icon: DollarSign },
   ];
 
@@ -996,81 +1023,188 @@ export default function PDFExportsPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto">
-        <div className="flex flex-col gap-4 p-8">
-          <div className="h-8 w-64 bg-gray-200 animate-pulse rounded-lg"></div>
-          <div className="h-4 w-96 bg-gray-200 animate-pulse rounded-lg"></div>
-          <div className="h-96 w-full bg-gray-200 animate-pulse rounded-lg mt-6"></div>
+        <div className="relative z-10 mx-auto px-4 py-10 md:py-24 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background z-0"></div>
+          <div className="flex flex-col gap-8 items-center justify-center relative z-10">
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-primary/30 animate-pulse flex items-center justify-center">
+              <FileText className="h-10 w-10 text-white animate-pulse" />
+            </div>
+            <div className="space-y-6 w-full max-w-md">
+              <div className="h-8 bg-gradient-to-r from-primary/20 to-background animate-pulse rounded-lg"></div>
+              <div className="h-4 bg-gradient-to-r from-primary/10 to-background animate-pulse rounded-lg w-3/4 mx-auto"></div>
+              <div className="h-96 bg-gradient-to-br from-background via-card to-background animate-pulse rounded-xl border border-primary/10 shadow-lg shadow-primary/5"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto mb-8">
-      <div className="flex items-center gap-3 mb-6">
-        <FileText className="h-10 w-10 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold">Personnalisation des PDF</h1>
-          <p className="text-muted-foreground">
-            Visualisez et personnalisez l'apparence de vos documents exportés
-          </p>
+    <div className="container mx-auto mb-8 relative">
+      {/* Effet d'arrière-plan futuriste */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-b from-primary/10 to-transparent rounded-full filter blur-3xl opacity-30 transform translate-x-1/3 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-t from-primary/10 to-transparent rounded-full filter blur-3xl opacity-30 transform -translate-x-1/3 translate-y-1/2"></div>
+      </div>
+
+      {/* En-tête futuriste inspirée crypto */}
+      <div className="relative bg-gradient-to-r from-background via-primary/5 to-background border-b border-primary/20 backdrop-blur-sm -mx-4 md:-mx-8 px-4 md:px-8 py-8 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary blur-lg opacity-30 rounded-xl animate-pulse"></div>
+            <div className="h-14 w-14 relative rounded-xl bg-gradient-to-br from-primary via-primary/80 to-primary/30 flex items-center justify-center shadow-lg shadow-primary/20 border border-primary/30">
+              <FileText className="h-7 w-7 text-white" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-foreground/80">Exports PDF</h1>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Personnalisez l'apparence de vos documents exportés
+            </p>
+          </div>
+        </div>
+
+        {/* Statistiques inspirées crypto */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+          <div className="bg-background/40 backdrop-blur-md border border-primary/10 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Building className="h-4 w-4 text-primary/70" />
+              <span className="text-xs font-medium text-muted-foreground">Visites</span>
+            </div>
+            <div className="mt-1 font-bold text-lg">
+              {visits.length} <span className="text-xs text-muted-foreground font-normal">documents</span>
+            </div>
+          </div>
+          <div className="bg-background/40 backdrop-blur-md border border-primary/10 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary/70" />
+              <span className="text-xs font-medium text-muted-foreground">Locataires</span>
+            </div>
+            <div className="mt-1 font-bold text-lg">
+              {tenants.length} <span className="text-xs text-muted-foreground font-normal">documents</span>
+            </div>
+          </div>
+          <div className="bg-background/40 backdrop-blur-md border border-primary/10 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-primary/70" />
+              <span className="text-xs font-medium text-muted-foreground">Maintenance</span>
+            </div>
+            <div className="mt-1 font-bold text-lg">
+              {maintenances.length} <span className="text-xs text-muted-foreground font-normal">documents</span>
+            </div>
+          </div>
+          <div className="bg-background/40 backdrop-blur-md border border-primary/10 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <BadgeDollarSign className="h-4 w-4 text-primary/70" />
+              <span className="text-xs font-medium text-muted-foreground">Transactions</span>
+            </div>
+            <div className="mt-1 font-bold text-lg">
+              {transactions.length} <span className="text-xs text-muted-foreground font-normal">documents</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Sélecteur de type de PDF */}
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Sélectionnez un type de document</CardTitle>
-          <CardDescription>Choisissez le type de PDF que vous souhaitez personnaliser</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {pdfTypes.map((type) => {
-              const Icon = type.icon;
-              return (
-                <Button
-                  key={type.id}
-                  variant={selectedPdfType === type.id ? "default" : "outline"}
-                  className={cn(
-                    "flex flex-col h-24 items-center justify-center gap-2 text-xs font-normal",
-                    selectedPdfType === type.id ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                  )}
-                  onClick={() => {
-                    setSelectedPdfType(type.id);
-                    // Revenir automatiquement à l'onglet Configuration générale
-                    setConfigTab("general");
-                  }}
-                >
-                  <Icon className="h-8 w-8" />
-                  <span>{type.label}</span>
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Sélecteur de type de PDF avec style crypto futuriste */}
+      <div className="mb-8 bg-gradient-to-br from-background via-card/50 to-background backdrop-blur-sm rounded-xl border border-primary/20 p-5 shadow-lg relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        
+        <div className="mb-4 relative">
+          <h2 className="text-xl font-semibold mb-1 flex items-center">
+            <Settings className="h-5 w-5 text-primary mr-2" />
+            Type de document
+          </h2>
+          <p className="text-sm text-muted-foreground">Choisissez le type de PDF que vous souhaitez personnaliser</p>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 relative">
+          {pdfTypes.map((type) => {
+            const Icon = type.icon;
+            return (
+              <Button
+                key={type.id}
+                variant={selectedPdfType === type.id ? "default" : "outline"}
+                className={cn(
+                  "relative flex flex-col h-28 items-center justify-center gap-3 text-sm font-medium overflow-hidden transition-all duration-300",
+                  selectedPdfType === type.id 
+                    ? "bg-gradient-to-br from-primary via-primary/80 to-primary/70 text-primary-foreground border-primary shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/20" 
+                    : "bg-background/60 backdrop-blur-sm border border-primary/10 text-foreground hover:border-primary/30 hover:bg-primary/5"
+                )}
+                onClick={() => {
+                  setSelectedPdfType(type.id);
+                  setConfigTab("general");
+                  // Générer un nouvel aperçu après un court délai pour permettre à l'état de se mettre à jour
+                  setTimeout(() => generatePdfPreview(true), 300);
+                }}
+              >
+                {selectedPdfType === type.id && (
+                  <div className="absolute inset-0 bg-primary/10 animate-pulse opacity-50"></div>
+                )}
+                <Icon className={cn(
+                  "h-8 w-8 transition-transform duration-300", 
+                  selectedPdfType === type.id 
+                    ? "text-primary-foreground transform scale-110" 
+                    : "text-primary/60 group-hover:text-primary/80"
+                )} />
+                <span>{type.label}</span>
+                {selectedPdfType === type.id && (
+                  <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/30"></div>
+                )}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Formulaire de personnalisation */}
         <div className="lg:col-span-5 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Paramètres d'exportation
+          <Card className="border-primary/20 overflow-hidden shadow-xl shadow-primary/5 bg-gradient-to-br from-card via-background/80 to-card/80 backdrop-blur-sm">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+            <CardHeader className="pb-4 border-b border-border/20">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <Settings className="h-5 w-5 text-primary" />
+                </div>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-foreground">
+                  Paramètres d'exportation
+                </span>
               </CardTitle>
               <CardDescription>
                 Personnalisez l'apparence de vos documents PDF
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Tabs pour les différentes sections de configuration */}
-                  <Tabs value={configTab} onValueChange={setConfigTab}>
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="general">Configuration générale</TabsTrigger>
-                      <TabsTrigger value="advanced">Configuration avancée</TabsTrigger>
+                  {/* Tabs avec style futuriste */}
+                  <Tabs value={configTab} onValueChange={setConfigTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 bg-muted/30 p-1 rounded-xl border border-primary/10">
+                      <TabsTrigger 
+                        value="general" 
+                        className={cn(
+                          "rounded-lg transition-all duration-300", 
+                          configTab === "general" 
+                            ? "bg-gradient-to-br from-primary/90 to-primary text-primary-foreground shadow-md border border-primary/20" 
+                            : "hover:bg-background/60 text-muted-foreground hover:text-foreground border border-transparent"
+                        )}
+                      >
+                        <Settings className={cn("h-3.5 w-3.5 mr-1.5", configTab === "general" ? "text-primary-foreground" : "text-primary/60")} />
+                        Configuration générale
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="advanced"
+                        className={cn(
+                          "rounded-lg transition-all duration-300", 
+                          configTab === "advanced" 
+                            ? "bg-gradient-to-br from-primary/90 to-primary text-primary-foreground shadow-md border border-primary/20" 
+                            : "hover:bg-background/60 text-muted-foreground hover:text-foreground border border-transparent"
+                        )}
+                      >
+                        <Sliders className={cn("h-3.5 w-3.5 mr-1.5", configTab === "advanced" ? "text-primary-foreground" : "text-primary/60")} />
+                        Configuration avancée
+                      </TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="general" className="space-y-4 mt-4">
@@ -1658,21 +1792,22 @@ export default function PDFExportsPage() {
                     </TabsContent>
                   </Tabs>
 
-                  <div className="flex gap-2 justify-between">
+                  <div className="flex gap-2 justify-between border-t border-primary/10 pt-4 mt-6">
                     <div className="flex gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => form.reset()}
                         size="sm"
+                        className="border-primary/20 bg-background/80 hover:bg-primary/5 transition-all duration-300"
                       >
+                        <RotateCw className="h-3.5 w-3.5 mr-1.5" />
                         Réinitialiser
                       </Button>
                       <Button
                         type="button"
                         variant="destructive"
                         onClick={() => {
-                          // Supprimer complètement la configuration du localStorage
                           localStorage.removeItem('pdfConfig');
                           localStorage.removeItem('pdfLogo');
                           
@@ -1682,11 +1817,12 @@ export default function PDFExportsPage() {
                             variant: "default",
                           });
                           
-                          // Recharger la page pour appliquer les valeurs par défaut
                           window.location.reload();
                         }}
                         size="sm"
+                        className="bg-red-500/90 hover:bg-red-600 text-white transition-all duration-300"
                       >
+                        <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                         Réinitialiser complètement
                       </Button>
                     </div>
@@ -1697,14 +1833,21 @@ export default function PDFExportsPage() {
                           type="button"
                           variant="outline"
                           onClick={() => generatePdfPreview(true)}
+                          size="sm"
+                          className="border-primary/20 bg-background/80 hover:bg-primary/5 transition-all duration-300"
                         >
-                          <RefreshCw className="h-4 w-4 mr-2" />
+                          <RotateCw className="h-3.5 w-3.5 mr-1.5" />
                           Actualiser l'aperçu
                         </Button>
                       )}
                       
-                      <Button type="submit">
-                        <Save className="h-4 w-4 mr-2" />
+                      <Button 
+                        type="submit" 
+                        size="sm" 
+                        className="relative overflow-hidden bg-gradient-to-br from-primary to-primary/80 hover:from-primary hover:to-primary shadow-sm hover:shadow-md hover:shadow-primary/20 transition-all duration-300"
+                      >
+                        <div className="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                        <Save className="h-3.5 w-3.5 mr-1.5" />
                         Enregistrer
                       </Button>
                     </div>
@@ -1715,22 +1858,29 @@ export default function PDFExportsPage() {
           </Card>
         </div>
 
-        {/* Aperçu du PDF */}
+        {/* Aperçu du PDF avec style futuriste */}
         <div className="lg:col-span-7 sticky top-20" ref={previewContainerRef}>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
-                Aperçu du document
+          <Card className="h-full border-primary/20 overflow-hidden shadow-xl shadow-primary/5 bg-gradient-to-br from-card via-background/90 to-card/90 backdrop-blur-sm">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+            <CardHeader className="pb-4 border-b border-border/20">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <Eye className="h-5 w-5 text-primary" />
+                </div>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-foreground">
+                  Aperçu du document
+                </span>
               </CardTitle>
-              <CardDescription>
-                {pdfTypes.find(t => t.id === selectedPdfType)?.label || "Document"} - 
-                Visualisation en temps réel
+              <CardDescription className="flex items-center gap-2">
+                <span className="font-medium text-primary">
+                  {pdfTypes.find(t => t.id === selectedPdfType)?.label || "Document"}
+                </span> 
+                <span className="text-muted-foreground">- Visualisation en temps réel</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="relative" style={{ minHeight: '700px' }}>
+            <CardContent className="relative pt-6" style={{ minHeight: '700px' }}>
               {pdfPreviewUrl ? (
-                <div className="w-full h-[700px] rounded-md overflow-hidden border shadow-sm">
+                <div className="w-full h-[700px] rounded-xl overflow-hidden border border-primary/20 shadow-lg transition-all duration-300 hover:shadow-primary/10">
                   <iframe
                     src={pdfPreviewUrl}
                     title="PDF Preview"
@@ -1740,16 +1890,25 @@ export default function PDFExportsPage() {
                   />
                 </div>
               ) : (
-                <div className="w-full h-[700px] flex items-center justify-center bg-gray-50 rounded-md border">
-                  <div className="text-center">
+                <div className="w-full h-[700px] flex items-center justify-center bg-gradient-to-br from-background via-card/30 to-background rounded-xl border border-primary/10 transition-all">
+                  <div className="text-center p-8 max-w-md">
                     {isGeneratingPreview ? (
                       <>
-                        <div className="h-16 w-16 mx-auto mb-4 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-                        <p className="text-muted-foreground">Génération de l'aperçu en cours...</p>
+                        <div className="relative mx-auto mb-6">
+                          <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+                          <div className="relative h-16 w-16 mx-auto rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                        </div>
+                        <p className="text-foreground/80">Génération de l'aperçu en cours...</p>
                       </>
                     ) : (
                       <>
-                        <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                        <div className="relative mx-auto mb-6">
+                          <div className="absolute inset-0 bg-primary/5 rounded-full blur-lg opacity-70"></div>
+                          <div className="relative h-20 w-20 mx-auto rounded-full bg-gradient-to-br from-background to-muted flex items-center justify-center border border-primary/10">
+                            <FileText className="h-10 w-10 text-primary/30" />
+                          </div>
+                        </div>
+                        <h3 className="text-lg font-medium text-foreground mb-2">Aperçu PDF</h3>
                         <p className="text-muted-foreground">
                           {(selectedPdfType === "visits" && visits.length === 0) || 
                            (selectedPdfType === "tenants" && tenants.length === 0) ||
@@ -1761,7 +1920,7 @@ export default function PDFExportsPage() {
                                 selectedPdfType === "maintenance" ? "maintenance" :
                                 "transactions"
                               } disponible pour générer un aperçu`
-                            : "Cliquez sur 'Actualiser l'aperçu' pour générer une prévisualisation"}
+                            : "Configurez les options ci-contre pour visualiser votre document"}
                         </p>
                       </>
                     )}

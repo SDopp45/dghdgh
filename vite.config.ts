@@ -29,6 +29,14 @@ export default defineConfig({
       }
     }
   },
+  css: {
+    postcss: {
+      plugins: [
+        require('autoprefixer'),
+        require('tailwindcss')
+      ],
+    },
+  },
   server: {
     hmr: true,
     port: 5005

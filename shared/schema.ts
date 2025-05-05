@@ -418,6 +418,12 @@ export const users = pgTable("users", {
   preferredAiModel: text("preferred_ai_model", { 
     enum: ["openai-gpt-3.5", "openai-gpt-4o"] 
   }).default("openai-gpt-3.5"),
+  // Ajout des champs pour la gestion du stockage
+  storageUsed: decimal("storage_used", { precision: 20, scale: 2 }).default("0"),
+  storageLimit: decimal("storage_limit", { precision: 20, scale: 2 }).default("5368709120"), // 5GB en octets
+  storageTier: text("storage_tier", { 
+    enum: ["basic", "tier1", "tier2", "tier3", "tier4"] 
+  }).default("basic"), // basic=5GB, tier1=10GB, tier2=20GB, tier3=50GB, tier4=100GB
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -439,6 +445,9 @@ export const insertUserSchema = createInsertSchema(users)
     preferredAiModel: z.enum([
       "openai-gpt-3.5", "openai-gpt-4o"
     ]).default("openai-gpt-3.5").optional(),
+    storageUsed: z.union([z.string(), z.number()]).transform(val => val.toString()).optional(),
+    storageLimit: z.union([z.string(), z.number()]).transform(val => val.toString()).optional(),
+    storageTier: z.enum(["basic", "tier1", "tier2", "tier3", "tier4"]).default("basic").optional(),
   })
   .omit({
     id: true,
@@ -1281,3 +1290,50 @@ export const userNotificationSettingsRelations = relations(userNotificationSetti
 
 export type UserNotificationSetting = typeof userNotificationSettings.$inferSelect;
 export type InsertUserNotificationSetting = typeof userNotificationSettings.$inferInsert;
+
+// Table pour les transactions liées au stockage
+export const storageTransactions = pgTable("storage_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  previousTier: text("previous_tier", { 
+    enum: ["basic", "tier1", "tier2", "tier3", "tier4"] 
+  }).notNull(),
+  newTier: text("new_tier", { 
+    enum: ["basic", "tier1", "tier2", "tier3", "tier4"] 
+  }).notNull(),
+  amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }).notNull(),
+  transactionDate: timestamp("transaction_date").defaultNow().notNull(),
+  expirationDate: timestamp("expiration_date"), // Date d'expiration de l'abonnement (null = pas d'expiration)
+  paymentMethod: text("payment_method"),
+  paymentReference: text("payment_reference"), // Référence de paiement externe
+  status: text("status", { 
+    enum: ["pending", "completed", "failed", "refunded"] 
+  }).default("completed"),
+  notes: text("notes")
+});
+
+export const storageTransactionsRelations = relations(storageTransactions, ({ one }) => ({
+  user: one(users, {
+    fields: [storageTransactions.userId],
+    references: [users.id]
+  })
+}));
+
+export const insertStorageTransactionSchema = createInsertSchema(storageTransactions)
+  .extend({
+    previousTier: z.enum(["basic", "tier1", "tier2", "tier3", "tier4"]),
+    newTier: z.enum(["basic", "tier1", "tier2", "tier3", "tier4"]),
+    amountPaid: z.union([z.string(), z.number()]).transform(val => val.toString()),
+    paymentMethod: z.string().optional(),
+    paymentReference: z.string().optional(),
+    status: z.enum(["pending", "completed", "failed", "refunded"]).default("completed"),
+    notes: z.string().optional()
+  })
+  .omit({
+    id: true,
+    transactionDate: true
+  });
+
+// Export types
+export type StorageTransaction = typeof storageTransactions.$inferSelect;
+export type InsertStorageTransaction = z.infer<typeof insertStorageTransactionSchema>;

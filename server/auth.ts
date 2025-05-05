@@ -1,5 +1,4 @@
 import passport from "passport";
-import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -10,11 +9,15 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import logger from "./utils/logger";
 
+// Importer la configuration Passport
+import './config/passport';
+
 const scryptAsync = promisify(scrypt);
 
 const SCRYPT_KEYLEN = 64;
 const SALT_BYTES = 16;
 
+// Utilitaires de cryptage pour la gestion des mots de passe
 const crypto = {
   hash: async (password: string): Promise<string> => {
     try {
@@ -59,6 +62,7 @@ const crypto = {
   }
 };
 
+// Fonction pour créer un utilisateur de test (utile pour le développement)
 export async function createTestUser() {
   try {
     const hashedPassword = await crypto.hash("testpass123");
@@ -83,6 +87,9 @@ export async function createTestUser() {
         profileImage: null,
         archived: false,
         parentAccountId: null,
+        storageUsed: "0",
+        storageLimit: "5368709120",
+        storageTier: "basic",
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -91,7 +98,10 @@ export async function createTestUser() {
       await db.update(users)
         .set({ 
           password: hashedPassword,
-          role: "admin"
+          role: "admin",
+          storageUsed: existingUser.storageUsed || "0",
+          storageLimit: existingUser.storageLimit || "5368709120",
+          storageTier: existingUser.storageTier || "basic"
         })
         .where(eq(users.username, "testuser"));
       logger.info("Test user password and role updated");
@@ -127,6 +137,7 @@ export const setUserIdForRLS = async (req: Request, res: Response, next: NextFun
   }
 };
 
+// Configuration principale de l'authentification et des sessions
 export function setupAuth(app: Express) {
   // Create test user on startup
   createTestUser();
@@ -137,7 +148,7 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
       sameSite: "lax",
@@ -153,276 +164,48 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Middleware de développement pour créer une session automatique
-  if (process.env.NODE_ENV === 'development' && process.env.AUTO_LOGIN !== 'false') {
-    logger.info('Activating development authentication middleware');
-    app.use((req, res, next) => {
-      // Si aucun utilisateur n'est connecté, créer une session pour le testuser
-      if (!req.isAuthenticated()) {
-        logger.info('Creating dev session with test user');
-        // Créer un utilisateur factice pour le développement
-        const devUser = {
-          id: 1,
-          username: 'testuser',
-          fullName: 'Test User',
-          role: 'admin',
-          email: 'test@example.com',
-          settings: {},
-        };
-        // Attacher l'utilisateur à la requête
-        (req as any).user = devUser;
-        // Remplacer la fonction isAuthenticated
-        (req as any).isAuthenticated = () => true;
-      }
-      next();
-    });
-  }
-
   // Ajouter le middleware pour définir l'ID utilisateur pour RLS
   app.use(setUserIdForRLS);
 
+  // Middleware de débogage des sessions (activé uniquement si la variable DEBUG_SESSION est à true)
   app.use((req, res, next) => {
     debugSession(req);
     next();
   });
-
-  passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        logger.info(`Attempting login for username: [REDACTED]`);
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.username, username))
-          .limit(1);
-
-        if (!user) {
-          logger.warn(`Login failed: User ${username} not found`);
-          return done(null, false, { message: "Invalid username or password" });
-        }
-
-        logger.info(`User found, verifying credentials`);
-        const isMatch = await crypto.verify(password, user.password);
-
-        if (!isMatch) {
-          logger.warn(`Login failed: Invalid password for user ${username}`);
-          return done(null, false, { message: "Invalid username or password" });
-        }
-
-        logger.info(`Authentication successful for user ID: ${user.id}`);
-        const { password: _, ...userWithoutPassword } = user;
-        return done(null, userWithoutPassword as Express.User);
-      } catch (err) {
-        logger.error("Login error:", err);
-        return done(err);
-      }
-    })
-  );
-
-  passport.serializeUser((user: Express.User, done) => {
-    logger.info("Serializing user ID:", user.id);
-    done(null, user.id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      logger.info("Deserializing user ID:", id);
-      
-      // Définir manuellement l'ID utilisateur pour contourner le RLS pendant la désérialisation
-      const client = await db.$client;
-      await client.query(`SELECT set_config('app.user_id', '0', false)`);
-      
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, id))
-        .limit(1);
-
-      if (!user) {
-        logger.warn(`Deserialize failed: User ${id} not found`);
-        return done(null, false);
-      }
-
-      const { password: _, ...userWithoutPassword } = user;
-      
-      // Réinitialiser l'ID utilisateur après la désérialisation
-      await client.query(`SELECT set_config('app.user_id', $1, false)`, [id.toString()]);
-      
-      done(null, userWithoutPassword as Express.User);
-    } catch (err) {
-      logger.error("Deserializing error:", err);
-      done(err);
-    }
-  });
-
-  // Middleware d'authentification pour les routes d'API
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: Error, user: Express.User, info: IVerifyOptions) => {
-      if (err) {
-        logger.error("Login error:", err);
-        return res.status(500).json({
-          success: false,
-          message: "Une erreur est survenue lors de la connexion."
-        });
-      }
-
-      if (!user) {
-        logger.warn("Login failed: Invalid credentials");
-        return res.status(401).json({
-          success: false,
-          message: info?.message || "Identifiants invalides."
-        });
-      }
-
-      req.login(user, async (loginErr) => {
-        if (loginErr) {
-          logger.error("Session login error:", loginErr);
-          return res.status(500).json({
-            success: false,
-            message: "Une erreur est survenue lors de la création de la session."
-          });
-        }
-        
-        // Définir l'ID utilisateur pour RLS après la connexion
-        try {
-          const client = await db.$client;
-          await client.query(`SELECT set_config('app.user_id', $1, false)`, [user.id.toString()]);
-          logger.info(`RLS: Set PostgreSQL user_id to ${user.id} after login`);
-        } catch (error) {
-          logger.error("Error setting user ID for RLS after login:", error);
-        }
-
-        logger.info(`User ${user.username} (ID: ${user.id}) logged in successfully`);
-        return res.json({
-          success: true,
-          user: {
-            id: user.id,
-            username: user.username,
-            fullName: user.fullName,
-            role: user.role,
-            email: user.email,
-            settings: user.settings,
-          }
-        });
-      });
-    })(req, res, next);
-  });
-
-  app.post("/api/logout", (req, res) => {
-    const username = (req.user as any)?.username;
-    req.logout((err) => {
-      if (err) {
-        logger.error("Logout error:", err);
-        return res.status(500).json({
-          success: false,
-          message: "Une erreur est survenue lors de la déconnexion."
-        });
-      }
-      
-      // Réinitialiser l'ID utilisateur à 0 (anonyme) après la déconnexion
-      try {
-        // Utiliser async/await au lieu de .then()
-        (async () => {
-          try {
-            const client = await db.$client;
-            await client.query(`SELECT set_config('app.user_id', '0', false)`);
-            logger.info(`RLS: Reset PostgreSQL user_id to 0 after logout`);
-            
-            logger.info(`User ${username} logged out successfully`);
-            res.json({
-              success: true,
-              message: "Vous avez été déconnecté avec succès."
-            });
-          } catch (error) {
-            logger.error("Error resetting user ID for RLS after logout:", error);
-            
-            // Toujours renvoyer une réponse même en cas d'erreur
-            res.json({
-              success: true,
-              message: "Vous avez été déconnecté avec succès, mais une erreur est survenue avec la base de données."
-            });
-          }
-        })();
-      } catch (err) {
-        logger.error("Error connecting to database after logout:", err);
-        
-        // Renvoyer une réponse en cas d'erreur
-        res.json({
-          success: true,
-          message: "Vous avez été déconnecté avec succès, mais une erreur est survenue avec la base de données."
-        });
-      }
-    });
-  });
-
-  app.get("/api/user", (req, res) => {
-    if (req.isAuthenticated()) {
-      const user = req.user as any;
-      logger.info(`Session check: User ${user.username} is authenticated`);
-      res.json({
-        isAuthenticated: true,
-        user: {
-          id: user.id,
-          username: user.username,
-          fullName: user.fullName,
-          role: user.role,
-          email: user.email,
-          settings: user.settings,
-        }
-      });
-    } else {
-      logger.info("Session check: No authenticated user");
-      res.json({
-        isAuthenticated: false,
-        user: null
-      });
-    }
-  });
 }
 
-// Function to debug session
+// Fonction de débogage des sessions pour le développement
 const debugSession = (req: any) => {
-  if (process.env.NODE_ENV !== 'production') {
-    const sessionId = req.sessionID;
-    const isAuth = req.isAuthenticated();
-    const userId = req.user?.id;
-    logger.debug(`Session debug: ID=${sessionId}, Auth=${isAuth}, UserID=${userId}`);
+  if (process.env.DEBUG_SESSION === 'true') {
+    logger.debug(`Session ID: ${req.sessionID}`);
+    logger.debug(`Authenticated: ${req.isAuthenticated()}`);
+    if (req.user) {
+      logger.debug(`User ID: ${req.user.id}, Username: ${req.user.username}`);
+    }
   }
 };
 
-// Authentication middleware for protected routes
+// Middleware d'authentification pour les routes API
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   if (req.isAuthenticated()) {
     return next();
   }
-
-  logger.warn("Unauthorized access attempt");
-  res.status(401).json({
-    success: false,
-    message: "Non autorisé. Veuillez vous connecter."
-  });
+  
+  return res.status(401).json({ error: 'Non authentifié' });
 };
 
-// Role-based access control middleware
+// Middleware de contrôle d'accès basé sur les rôles
 export const requireRole = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated()) {
-      logger.warn("Unauthorized access attempt (not authenticated)");
-      return res.status(401).json({
-        success: false,
-        message: "Non autorisé. Veuillez vous connecter."
-      });
+      return res.status(401).json({ error: 'Non authentifié' });
     }
-
-    const user = req.user as any;
-    if (!user.role || !roles.includes(user.role)) {
-      logger.warn(`Forbidden: User ${user.username} (role: ${user.role}) attempted to access a restricted resource`);
-      return res.status(403).json({
-        success: false,
-        message: "Accès interdit. Vous n'avez pas les droits nécessaires."
-      });
+    
+    const userRole = (req.user as any).role;
+    if (!roles.includes(userRole)) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
     }
-
+    
     next();
   };
 };

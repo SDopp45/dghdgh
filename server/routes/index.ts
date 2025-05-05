@@ -2,11 +2,13 @@ import express, { Express, Router } from "express";
 import path from "path";
 import fs from "fs";
 import logger from "../utils/logger";
+import { authenticateMiddleware } from "../middleware/auth";
 
 // Middleware pour les uploads
 import multer from "multer";
 
 // Importer les routes
+import authRoutes from "./auth-routes";
 import propertiesRoutes from "./properties";
 import tenantsRoutes from "./tenants";
 import foldersRoutes from "./folders";
@@ -24,6 +26,7 @@ import feedbacksRoutes from "./feedbacks";
 import contractsRoutes from "./contracts";
 import linksRoutes from "./links";
 import staticsRoutes from "./statics";
+import storageRoutes from "./storage";
 
 // Fonction pour configurer les routes API
 export function setupRoutes(app: Express) {
@@ -54,7 +57,7 @@ export function setupRoutes(app: Express) {
   // Création du routeur principal pour /api
   const apiRouter = Router();
   
-  // Route de statut pour vérifier la connexion
+  // Route de statut pour vérifier la connexion (non protégée)
   apiRouter.get("/status", (req, res) => {
     res.json({
       status: "ok",
@@ -63,57 +66,15 @@ export function setupRoutes(app: Express) {
       version: "1.0.0"
     });
   });
-  
-  // Route temporaire pour simuler les connexions à l'API
-  apiRouter.post("/login", (req, res) => {
-    const { username, password } = req.body;
-    
-    if (username === "testuser" && password === "testpass123") {
-      return res.json({
-        success: true,
-        user: {
-          id: 1,
-          username: "testuser",
-          fullName: "Test User",
-          role: "manager"
-        }
-      });
-    }
-    
-    res.status(401).json({
-      success: false,
-      message: "Identifiants invalides"
-    });
-  });
 
-  // Middleware pour simuler l'authentification pour toutes les routes API
-  apiRouter.use((req, res, next) => {
-    // Simuler un utilisateur authentifié
-    req.user = { 
-      id: 1,
-      username: "testuser",
-      fullName: "Test User",
-      role: "manager",
-      email: "test@example.com",
-      // Autres propriétés requises
-      password: "hashedpassword",
-      phoneNumber: null,
-      profileImage: null,
-      archived: false,
-      accountType: "individual",
-      parentAccountId: null,
-      settings: {},
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    // Ajouter la fonction isAuthenticated pour qu'elle retourne toujours true
-    req.isAuthenticated = () => true;
-    
-    next();
-  });
+  // Monter les routes d'authentification (non protégées)
+  apiRouter.use("/auth", authRoutes);
   
-  // Monter toutes les routes
+  // Middleware d'authentification global pour toutes les autres routes API
+  // Toutes les routes montées après cette ligne nécessiteront une authentification
+  apiRouter.use(authenticateMiddleware);
+  
+  // Monter toutes les routes protégées
   apiRouter.use("/properties", propertiesRoutes);
   apiRouter.use("/tenants", tenantsRoutes);
   apiRouter.use("/folders", foldersRoutes);
@@ -131,6 +92,7 @@ export function setupRoutes(app: Express) {
   apiRouter.use("/contracts", contractsRoutes);
   apiRouter.use("/links", linksRoutes);
   apiRouter.use("/statics", staticsRoutes);
+  apiRouter.use("/storage", storageRoutes);
   
   // Montage du routeur sur /api
   app.use("/api", apiRouter);

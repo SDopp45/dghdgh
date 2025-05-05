@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "./components/ui/toaster";
@@ -36,8 +36,18 @@ import Links from "./pages/links";
 import UserLinkPage from "./pages/u/[slug]";
 import PDFExportsPage from "./pages/tools/pdf-exports";
 
-function Router() {
+// Protected Router Component
+function ProtectedRouter() {
   const { isLoading, user } = useUser();
+  const [location, setLocation] = useLocation();
+  
+  // Effect to redirect to login if no user
+  useEffect(() => {
+    if (!isLoading && !user && location !== "/login") {
+      console.log("Utilisateur non authentifié, redirection vers /login");
+      setLocation("/login");
+    }
+  }, [isLoading, user, location, setLocation]);
 
   if (isLoading) {
     return (
@@ -47,14 +57,9 @@ function Router() {
     );
   }
 
+  // If not authenticated, don't render any protected routes
   if (!user) {
-    console.log("Aucun utilisateur authentifié, affichage de la page de login");
-    // ForceAuthPage est un wrapper pour s'assurer qu'aucune redirection ne se produit
-    return (
-      <div className="auth-page-container">
-        <AuthPage />
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -142,18 +147,20 @@ function Router() {
   );
 }
 
-// Public route for user link pages (outside of MainLayout)
-function PublicRouter() {
+// Main Router - Handles both protected and public routes
+function MainRouter() {
+  const { isLoading, user } = useUser();
+
   return (
     <Switch>
+      <Route path="/login">
+        {user ? <Dashboard /> : <AuthPage />}
+      </Route>
       <Route path="/u/:slug">
         <UserLinkPage />
       </Route>
-      <Route path="/login">
-        <AuthPage />
-      </Route>
       <Route path="*">
-        <Router />
+        <ProtectedRouter />
       </Route>
     </Switch>
   );
@@ -162,7 +169,7 @@ function PublicRouter() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <PublicRouter />
+      <MainRouter />
       <Toaster />
     </QueryClientProvider>
   );

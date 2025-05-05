@@ -56,22 +56,30 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   try {
-    const response = await fetch('/api/user', {
+    const response = await fetch('/api/auth/check', {
       credentials: 'include'
     });
 
     if (!response.ok) {
       if (response.status === 401) {
+        console.log('User not authenticated');
         return null;
       }
       const error = await response.json();
       throw new Error(typeof error.error === 'string' ? error.error : 'Failed to fetch user');
     }
 
-    return response.json();
+    const data = await response.json();
+    
+    if (!data.isAuthenticated || !data.user) {
+      console.log('Auth check returned not authenticated');
+      return null;
+    }
+    
+    return data.user;
   } catch (error: any) {
     console.error('Error fetching user:', error);
-    throw error;
+    return null;
   }
 }
 

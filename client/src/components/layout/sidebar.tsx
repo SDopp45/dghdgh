@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LucideIcon } from "lucide-react";
+import { StorageUsageBar } from "@/components/ui/storage/StorageUsageBar";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -309,16 +310,19 @@ export function Sidebar({ className }: SidebarProps) {
       </ScrollArea>
       
       {/* Footer */}
-      <div className="border-t border-[hsl(var(--sidebar-border))] p-4 bg-white">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 text-[hsl(var(--sidebar-foreground))]/80 hover:text-[#70C7BA] bg-white"
-          onClick={logout}
-          disabled={isLoggingOut}
-        >
-          <LogOut className="h-5 w-5" />
-          {!isCollapsed && <span>Déconnexion</span>}
-        </Button>
+      <div className="border-t border-[hsl(var(--sidebar-border))] bg-white">
+        <StorageUsageBar isCollapsed={isCollapsed} />
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 text-[hsl(var(--sidebar-foreground))]/80 hover:text-[#70C7BA] bg-white"
+            onClick={logout}
+            disabled={isLoggingOut}
+          >
+            <LogOut className="h-5 w-5" />
+            {!isCollapsed && <span>Déconnexion</span>}
+          </Button>
+        </div>
       </div>
     </div>
   );

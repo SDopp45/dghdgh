@@ -9,6 +9,7 @@ import * as fsPromises from 'fs/promises';
 import fs from 'fs';
 import logger from '../utils/logger';
 import { ensureAuth, getUserId } from '../middleware/auth';
+import * as storageService from '../services/storage-service';
 
 const router = Router();
 
@@ -80,88 +81,116 @@ const upload = multer({
 });
 
 // POST endpoint for uploading single document
-router.post("/", ensureAuth, upload.single('file'), async (req, res) => {
+router.post("/", ensureAuth, async (req, res) => {
   try {
-    if (!req.file) {
-      logger.error('No file provided in request');
-      return res.status(400).json({ error: 'Aucun fichier fourni' });
-    }
-
-    logger.info('File received:', {
-      originalName: req.file.originalname,
-      filename: req.file.filename,
-      size: req.file.size,
-      mimetype: req.file.mimetype
-    });
-    
-    logger.info('Request body for document:', req.body);
-
-    // Utiliser le titre personnalisé ou le nom du fichier original
-    const { 
-      title = req.file.originalname, 
-      type = 'other', 
-      template = false, 
-      folderId = null, 
-      formData = '{}'
-    } = req.body;
-    
-    const customTitle = title || req.file.originalname;
-    logger.info('Using title for document:', customTitle);
-
+    // Vérifier les limites de stockage avant l'upload
     const userId = getUserId(req);
     if (!userId) {
       logger.error('No authenticated user found');
       return res.status(401).json({ error: 'Non autorisé' });
     }
 
-    // Traiter les métadonnées formData
-    let parsedFormData = {};
-    try {
-      parsedFormData = typeof formData === 'string' ? JSON.parse(formData) : formData;
-      logger.info('Parsed formData:', parsedFormData);
-      
-      // Ajouter le titre personnalisé aux métadonnées si différent du nom original
-      if (customTitle !== req.file.originalname) {
-        parsedFormData = {
-          ...parsedFormData,
-          customFileName: customTitle
-        };
+    // Estimation de la taille du fichier à partir du Content-Length header
+    const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+    
+    if (contentLength > 0) {
+      const hasEnoughStorage = await storageService.hasEnoughStorage(userId, contentLength);
+      if (!hasEnoughStorage) {
+        return res.status(413).json({ 
+          error: 'Espace de stockage insuffisant', 
+          storageInfo: await storageService.getUserStorageInfo(userId)
+        });
       }
-    } catch (e) {
-      logger.warn('Error parsing formData:', e);
-      // En cas d'erreur, on continue avec un objet vide
     }
 
-    const [insertedDoc] = await db.insert(documentsTable).values({
-      title: customTitle,
-      type: type,
-      filePath: req.file.filename,
-      originalName: req.file.originalname,
-      template: template === 'true',
-      userId: userId,
-      folderId: folderId ? parseInt(folderId) : null,
-      formData: parsedFormData,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning();
+    // Continuer avec l'upload
+    upload.single('file')(req, res, async (err) => {
+      if (err) {
+        logger.error('Error in multer upload:', err);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'Le fichier dépasse la taille maximale autorisée (50 MB)' });
+        }
+        return res.status(400).json({ error: err.message || 'Erreur lors du téléchargement du fichier' });
+      }
 
-    logger.info('Document created successfully:', {
-      id: insertedDoc.id,
-      title: insertedDoc.title,
-      type: insertedDoc.type,
-      filePath: insertedDoc.filePath,
-      formData: insertedDoc.formData
-    });
+      if (!req.file) {
+        logger.error('No file provided in request');
+        return res.status(400).json({ error: 'Aucun fichier fourni' });
+      }
 
-    // Final verification
-    const finalPath = path.join(documentsDir, insertedDoc.filePath);
-    if (!fs.existsSync(finalPath)) {
-      throw new Error('Le fichier final n\'existe pas');
-    }
+      logger.info('File received:', {
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+      
+      logger.info('Request body for document:', req.body);
 
-    res.status(201).json({
-      ...insertedDoc,
-      fileUrl: `/api/documents/files/${encodeURIComponent(insertedDoc.filePath)}`
+      // Utiliser le titre personnalisé ou le nom du fichier original
+      const { 
+        title = req.file.originalname, 
+        type = 'other', 
+        template = false, 
+        folderId = null, 
+        formData = '{}'
+      } = req.body;
+      
+      const customTitle = title || req.file.originalname;
+      logger.info('Using title for document:', customTitle);
+
+      // Traiter les métadonnées formData
+      let parsedFormData = {};
+      try {
+        parsedFormData = typeof formData === 'string' ? JSON.parse(formData) : formData;
+        logger.info('Parsed formData:', parsedFormData);
+        
+        // Ajouter le titre personnalisé aux métadonnées si différent du nom original
+        if (customTitle !== req.file.originalname) {
+          parsedFormData = {
+            ...parsedFormData,
+            customFileName: customTitle
+          };
+        }
+      } catch (e) {
+        logger.warn('Error parsing formData:', e);
+        // En cas d'erreur, on continue avec un objet vide
+      }
+
+      const [insertedDoc] = await db.insert(documentsTable).values({
+        title: customTitle,
+        type: type,
+        filePath: req.file.filename,
+        originalName: req.file.originalname,
+        template: template === 'true',
+        userId: userId,
+        folderId: folderId ? parseInt(folderId) : null,
+        formData: parsedFormData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+
+      logger.info('Document created successfully:', {
+        id: insertedDoc.id,
+        title: insertedDoc.title,
+        type: insertedDoc.type,
+        filePath: insertedDoc.filePath,
+        formData: insertedDoc.formData
+      });
+
+      // Final verification
+      const finalPath = path.join(documentsDir, insertedDoc.filePath);
+      if (!fs.existsSync(finalPath)) {
+        throw new Error('Le fichier final n\'existe pas');
+      }
+
+      // Mettre à jour l'utilisation du stockage
+      await storageService.updateStorageUsed(userId, req.file.size);
+
+      res.status(201).json({
+        ...insertedDoc,
+        fileUrl: `/api/documents/files/${encodeURIComponent(insertedDoc.filePath)}`
+      });
     });
   } catch (error) {
     logger.error('Error uploading document:', error);
@@ -170,108 +199,119 @@ router.post("/", ensureAuth, upload.single('file'), async (req, res) => {
 });
 
 // POST endpoint for uploading multiple documents
-router.post("/multiple", ensureAuth, upload.array('files', 10), async (req, res) => {
+router.post("/multiple", ensureAuth, async (req, res) => {
   try {
-    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-      logger.error('No files provided in request');
-      return res.status(400).json({ error: 'Aucun fichier fourni' });
-    }
-
-    logger.info(`Received ${req.files.length} files`);
-    logger.info('Request body for multiple documents:', req.body);
-
-    const { 
-      type = 'other', 
-      documentType = 'other',
-      template = false, 
-      title = 'Document',
-      folderId = null,
-      customNames = '{}' // Nouveau champ pour stocker les noms personnalisés par fichier
-    } = req.body;
-
-    // Récupérer les noms personnalisés pour chaque fichier s'ils existent
-    let fileCustomNames = {};
-    try {
-      fileCustomNames = typeof customNames === 'string' ? JSON.parse(customNames) : customNames;
-      logger.info('Custom names for files:', fileCustomNames);
-    } catch (e) {
-      logger.warn('Error parsing customNames:', e);
-      // En cas d'erreur, on continue avec un objet vide
-    }
-
+    // Vérifier les limites de stockage avant l'upload
     const userId = getUserId(req);
     if (!userId) {
       logger.error('No authenticated user found');
       return res.status(401).json({ error: 'Non autorisé' });
     }
 
-    const insertedDocs = [];
-    const createdFiles = [];
-
-    for (const file of (req.files as Express.Multer.File[])) {
-      try {
-        logger.info('Processing file:', {
-          originalName: file.originalname,
-          filename: file.filename,
-          size: file.size,
-          mimetype: file.mimetype
+    // Estimation de la taille totale à partir du Content-Length header
+    const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+    
+    if (contentLength > 0) {
+      const hasEnoughStorage = await storageService.hasEnoughStorage(userId, contentLength);
+      if (!hasEnoughStorage) {
+        return res.status(413).json({ 
+          error: 'Espace de stockage insuffisant', 
+          storageInfo: await storageService.getUserStorageInfo(userId)
         });
-
-        // Vérifier que le fichier existe
-        const finalPath = path.join(documentsDir, file.filename);
-        if (!fs.existsSync(finalPath)) {
-          logger.error(`File does not exist: ${finalPath}`);
-          continue;
-        }
-
-        // Récupérer le nom personnalisé pour ce fichier s'il existe
-        // On utilise l'originalname comme clé pour localiser le nom personnalisé
-        const customTitle = fileCustomNames[file.originalname as keyof typeof fileCustomNames] || `${title} - ${file.originalname}`;
-        logger.info(`Using title for file ${file.originalname}: ${customTitle}`);
-
-        // Préparation des métadonnées supplémentaires
-        let formDataObj: Record<string, string> = {};
-        if (file.originalname in fileCustomNames) {
-          formDataObj = {
-            customFileName: fileCustomNames[file.originalname as keyof typeof fileCustomNames]
-          };
-        }
-
-        // Insérer le document dans la base de données
-        const [insertedDoc] = await db.insert(documentsTable).values({
-          title: customTitle,
-          type: type || documentType,
-          filePath: file.filename,
-          originalName: file.originalname,
-          template: template === 'true',
-          userId: userId,
-          folderId: folderId ? parseInt(folderId) : null,
-          formData: formDataObj,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }).returning();
-
-        logger.info('Document created in database:', {
-          id: insertedDoc.id,
-          title: insertedDoc.title,
-          filePath: insertedDoc.filePath
-        });
-
-        createdFiles.push({
-          ...insertedDoc,
-          fileUrl: `/api/documents/files/${encodeURIComponent(insertedDoc.filePath)}`
-        });
-      } catch (fileError) {
-        logger.error(`Error processing file ${file.originalname}:`, fileError);
       }
     }
 
-    res.status(201).json({ 
-      message: `${createdFiles.length} documents créés avec succès`,
-      documents: createdFiles 
+    // Continuer avec l'upload
+    upload.array('files', 10)(req, res, async (err) => {
+      if (err) {
+        logger.error('Error in multer upload:', err);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'Un fichier dépasse la taille maximale autorisée (50 MB)' });
+        }
+        return res.status(400).json({ error: err.message || 'Erreur lors du téléchargement des fichiers' });
+      }
+
+      if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+        logger.error('No files provided in request');
+        return res.status(400).json({ error: 'Aucun fichier fourni' });
+      }
+
+      logger.info(`Received ${req.files.length} files`);
+      logger.info('Request body for multiple documents:', req.body);
+
+      const { 
+        type = 'other', 
+        documentType = 'other',
+        template = false, 
+        title = 'Document',
+        folderId = null,
+        customNames = '{}' // Nouveau champ pour stocker les noms personnalisés par fichier
+      } = req.body;
+
+      // Récupérer les noms personnalisés pour chaque fichier s'ils existent
+      let fileCustomNames = {};
+      try {
+        fileCustomNames = typeof customNames === 'string' ? JSON.parse(customNames) : customNames;
+        logger.info('Custom names for files:', fileCustomNames);
+      } catch (e) {
+        logger.warn('Error parsing customNames:', e);
+        // En cas d'erreur, on continue avec un objet vide
+      }
+
+      // Créer les entrées dans la base de données pour chaque fichier
+      const insertPromises = [];
+      let totalSize = 0;
+
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        totalSize += file.size;
+        
+        // Déterminer le titre pour ce fichier
+        let fileTitle;
+        if (req.files.length === 1) {
+          // S'il n'y a qu'un seul fichier, utiliser le titre général
+          fileTitle = title;
+        } else {
+          // Sinon essayer de trouver un titre personnalisé, ou utiliser le nom original
+          fileTitle = fileCustomNames[i] || fileCustomNames[file.originalname] || file.originalname;
+        }
+
+        insertPromises.push(
+          db.insert(documentsTable).values({
+            title: fileTitle,
+            type: type,
+            filePath: file.filename,
+            originalName: file.originalname,
+            template: template === 'true',
+            userId: userId,
+            folderId: folderId ? parseInt(folderId) : null,
+            formData: {
+              customFileName: fileTitle,
+              documentType: documentType
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }).returning()
+        );
+      }
+
+      const results = await Promise.all(insertPromises);
+      const insertedDocs = results.map(result => result[0]);
+
+      // Mettre à jour l'utilisation du stockage
+      await storageService.updateStorageUsed(userId, totalSize);
+
+      res.status(201).json({
+        success: true,
+        count: insertedDocs.length,
+        documents: insertedDocs.map(doc => ({
+          ...doc,
+          fileUrl: `/api/documents/files/${encodeURIComponent(doc.filePath)}`
+        }))
+      });
     });
   } catch (error) {
-    logger.error('Error in multi-document upload:', error);
+    logger.error('Error uploading multiple documents:', error);
     res.status(500).json({ error: 'Erreur lors du téléchargement des documents' });
   }
 });
@@ -456,70 +496,72 @@ router.get("/files/:filename", ensureAuth, async (req, res) => {
   }
 });
 
-// DELETE endpoint to remove a document
+// DELETE endpoint for deleting a document by ID
 router.delete("/:id", ensureAuth, async (req, res) => {
   try {
+    const documentId = parseInt(req.params.id);
+    if (isNaN(documentId)) {
+      return res.status(400).json({ error: 'ID de document invalide' });
+    }
+
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: 'Non autorisé' });
     }
 
-    const { id } = req.params;
-    const documentId = parseInt(id);
-
-    if (isNaN(documentId)) {
-      return res.status(400).json({ error: 'ID de document invalide' });
-    }
-
-    // Get document to find file path
-    const document = await db
-      .select()
+    // Récupérer les informations du document avant suppression
+    const [document] = await db.select()
       .from(documentsTable)
-      .where(eq(documentsTable.id, documentId))
-      .limit(1);
+      .where(eq(documentsTable.id, documentId));
 
-    if (document.length === 0) {
+    if (!document) {
       return res.status(404).json({ error: 'Document non trouvé' });
     }
 
-    // Update transactions to remove references to this document
-    try {
-      // Update transactions that use this as the primary document
-      await db.execute(
-        `UPDATE transactions SET document_id = NULL 
-         WHERE document_id = ${documentId}`
-      );
-      
-      // Update transactions that include this document in their documentIds array
-      await db.execute(
-        `UPDATE transactions 
-         SET document_ids = array_remove(document_ids, ${documentId}) 
-         WHERE ${documentId} = ANY(document_ids)`
-      );
-      
-      logger.info(`Removed references to document ${documentId} from transactions`);
-    } catch (updateError) {
-      logger.warn(`Error updating transaction references for document ${documentId}:`, updateError);
-      // Continue even if reference updates fail
+    // Vérifier que l'utilisateur est autorisé à supprimer ce document
+    if (document.userId !== userId) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas autorisé à supprimer ce document' });
     }
 
-    // Remove from database
-    await db
-      .delete(documentsTable)
-      .where(eq(documentsTable.id, documentId));
-
-    // Try to remove file
+    // Obtenir la taille du fichier pour mettre à jour le stockage
+    let fileSize = 0;
+    const filePath = path.join(documentsDir, document.filePath);
     try {
-      const filePath = path.join(documentsDir, document[0].filePath);
       if (fs.existsSync(filePath)) {
-        await fsPromises.unlink(filePath);
+        const stats = fs.statSync(filePath);
+        fileSize = stats.size;
       }
-    } catch (fileError) {
-      logger.warn(`Error removing file for document ${documentId}:`, fileError);
-      // Continue even if file removal fails
+    } catch (err) {
+      logger.warn(`Error getting file size for document ${documentId}:`, err);
     }
 
-    res.json({ message: 'Document supprimé avec succès' });
+    // Supprimer l'entrée de la base de données
+    await db.delete(documentsTable).where(eq(documentsTable.id, documentId));
+
+    // Supprimer le fichier physique
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        logger.info(`File deleted: ${filePath}`);
+      } else {
+        logger.warn(`File not found for deletion: ${filePath}`);
+      }
+    } catch (error) {
+      logger.error(`Error deleting file ${filePath}:`, error);
+      // Continue même si la suppression du fichier échoue
+    }
+
+    // Mettre à jour l'utilisation du stockage (valeur négative pour réduire)
+    if (fileSize > 0) {
+      await storageService.updateStorageUsed(userId, -fileSize);
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Document supprimé avec succès',
+      id: documentId,
+      fileName: document.originalName
+    });
   } catch (error) {
     logger.error('Error deleting document:', error);
     res.status(500).json({ error: 'Erreur lors de la suppression du document' });

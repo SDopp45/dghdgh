@@ -107,8 +107,8 @@ COMPORTEMENT:
 Utilise ton expertise immobilière complète pour fournir des réponses précises, pratiques et à jour sur tous les sujets immobiliers.`
         });
 
-        // Utiliser le service de modèle de langage pour générer une réponse
-        assistantResponse = await LanguageModelService.generateChatResponse(formattedMessages);
+        // Utiliser le service de modèle de langage pour générer une réponse avec le userId
+        assistantResponse = await LanguageModelService.generateChatResponse(formattedMessages, params.userId);
         
         // Détecter si le message contient une urgence
         isUrgent = this.detectUrgency(params.content, assistantResponse);
@@ -208,7 +208,7 @@ Utilise ton expertise immobilière complète pour fournir des réponses précise
           }
         ];
 
-        suggestionContent = await LanguageModelService.generateChatResponse(messages);
+        suggestionContent = await LanguageModelService.generateChatResponse(messages, params.userId);
       } catch (error) {
         console.error('AI model error in createSuggestion:', error);
         

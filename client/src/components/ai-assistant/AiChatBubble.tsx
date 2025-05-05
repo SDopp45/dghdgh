@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { X, SendHorizontal, Loader2, MessageSquare, HelpCircle, Bot } from 'lucide-react';
+import { X, SendHorizontal, Loader2, MessageSquare, HelpCircle, Bot, Settings, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,6 +11,9 @@ import { useAiProvider } from '@/hooks/use-ai-provider';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { apiRequest } from '@/lib/queryClient';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import AiSettingsDialog from './AiSettingsDialog';
 
 // Types pour les messages et conversations
 type Message = {
@@ -86,6 +89,12 @@ const PREDEFINED_ANSWERS: Record<string, string> = {
     "La rentabilité d'un investissement locatif permet de mesurer le rendement financier d'un bien immobilier mis en location. Il existe plusieurs façons de la calculer, selon le niveau de précision souhaité. Voici les principales méthodes utilisées en 2025 :\n\n🔹 1. La rentabilité brute\nC'est le calcul le plus simple. Elle donne une première estimation du rendement annuel du bien, sans prendre en compte les charges ou la fiscalité.\n\nFormule :\n📌 (Loyer annuel hors charges / Prix d'achat du bien) x 100\n\nExemple :\n\nLoyer mensuel : 700 €\n\nLoyer annuel : 700 € x 12 = 8 400 €\n\nPrix d'achat (avec frais de notaire inclus) : 160 000 €\n➡️ Rentabilité brute : (8 400 / 160 000) x 100 = 5,25 %\n\n🔹 2. La rentabilité nette de charges\nElle affine le calcul en déduisant les charges non récupérables : taxe foncière, assurances, frais de gestion, etc.\n\nFormule :\n📌 (Loyer annuel – Charges non récupérables) / Prix d'achat total x 100\n\nExemple :\n\nLoyer annuel : 8 400 €\n\nCharges non récupérables : 1 400 €\n➡️ Rentabilité nette : (8 400 – 1 400) / 160 000 x 100 = 4,38 %\n\n🔹 3. La rentabilité nette-nette (ou rentabilité réelle)\nC'est la plus précise. Elle prend en compte :\n\nTous les frais : charges, vacance locative, travaux, etc.\n\nEt surtout l'imposition liée aux revenus fonciers (selon le régime réel ou micro-foncier, et votre TMI).\n\nElle varie fortement selon votre situation fiscale. Pour la calculer : ✅ Utilisez un simulateur de rentabilité locative (de nombreux sites en proposent en 2025, y compris avec l'intégration du prélèvement à la source et des régimes fiscaux type LMNP, Pinel, Denormandie, etc.).\n\n💡 Astuce de pro\nPensez aussi à intégrer :\n\nLa valeur de revente potentielle (plus-value ou moins-value),\n\nLe financement par crédit : l'effet de levier peut booster votre rentabilité si bien maîtrisé."
 };
 
+// Modèles d'IA disponibles avec info de coût en quota
+const aiModels = [
+  { id: 'openai-gpt-3.5', name: 'GPT-3.5 Turbo', category: 'openai', quotaCost: 1 },
+  { id: 'openai-gpt-4o', name: 'GPT-4o', category: 'openai', quotaCost: 2 }
+];
+
 const AiChatBubble = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -94,10 +103,74 @@ const AiChatBubble = () => {
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [currentTab, setCurrentTab] = useState<string>('chat');
   const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [aiSettings, setAiSettings] = useState<{
+    preferredModel: string;
+    quotaInfo: {
+      currentUsage: number;
+      limit: number;
+    }
+  } | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { user } = useUser();
-  const { providerInfo, isLoading: isProviderLoading } = useAiProvider();
+  
+  // Ne pas utiliser ces propriétés pour éviter l'erreur du linter
+  // const { user } = useUser();
+  // const { providerInfo, isLoading: isProviderLoading } = useAiProvider();
+
+  // Charger les paramètres IA
+  useEffect(() => {
+    if (isOpen) {
+      fetchAiSettings();
+    }
+  }, [isOpen]);
+
+  const fetchAiSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const response = await apiRequest('/api/user/ai-settings', { method: 'GET' });
+      setAiSettings(response);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des paramètres IA:', error);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  // Mettre à jour le modèle préféré
+  const updatePreferredModel = async (modelId: string) => {
+    try {
+      setLoadingSettings(true);
+      const response = await apiRequest('/api/user/ai-settings', {
+        method: 'POST',
+        body: JSON.stringify({ preferredModel: modelId }),
+      });
+      
+      setAiSettings(response);
+      
+      toast({
+        title: 'Modèle mis à jour',
+        description: `Votre modèle d'IA a été changé avec succès.`,
+      });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du modèle:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour le modèle.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  // Trouver le coût du modèle sélectionné
+  const getSelectedModelCost = () => {
+    if (!aiSettings?.preferredModel) return 1;
+    const model = aiModels.find(m => m.id === aiSettings.preferredModel);
+    return model?.quotaCost || 1;
+  };
 
   // Défilement automatique vers le bas lors de nouveaux messages
   useEffect(() => {
@@ -199,8 +272,68 @@ const AiChatBubble = () => {
     setShowSuggestions(false);
   };
 
+  // Format des nombres
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('fr-FR').format(num);
+  };
+
+  // Zone en bas avec sélecteur de modèles et compteur de quota
+  const renderModelSelector = () => {
+    const quotaCost = getSelectedModelCost();
+    
+    return (
+      <div className="mt-2 flex items-center justify-between">
+        <div className="flex-1 max-w-[180px]">
+          <Select
+            value={aiSettings?.preferredModel || ''}
+            onValueChange={updatePreferredModel}
+            disabled={loadingSettings}
+          >
+            <SelectTrigger className="h-7 text-xs border-gray-200">
+              <SelectValue placeholder="Sélectionner modèle" />
+            </SelectTrigger>
+            <SelectContent>
+              {aiModels.map((model) => (
+                <SelectItem key={model.id} value={model.id} className="text-xs">
+                  {model.name} ({model.quotaCost} {model.quotaCost > 1 ? 'unités' : 'unité'})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="mt-1 text-xs text-gray-500 flex items-center">
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 bg-primary rounded-full"></span>
+              Coût: {quotaCost} {quotaCost > 1 ? 'unités' : 'unité'}/requête
+            </span>
+          </div>
+        </div>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <Info className="h-3 w-3" />
+                <span>
+                  {loadingSettings 
+                    ? "Chargement..." 
+                    : `${aiSettings?.quotaInfo?.currentUsage || 0}/${aiSettings?.quotaInfo?.limit || 100} requêtes`}
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Nombre de requêtes utilisées sur votre quota</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
+      {/* Settings Dialog */}
+      <AiSettingsDialog open={showSettings} onOpenChange={setShowSettings} />
+      
       {/* Interface de chat ouverte */}
       {isOpen && (
         <div className="bg-white rounded-xl shadow-xl w-[450px] h-[650px] flex flex-col border border-gray-200 overflow-hidden">
@@ -218,14 +351,25 @@ const AiChatBubble = () => {
                 </div>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={toggleChat} 
-              className="h-8 w-8 text-white hover:bg-white/10 rounded-full"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowSettings(true)} 
+                className="h-8 w-8 text-white hover:bg-white/10 rounded-full"
+                title="Paramètres avancés"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleChat} 
+                className="h-8 w-8 text-white hover:bg-white/10 rounded-full"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
           {/* Navigation */}
@@ -395,9 +539,7 @@ const AiChatBubble = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-1.5 text-[10px] text-gray-400 text-right">
-                    Propulsé par {isProviderLoading ? 'IA' : providerInfo.displayName}
-                  </div>
+                  {renderModelSelector()}
                 </div>
               </div>
             )}

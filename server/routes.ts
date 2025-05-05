@@ -24,6 +24,7 @@ import userNotificationSettingsRouter from './routes/user-notifications';
 import dataExportRouter from './routes/data-export';
 import propertyFeaturesRouter from './routes/property-features';
 import aiAssistantRouter from './routes/ai-assistant';
+import aiSettingsRouter from './routes/ai-settings';
 import financialAnalysisRouter from './routes/financial-analysis';
 import feedbacksRouter from './routes/feedbacks';
 import tenantHistoryRouter from './routes/tenantHistory';
@@ -145,6 +146,7 @@ export function setupRoutes(app: Express) {
   apiRouter.use('/export', dataExportRouter);
   apiRouter.use('/property-features', propertyFeaturesRouter);
   apiRouter.use('/ai-assistant', aiAssistantRouter);
+  apiRouter.use('/ai-settings', aiSettingsRouter);
   apiRouter.use('/financial-analysis', financialAnalysisRouter);
   apiRouter.use('/feedbacks', feedbacksRouter);
   apiRouter.use('/tenant-history', tenantHistoryRouter);

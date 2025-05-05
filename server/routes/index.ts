@@ -18,6 +18,8 @@ import alertsRoutes from "./alerts";
 import reportsRoutes from "./reports";
 import analyticsRoutes from "./analytics";
 import aiAssistantRoutes from "./ai-assistant";
+import aiSettingsRoutes from "./ai-settings";
+import adminAiRoutes from "./admin-ai";
 import feedbacksRoutes from "./feedbacks";
 import contractsRoutes from "./contracts";
 import linksRoutes from "./links";
@@ -123,6 +125,8 @@ export function setupRoutes(app: Express) {
   apiRouter.use("/reports", reportsRoutes);
   apiRouter.use("/analytics", analyticsRoutes);
   apiRouter.use("/ai-assistant", aiAssistantRoutes);
+  apiRouter.use("/", aiSettingsRoutes);
+  apiRouter.use("/", adminAiRoutes);
   apiRouter.use("/feedbacks", feedbacksRoutes);
   apiRouter.use("/contracts", contractsRoutes);
   apiRouter.use("/links", linksRoutes);

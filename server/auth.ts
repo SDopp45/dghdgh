@@ -1,6 +1,6 @@
 import passport from "passport";
 import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
-import { type Express } from "express";
+import { type Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -335,4 +335,27 @@ const debugSession = (req: any) => {
     hasUser: !!req.user,
     isAuthenticated: req.isAuthenticated()
   });
+};
+
+// Add the authenticateToken middleware function
+export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+  if (process.env.NODE_ENV === 'development') {
+    // In development, create a dummy user if necessary
+    if (!req.user) {
+      (req as any).user = {
+        id: 1,
+        username: 'testuser',
+        fullName: 'Test User',
+        role: 'manager',
+        email: 'test@example.com',
+        settings: {},
+      };
+    }
+    return next();
+  }
+  
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Non authentifié" });
+  }
+  next();
 };

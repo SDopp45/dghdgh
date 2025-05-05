@@ -412,6 +412,12 @@ export const users = pgTable("users", {
   accountType: text("account_type", { enum: ["individual", "enterprise"] }).default("individual"),
   parentAccountId: integer("parent_account_id"),
   settings: jsonb("settings").default({}),
+  // Ajout des champs pour la gestion des quotas d'IA
+  requestCount: integer("request_count").default(0),
+  requestLimit: integer("request_limit").default(100),
+  preferredAiModel: text("preferred_ai_model", { 
+    enum: ["openai-gpt-3.5", "openai-gpt-4o"] 
+  }).default("openai-gpt-3.5"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -428,6 +434,11 @@ export const insertUserSchema = createInsertSchema(users)
     role: z.enum(["admin", "manager", "tenant"]).default("tenant"),
     accountType: z.enum(["individual", "enterprise"]).default("individual"),
     settings: z.record(z.unknown()).default({}),
+    requestCount: z.number().int().min(0).default(0).optional(),
+    requestLimit: z.number().int().min(0).default(100).optional(),
+    preferredAiModel: z.enum([
+      "openai-gpt-3.5", "openai-gpt-4o"
+    ]).default("openai-gpt-3.5").optional(),
   })
   .omit({
     id: true,

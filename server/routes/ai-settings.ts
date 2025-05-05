@@ -16,7 +16,7 @@ const updateModelSchema = z.object({
 /**
  * Obtenir les paramètres d'IA de l'utilisateur courant
  */
-router.get('/api/user/ai-settings', authenticateToken, async (req, res) => {
+router.get('/user/ai-settings', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.id;
     
@@ -43,7 +43,7 @@ router.get('/api/user/ai-settings', authenticateToken, async (req, res) => {
 /**
  * Mettre à jour le modèle d'IA préféré de l'utilisateur
  */
-router.post('/api/user/ai-settings', authenticateToken, async (req, res) => {
+router.post('/user/ai-settings', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.id;
     
@@ -82,7 +82,7 @@ router.post('/api/user/ai-settings', authenticateToken, async (req, res) => {
 /**
  * Réinitialiser le compteur de requêtes (admin uniquement)
  */
-router.post('/api/admin/reset-user-quota/:userId', authenticateToken, async (req, res) => {
+router.post('/admin/reset-user-quota/:userId', authenticateToken, async (req, res) => {
   try {
     // Vérifier que l'utilisateur est administrateur
     if (req.user?.role !== 'admin') {
@@ -108,7 +108,7 @@ router.post('/api/admin/reset-user-quota/:userId', authenticateToken, async (req
 /**
  * Mettre à jour la limite de requêtes d'un utilisateur (admin uniquement)
  */
-router.post('/api/admin/update-user-limit/:userId', authenticateToken, async (req, res) => {
+router.post('/admin/update-user-limit/:userId', authenticateToken, async (req, res) => {
   try {
     // Vérifier que l'utilisateur est administrateur
     if (req.user?.role !== 'admin') {

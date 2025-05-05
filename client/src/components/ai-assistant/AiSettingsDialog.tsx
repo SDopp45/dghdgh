@@ -48,9 +48,18 @@ export default function AiSettingsDialog({ open, onOpenChange }: AiSettingsDialo
       setSettings(response);
     } catch (error) {
       console.error('Erreur lors de la récupération des paramètres IA:', error);
+      // Définir des valeurs par défaut en cas d'échec de l'API
+      setSettings({
+        preferredModel: 'openai-gpt-3.5',
+        quotaInfo: {
+          hasQuotaLeft: true,
+          currentUsage: 0,
+          limit: 100
+        }
+      });
       toast({
         title: 'Erreur',
-        description: 'Impossible de récupérer vos paramètres IA.',
+        description: 'Impossible de récupérer vos paramètres IA. Utilisation des valeurs par défaut.',
         variant: 'destructive',
       });
     } finally {

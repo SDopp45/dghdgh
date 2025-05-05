@@ -125,7 +125,7 @@ export function setupRoutes(app: Express) {
   apiRouter.use("/reports", reportsRoutes);
   apiRouter.use("/analytics", analyticsRoutes);
   apiRouter.use("/ai-assistant", aiAssistantRoutes);
-  apiRouter.use("/", aiSettingsRoutes);
+  apiRouter.use("", aiSettingsRoutes);
   apiRouter.use("/", adminAiRoutes);
   apiRouter.use("/feedbacks", feedbacksRoutes);
   apiRouter.use("/contracts", contractsRoutes);

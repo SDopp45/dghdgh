@@ -133,6 +133,14 @@ const AiChatBubble = () => {
       setAiSettings(response);
     } catch (error) {
       console.error('Erreur lors de la récupération des paramètres IA:', error);
+      // Définir des valeurs par défaut en cas d'échec de l'API
+      setAiSettings({
+        preferredModel: 'openai-gpt-3.5',
+        quotaInfo: {
+          currentUsage: 0,
+          limit: 100
+        }
+      });
     } finally {
       setLoadingSettings(false);
     }

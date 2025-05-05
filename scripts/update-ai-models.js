@@ -6,7 +6,7 @@
  * en restreignant les valeurs possibles de preferred_ai_model à openai-gpt-3.5 et openai-gpt-4o.
  */
 
-import { updateAiModels } from './db-migrate.js';
+import { updateAiModels } from '../db-migrate.js';
 
 async function main() {
   console.log('🚀 Début de la mise à jour des modèles d\'IA...');

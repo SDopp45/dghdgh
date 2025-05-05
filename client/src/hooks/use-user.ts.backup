@@ -82,8 +82,6 @@ export function useUser() {
   const { data: user, error, isLoading, refetch } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: (failureCount, error) => {
       if (error.message.includes('401')) {

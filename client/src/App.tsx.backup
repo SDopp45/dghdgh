@@ -48,13 +48,7 @@ function Router() {
   }
 
   if (!user) {
-    console.log("Aucun utilisateur authentifié, affichage de la page de login");
-    // ForceAuthPage est un wrapper pour s'assurer qu'aucune redirection ne se produit
-    return (
-      <div className="auth-page-container">
-        <AuthPage />
-      </div>
-    );
+    return <AuthPage />;
   }
 
   return (
@@ -148,9 +142,6 @@ function PublicRouter() {
     <Switch>
       <Route path="/u/:slug">
         <UserLinkPage />
-      </Route>
-      <Route path="/login">
-        <AuthPage />
       </Route>
       <Route path="*">
         <Router />

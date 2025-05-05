@@ -406,7 +406,7 @@ export const users = pgTable("users", {
   fullName: text("full_name"),
   email: text("email"),
   phoneNumber: text("phone_number"),
-  role: text("role", { enum: ["admin", "manager", "tenant"] }).default("tenant"),
+  role: text("role", { enum: ["admin", "clients"] }).default("clients"),
   profileImage: text("profile_image"),
   archived: boolean("archived").default(false),
   accountType: text("account_type", { enum: ["individual", "enterprise"] }).default("individual"),
@@ -431,7 +431,7 @@ export const insertUserSchema = createInsertSchema(users)
     phoneNumber: z.string()
       .regex(/^(\+33|0)[1-9](\d{8}|\s\d{2}\s\d{2}\s\d{2}\s\d{2})$/, "Numéro de téléphone invalide")
       .optional(),
-    role: z.enum(["admin", "manager", "tenant"]).default("tenant"),
+    role: z.enum(["admin", "clients"]).default("clients"),
     accountType: z.enum(["individual", "enterprise"]).default("individual"),
     settings: z.record(z.unknown()).default({}),
     requestCount: z.number().int().min(0).default(0).optional(),

@@ -17,6 +17,23 @@ const scryptAsync = promisify(scrypt);
 const SCRYPT_KEYLEN = 64;
 const SALT_BYTES = 16;
 
+// Configuration des options d'authentification
+const AUTH_CONFIG = {
+  // Choisir entre 'session', 'jwt', ou 'hybrid'
+  mode: process.env.AUTH_MODE || 'session',
+  // Options de session
+  session: {
+    secret: process.env.SESSION_SECRET || "your-secure-session-secret",
+    cookieMaxAge: parseInt(process.env.SESSION_COOKIE_MAX_AGE || '86400000'), // 24h par défaut
+    secureCookies: process.env.NODE_ENV === 'production',
+  },
+  // Options JWT (si utilisé)
+  jwt: {
+    secret: process.env.JWT_SECRET || "your-jwt-secret-key-change-in-production",
+    expiresIn: process.env.JWT_EXPIRES_IN || '1d', // 1 jour par défaut
+  }
+};
+
 // Utilitaires de cryptage pour la gestion des mots de passe
 const crypto = {
   hash: async (password: string): Promise<string> => {
@@ -118,17 +135,25 @@ export const setUserIdForRLS = async (req: Request, res: Response, next: NextFun
       // Si l'utilisateur est authentifié, on définit son ID dans le contexte PostgreSQL
       const userId = (req as any).user.id;
       
-      // Utiliser la pool de connexion pour exécuter la requête SET ROLE
-      const client = await db.$client;
-      await client.query(`SELECT set_config('app.user_id', $1, false)`, [userId.toString()]);
-      
-      logger.info(`RLS: Set PostgreSQL user_id to ${userId}`);
+      // Utiliser la pool de connexion pour exécuter la requête
+      try {
+        await db.transaction(async (tx) => {
+          await tx.execute(`SELECT set_config('app.user_id', ?, false)`, [userId.toString()]);
+          logger.info(`RLS: Set PostgreSQL user_id to ${userId}`);
+        });
+      } catch (dbError) {
+        logger.error("Database transaction error during RLS setup:", dbError);
+      }
     } else {
       // Si l'utilisateur n'est pas authentifié, on utilise un ID anonyme (0)
-      const client = await db.$client;
-      await client.query(`SELECT set_config('app.user_id', '0', false)`);
-      
-      logger.info(`RLS: Set PostgreSQL user_id to 0 (anonymous)`);
+      try {
+        await db.transaction(async (tx) => {
+          await tx.execute(`SELECT set_config('app.user_id', ?, false)`, ['0']);
+          logger.info(`RLS: Set PostgreSQL user_id to 0 (anonymous)`);
+        });
+      } catch (dbError) {
+        logger.error("Database transaction error during anonymous RLS setup:", dbError);
+      }
     }
     next();
   } catch (error) {
@@ -144,13 +169,13 @@ export function setupAuth(app: Express) {
 
   const MemoryStore = createMemoryStore(session);
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "your-secure-session-secret",
+    secret: AUTH_CONFIG.session.secret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: AUTH_CONFIG.session.secureCookies,
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: AUTH_CONFIG.session.cookieMaxAge,
       sameSite: "lax",
       path: "/"
     },
@@ -162,16 +187,24 @@ export function setupAuth(app: Express) {
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
-  app.use(passport.session());
+  
+  // N'activer les sessions que si on est en mode session ou hybride
+  if (AUTH_CONFIG.mode !== 'jwt') {
+    app.use(passport.session());
+  }
 
   // Ajouter le middleware pour définir l'ID utilisateur pour RLS
   app.use(setUserIdForRLS);
 
   // Middleware de débogage des sessions (activé uniquement si la variable DEBUG_SESSION est à true)
-  app.use((req, res, next) => {
-    debugSession(req);
-    next();
-  });
+  if (process.env.DEBUG_SESSION === 'true') {
+    app.use((req, res, next) => {
+      debugSession(req);
+      next();
+    });
+  }
+  
+  logger.info(`Authentication configured in ${AUTH_CONFIG.mode} mode`);
 }
 
 // Fonction de débogage des sessions pour le développement

@@ -65,7 +65,7 @@ export const setAdminSchemaViews = async (req: Request, res: Response, next: Nex
 /**
  * Configure le chemin de recherche pour inclure les vues admin
  */
-async function setAdminViews() {
+export async function setAdminViews() {
   try {
     const { dbPool } = await import('../db');
     await dbPool.query('SET search_path TO admin_views, public');

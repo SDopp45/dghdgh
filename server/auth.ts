@@ -84,7 +84,7 @@ async function createTestUser() {
     // Insertion du nouvel utilisateur
     const newUser = await db.insert(users).values({
       username: "admin",
-      passwordHash: passwordHash,
+      password: passwordHash,
       email: "admin@example.com",
       fullName: "Administrator",
       role: "admin",
@@ -118,8 +118,8 @@ export async function authenticateUser(
     }
 
     // Vérifier le mot de passe
-    const isValid = user.passwordHash 
-      ? await verifyPassword(user.passwordHash, password)
+    const isValid = user.password 
+      ? await verifyPassword(user.password, password)
       : false;
 
     if (!isValid) {
@@ -285,15 +285,6 @@ export async function loginUser(email: string, password: string) {
       return { success: false, message: "Identifiants invalides" };
     }
 
-    // Configurer le schéma pour l'utilisateur dans PostgreSQL
-    try {
-      await db.execute(`SELECT public.setup_user_environment(${user.id})`);
-      logger.info(`Schéma configuré pour l'utilisateur ${user.id}`);
-    } catch (error) {
-      logger.error(`Erreur lors de la configuration du schéma: ${error}`);
-      // On continue même si la configuration du schéma échoue
-    }
-
     // Journalisation de la connexion
     logger.info(`Utilisateur connecté: ${user.email} (${user.id})`);
 
@@ -305,7 +296,6 @@ export async function loginUser(email: string, password: string) {
         username: user.username,
         role: user.role,
         settings: user.settings,
-        active: user.active,
       },
     };
   } catch (error) {

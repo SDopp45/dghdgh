@@ -60,7 +60,7 @@ export function isAdmin(req: Request): boolean {
 export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
   if (!isAdmin(req)) {
     return res.status(403).json({ message: "Accès réservé aux administrateurs" });
-  }
+}
   next();
 };
 
@@ -114,7 +114,7 @@ export const managerOrAdmin = (req: Request, res: Response, next: NextFunction) 
   const user = req.user as any;
   if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
     return res.status(403).json({ message: "Accès réservé aux gestionnaires et administrateurs" });
-  }
+}
   
   next();
 };

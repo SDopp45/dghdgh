@@ -141,7 +141,7 @@ router.post('/register', async (req: Request, res: Response) => {
     // Création du nouvel utilisateur
     await db.insert(users).values({
       username,
-      passwordHash,
+      password: passwordHash,
       email,
       fullName,
       role: 'user', // Par défaut, attribuer un rôle standard

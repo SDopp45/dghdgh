@@ -92,11 +92,12 @@ export async function createTestUser() {
       .limit(1);
 
     if (!existingUser) {
+      // Créer un utilisateur administrateur pour les tests
       await db.insert(users).values({
         username: "testuser",
         password: hashedPassword,
         role: "admin",
-        fullName: "Test User",
+        fullName: "Test Admin",
         email: "test@example.com",
         settings: {},
         accountType: "individual",
@@ -110,7 +111,28 @@ export async function createTestUser() {
         createdAt: new Date(),
         updatedAt: new Date()
       });
-      logger.info("Test user created successfully");
+      logger.info("Test admin user created successfully");
+      
+      // Créer un utilisateur client pour les tests
+      await db.insert(users).values({
+        username: "testclient",
+        password: hashedPassword,
+        role: "clients",
+        fullName: "Test Client",
+        email: "client@example.com",
+        settings: {},
+        accountType: "individual",
+        phoneNumber: null,
+        profileImage: null,
+        archived: false,
+        parentAccountId: null,
+        storageUsed: "0",
+        storageLimit: "5368709120",
+        storageTier: "basic",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      logger.info("Test client user created successfully");
     } else {
       await db.update(users)
         .set({ 
@@ -121,10 +143,50 @@ export async function createTestUser() {
           storageTier: existingUser.storageTier || "basic"
         })
         .where(eq(users.username, "testuser"));
-      logger.info("Test user password and role updated");
+      logger.info("Test admin user password and role updated");
+      
+      // Mettre à jour ou créer l'utilisateur client
+      const [existingClient] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, "testclient"))
+        .limit(1);
+        
+      if (existingClient) {
+        await db.update(users)
+          .set({ 
+            password: hashedPassword,
+            role: "clients",
+            storageUsed: existingClient.storageUsed || "0",
+            storageLimit: existingClient.storageLimit || "5368709120",
+            storageTier: existingClient.storageTier || "basic"
+          })
+          .where(eq(users.username, "testclient"));
+        logger.info("Test client user password and role updated");
+      } else {
+        await db.insert(users).values({
+          username: "testclient",
+          password: hashedPassword,
+          role: "clients",
+          fullName: "Test Client",
+          email: "client@example.com",
+          settings: {},
+          accountType: "individual",
+          phoneNumber: null,
+          profileImage: null,
+          archived: false,
+          parentAccountId: null,
+          storageUsed: "0",
+          storageLimit: "5368709120",
+          storageTier: "basic",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        logger.info("Test client user created successfully");
+      }
     }
   } catch (error) {
-    logger.error("Error creating test user:", error);
+    logger.error("Error creating test users:", error);
   }
 }
 
@@ -138,8 +200,21 @@ export const setUserIdForRLS = async (req: Request, res: Response, next: NextFun
       // Utiliser la pool de connexion pour exécuter la requête
       try {
         await db.transaction(async (tx) => {
-          await tx.execute(`SELECT set_config('app.user_id', ?, false)`, [userId.toString()]);
+          // Définir l'ID utilisateur pour RLS
+          await tx.execute(`SELECT set_config('app.user_id', '${userId.toString()}', false)`);
           logger.info(`RLS: Set PostgreSQL user_id to ${userId}`);
+          
+          // Si l'utilisateur a le rôle 'clients', s'assurer que les restrictions sont appliquées
+          const userRole = (req as any).user.role;
+          if (userRole === 'clients') {
+            // Définir le rôle PostgreSQL à 'clients' pour appliquer les restrictions RLS
+            await tx.execute(`SET ROLE clients`);
+            logger.info(`RLS: Set PostgreSQL role to 'clients' for user ${userId}`);
+          } else {
+            // Pour les administrateurs, garder le rôle 'postgres' avec tous les privilèges
+            await tx.execute(`SET ROLE postgres`);
+            logger.info(`RLS: Set PostgreSQL role to 'postgres' for admin user ${userId}`);
+          }
         });
       } catch (dbError) {
         logger.error("Database transaction error during RLS setup:", dbError);
@@ -148,8 +223,12 @@ export const setUserIdForRLS = async (req: Request, res: Response, next: NextFun
       // Si l'utilisateur n'est pas authentifié, on utilise un ID anonyme (0)
       try {
         await db.transaction(async (tx) => {
-          await tx.execute(`SELECT set_config('app.user_id', ?, false)`, ['0']);
+          await tx.execute(`SELECT set_config('app.user_id', '0', false)`);
           logger.info(`RLS: Set PostgreSQL user_id to 0 (anonymous)`);
+          
+          // Pour les accès anonymes, utiliser le rôle clients avec des restrictions
+          await tx.execute(`SET ROLE clients`);
+          logger.info(`RLS: Set PostgreSQL role to 'clients' for anonymous access`);
         });
       } catch (dbError) {
         logger.error("Database transaction error during anonymous RLS setup:", dbError);
@@ -235,10 +314,19 @@ export const requireRole = (roles: string[]) => {
     }
     
     const userRole = (req.user as any).role;
-    if (!roles.includes(userRole)) {
-      return res.status(403).json({ error: 'Accès non autorisé' });
+    
+    // Si l'utilisateur est administrateur (role 'admin'), il a accès à tout
+    if (userRole === 'admin') {
+      return next();
     }
     
-    next();
+    // Pour le rôle 'clients', vérifier les restrictions d'accès
+    if (roles.includes(userRole)) {
+      // Vérifier que l'utilisateur accède à ses propres ressources
+      // Cela est déjà garanti par le Row-Level Security en base de données
+      return next();
+    }
+    
+    return res.status(403).json({ error: 'Accès non autorisé' });
   };
 };

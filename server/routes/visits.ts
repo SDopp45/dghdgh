@@ -5,11 +5,12 @@ import { eq, and, gte, lt } from "drizzle-orm";
 import logger from "../utils/logger";
 import { ZodError } from "zod";
 import { formatInTimeZone } from 'date-fns-tz';
+import { ensureAuth } from "../middleware/auth";
 
 const router = Router();
 
 // Route for creating a new visit
-router.post("/", async (req, res) => {
+router.post("/", ensureAuth, async (req, res) => {
   const visitLogger = logger.child({ context: 'Visits' });
   try {
     visitLogger.info('Creating new visit with data:', { 
@@ -76,7 +77,7 @@ router.post("/", async (req, res) => {
 });
 
 // Route for getting all visits
-router.get("/", async (req, res) => {
+router.get("/", ensureAuth, async (req, res) => {
   try {
     logger.info('Fetching all visits');
 
@@ -129,7 +130,7 @@ router.get("/", async (req, res) => {
 });
 
 // Route for archiving/unarchiving a visit
-router.patch("/:id/archive", async (req, res) => {
+router.patch("/:id/archive", ensureAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { archived } = req.body;
@@ -162,7 +163,7 @@ router.patch("/:id/archive", async (req, res) => {
 });
 
 // Route pour supprimer définitivement une visite
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", ensureAuth, async (req, res) => {
   try {
     const { id } = req.params;
     logger.info(`Deleting visit ${id}`);
@@ -185,7 +186,7 @@ router.delete("/:id", async (req, res) => {
 });
 
 // Route for updating a visit
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", ensureAuth, async (req, res) => {
   const visitLogger = logger.child({ context: 'Visits - Update' });
   try {
     const { id } = req.params;
@@ -254,7 +255,7 @@ router.patch("/:id", async (req, res) => {
 });
 
 // Route for updating visit status
-router.patch("/:id/status", async (req, res) => {
+router.patch("/:id/status", ensureAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;

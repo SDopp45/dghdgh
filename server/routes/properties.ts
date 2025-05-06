@@ -7,6 +7,7 @@ import logger from "../utils/logger";
 import path from "path";
 import fs from "fs";
 import { createDefaultImageEntry } from "../utils/default-images";
+import { ensureAuth } from "../middleware/auth";
 
 const router = Router();
 
@@ -33,7 +34,7 @@ interface Coordinates {
   longitude: number | string;
 }
 
-router.post("/", upload.array("images"), async (req, res) => {
+router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
   try {
     logger.info("Creating property with data:", req.body);
 
@@ -144,16 +145,13 @@ router.post("/", upload.array("images"), async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", ensureAuth, async (req, res) => {
   try {
     logger.info("Fetching all properties - start");
     
-    // Simuler un utilisateur authentifié
-    req.user = { id: 1 };
-    
-    // Essayer d'obtenir les propriétés avec un retour sécurisé
+    // La sécurité Row-Level Security filtre automatiquement les propriétés
+    // en fonction de l'utilisateur authentifié via le contexte PostgreSQL
     try {
-      // Si la base de données génère une erreur, retourner un tableau vide
       const allProperties = await db.select().from(properties).limit(100).catch(err => {
         logger.error("Database error in properties route:", err);
         return [];
@@ -174,7 +172,7 @@ router.get("/", async (req, res) => {
 });
 
 // Add DELETE endpoint
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", ensureAuth, async (req, res) => {
   try {
     const propertyId = Number(req.params.id);
     logger.info(`Deleting property with ID: ${propertyId}`);
@@ -218,7 +216,7 @@ router.delete("/:id", async (req, res) => {
 });
 
 // Add PUT endpoint for updating properties
-router.put("/:id", upload.array("images"), async (req, res) => {
+router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
   try {
     const propertyId = Number(req.params.id);
     logger.info(`Updating property with ID: ${propertyId}`);
@@ -384,7 +382,7 @@ router.patch("/:id/status", async (req, res) => {
 });
 
 // Endpoint pour récupérer l'historique des propriétés
-router.get("/history", async (req, res) => {
+router.get("/history", ensureAuth, async (req, res) => {
   try {
     const startDateString = req.query.startDate as string;
     const startDate = startDateString ? new Date(startDateString) : new Date(new Date().setFullYear(new Date().getFullYear() - 1));

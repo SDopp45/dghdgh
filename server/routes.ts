@@ -10,6 +10,7 @@ import fs from "fs";
 import logger from "./utils/logger";
 import cors from 'cors';
 import { setupDefaultImages } from './utils/default-images';
+import { setupRLSContext } from './middleware/auth';
 
 // Import routes
 import documentsRouter from './routes/documents';
@@ -33,6 +34,7 @@ import imageEnhancementRouter from './routes/image-enhancement';
 import marketplaceRouter from './routes/marketplace';
 import linksRouter from './routes/links';
 import staticsRouter from './routes/statics';
+import authRoutes from './routes/auth-routes';
 
 // Basic upload directory setup
 const uploadDir = path.resolve(process.cwd(), 'uploads');
@@ -66,6 +68,9 @@ export function setupRoutes(app: Express) {
     next();
   });
 
+  // Add RLS context middleware to all routes
+  app.use(setupRLSContext);
+
   // Serve static files
   app.use('/uploads', express.static(uploadDir, {
     setHeaders: (res, filePath) => {
@@ -90,6 +95,8 @@ export function setupRoutes(app: Express) {
   apiRouter.use((req, res, next) => {
     // Exclure les routes publiques de l'authentification
     if (
+      req.path === '/login' ||
+      req.path === '/logout' ||
       (req.path.startsWith('/links/profile/') && req.method === 'GET' && !req.path.includes('/view') && !req.path.includes('/click')) ||
       req.path.startsWith('/u/') ||
       req.path.startsWith('/links/click/') ||
@@ -107,17 +114,10 @@ export function setupRoutes(app: Express) {
         (req.query.dev === 'true' || req.headers['x-dev-mode'] === 'true')) {
       
       logger.info('Accès développeur aux soumissions de formulaire autorisé pour:', req.path);
-      // Créer un utilisateur factice si nécessaire
-      if (!req.user) {
-        (req as any).user = {
-          id: 1,
-          username: 'testuser',
-          fullName: 'Test User',
-          role: 'manager',
-          email: 'test@example.com'
-        };
+      // Utiliser l'utilisateur déjà authentifié ou passer à la vérification standard
+      if (req.user) {
+        return next();
       }
-      return next();
     }
     
     if (!req.isAuthenticated()) {
@@ -134,6 +134,9 @@ export function setupRoutes(app: Express) {
   // Register routes with debug logging
   logger.info('Mounting API routes...');
 
+  // Routes d'authentification (pas besoin de middleware d'authentification)
+  apiRouter.use('/', authRoutes);
+  
   apiRouter.use('/documents', documentsRouter);
   apiRouter.use('/folders', foldersRouter);
   apiRouter.use('/maintenance', maintenanceRoutes);
@@ -156,10 +159,15 @@ export function setupRoutes(app: Express) {
   apiRouter.use('/links', linksRouter);
   apiRouter.use('/statics', staticsRouter);
 
-  // Get all users
+  // Get all users - limité à l'administrateur
   apiRouter.get("/users", async (req, res) => {
     try {
-      const allUsers = await db.select().from(users).where(eq(users.role, "tenant"));
+      // Vérifier le rôle de l'utilisateur - uniquement les admins peuvent voir tous les utilisateurs
+      if ((req.user as any)?.role !== 'admin') {
+        return res.status(403).json({ error: "Accès non autorisé" });
+      }
+      
+      const allUsers = await db.select().from(users);
       res.json(allUsers);
     } catch (error) {
       logger.error('Error fetching users:', error);
@@ -167,20 +175,11 @@ export function setupRoutes(app: Express) {
     }
   });
 
-  // Get all transactions
+  // Get all transactions - maintenant via RLS
   apiRouter.get("/transactions", async (req, res) => {
     try {
-      const userProperties = await db.select().from(properties);
-      const propertyIds = userProperties.map(prop => prop.id);
-
-      if (propertyIds.length === 0) {
-        return res.json([]);
-      }
-
-      const userTransactions = await db.select()
-        .from(transactions)
-        .where(inArray(transactions.propertyId, propertyIds));
-
+      // La sécurité Row-Level Security filtre automatiquement les transactions
+      const userTransactions = await db.select().from(transactions);
       res.json(userTransactions);
     } catch (error) {
       logger.error('Error fetching transactions:', error);
@@ -198,12 +197,10 @@ export function setupRoutes(app: Express) {
   app.use((err: any, req: any, res: any, next: any) => {
     logger.error('Error handling request:', err);
     res.status(500).json({ 
-      error: "Une erreur est survenue",
-      details: err.message 
+      error: "Erreur lors du traitement de la demande",
+      message: err.message || "Erreur inconnue"
     });
   });
-
-  return app;
 }
 
 export function registerRoutes(app: Express) {

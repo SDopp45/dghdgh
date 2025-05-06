@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from "../db";
 import { documents as documentsTable, users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import multer from 'multer';
 import path from 'path';
 import express from 'express';
@@ -316,33 +316,27 @@ router.post("/multiple", ensureAuth, async (req, res) => {
   }
 });
 
-// GET all documents
-router.get("/", async (req, res) => {
+// Get all documents - ensure authentication to respect RLS
+router.get("/", ensureAuth, async (req, res) => {
   try {
-    logger.info('Fetching all documents - starting');
+    // RLS will filter documents based on user ownership
+    const all = await db.select().from(documentsTable).orderBy(desc(documentsTable.createdAt));
     
-    try {
-      // Désactiver temporairement la vérification d'authentification
-      /*
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: 'Non autorisé' });
+    logger.info(`Documents fetched successfully: ${all.length} documents found`);
+    
+    // Fetch and associate folder information
+    const docs = await Promise.all(all.map(async doc => {
+      if (doc.folderId) {
+        const [folder] = await db.select().from(folders).where(eq(folders.id, doc.folderId));
+        return { ...doc, folder };
       }
-      */
-      
-      // Récupérer tous les documents sans filtrer par utilisateur
-      const allDocuments = await db.select().from(documentsTable);
-      
-      logger.info(`Documents fetched successfully: ${allDocuments.length} found`);
-      res.json(allDocuments || []);
-    } catch (dbError) {
-      logger.error('Database error in documents route:', dbError);
-      // Renvoyer un tableau vide au lieu d'une erreur 500
-      res.json([]);
-    }
-  } catch (error: unknown) {
-    logger.error('Error fetching documents:', error);
-    // Renvoyer un tableau vide au lieu d'une erreur 500
-    res.json([]);
+      return doc;
+    }));
+    
+    res.json(docs);
+  } catch (error) {
+    logger.error(`Error fetching documents: ${error}`);
+    res.status(500).json({ error: "Error fetching documents" });
   }
 });
 

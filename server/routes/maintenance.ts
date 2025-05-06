@@ -4,11 +4,12 @@ import { maintenanceRequests, properties, documents } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import logger from "../utils/logger";
 import { AppError } from "../middleware/errorHandler";
+import { ensureAuth } from "../middleware/auth";
 
 const router = Router();
 
 // Get all maintenance requests
-router.get("/", async (req, res, next) => {
+router.get("/", ensureAuth, async (req, res, next) => {
   try {
     logger.info("Fetching maintenance requests - starting");
     
@@ -50,7 +51,7 @@ router.get("/", async (req, res, next) => {
 });
 
 // Get maintenance timeline for dashboard widget
-router.get("/timeline", async (req, res, next) => {
+router.get("/timeline", ensureAuth, async (req, res, next) => {
   try {
     const timeline = await db.select({
       id: maintenanceRequests.id,
@@ -74,7 +75,7 @@ router.get("/timeline", async (req, res, next) => {
 });
 
 // Create new maintenance request
-router.post("/", async (req, res, next) => {
+router.post("/", ensureAuth, async (req, res, next) => {
   try {
     // S'assurer que documentIds est correctement formaté en JSONB si présent
     const values = { ...req.body };
@@ -107,7 +108,7 @@ router.post("/", async (req, res, next) => {
 });
 
 // Update maintenance request
-router.put("/:id", async (req, res, next) => {
+router.put("/:id", ensureAuth, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -143,7 +144,7 @@ router.put("/:id", async (req, res, next) => {
 });
 
 // Delete maintenance request
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", ensureAuth, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {

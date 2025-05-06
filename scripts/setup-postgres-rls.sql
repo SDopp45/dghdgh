@@ -65,6 +65,33 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
+-- Création ou vérification du rôle 'clients'
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'clients') THEN
+    CREATE ROLE clients;
+    RAISE NOTICE 'Le rôle clients a été créé';
+  ELSE
+    RAISE NOTICE 'Le rôle clients existe déjà';
+  END IF;
+  
+  -- Accorder les permissions sur la base de données et le schéma
+  EXECUTE 'GRANT CONNECT ON DATABASE ' || current_database() || ' TO clients';
+  EXECUTE 'GRANT USAGE ON SCHEMA public TO clients';
+  
+  -- Accorder SELECT à toutes les tables
+  EXECUTE 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO clients';
+  
+  -- Accorder INSERT, UPDATE, DELETE sur les tables spécifiques
+  EXECUTE 'GRANT INSERT, UPDATE, DELETE ON properties, tenants, transactions, maintenance_requests, documents, form_submissions, feedbacks TO clients';
+  
+  -- Accorder USAGE sur toutes les séquences
+  EXECUTE 'GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO clients';
+  
+  -- Accorder EXECUTE sur toutes les fonctions
+  EXECUTE 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO clients';
+END $$;
+
 -- Configurer la policy RLS pour les utilisateurs
 DO $$
 BEGIN
@@ -73,7 +100,7 @@ BEGIN
     PERFORM safe_create_policy(
       'users_policy',
       'users',
-      'current_user_id() = id OR EXISTS (SELECT 1 FROM users WHERE id = current_user_id() AND role = ''admin'')'
+      'current_user_id() = id OR current_setting(''role'') = ''postgres'''
     );
   ELSE
     RAISE NOTICE 'Table users non trouvée, création de la politique reportée';
@@ -88,8 +115,7 @@ BEGIN
     PERFORM safe_create_policy(
       'properties_policy',
       'properties',
-      'EXISTS (SELECT 1 FROM users WHERE id = current_user_id() AND role = ''admin'') OR ' ||
-      'EXISTS (SELECT 1 FROM tenants WHERE tenants.property_id = properties.id AND tenants.user_id = current_user_id())'
+      'current_setting(''role'') = ''postgres'' OR user_id = current_user_id()'
     );
   END IF;
 END $$;
@@ -102,7 +128,7 @@ BEGIN
     PERFORM safe_create_policy(
       'tenants_policy',
       'tenants',
-      'EXISTS (SELECT 1 FROM users WHERE id = current_user_id() AND role = ''admin'') OR user_id = current_user_id()'
+      'current_setting(''role'') = ''postgres'' OR user_id = current_user_id()'
     );
   END IF;
 END $$;
@@ -115,10 +141,7 @@ BEGIN
     PERFORM safe_create_policy(
       'documents_policy',
       'documents',
-      'EXISTS (SELECT 1 FROM users WHERE id = current_user_id() AND role = ''admin'') OR ' ||
-      'user_id = current_user_id() OR ' ||
-      'EXISTS (SELECT 1 FROM tenant_documents td JOIN tenants t ON td.tenant_id = t.id ' ||
-      'WHERE td.document_id = documents.id AND t.user_id = current_user_id())'
+      'current_setting(''role'') = ''postgres'' OR user_id = current_user_id()'
     );
   END IF;
 END $$;
@@ -131,9 +154,48 @@ BEGIN
     PERFORM safe_create_policy(
       'transactions_policy',
       'transactions',
-      'EXISTS (SELECT 1 FROM users WHERE id = current_user_id() AND role = ''admin'') OR ' ||
-      'user_id = current_user_id() OR ' ||
-      'EXISTS (SELECT 1 FROM tenants WHERE tenants.id = transactions.tenant_id AND tenants.user_id = current_user_id())'
+      'current_setting(''role'') = ''postgres'' OR user_id = current_user_id()'
+    );
+  END IF;
+END $$;
+
+-- Configuration pour les demandes de maintenance
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'maintenance_requests') THEN
+    EXECUTE 'ALTER TABLE maintenance_requests ENABLE ROW LEVEL SECURITY';
+    PERFORM safe_create_policy(
+      'maintenance_requests_policy',
+      'maintenance_requests',
+      'current_setting(''role'') = ''postgres'' OR ' ||
+      'EXISTS (SELECT 1 FROM tenants WHERE tenants.id = maintenance_requests.tenant_id AND tenants.user_id = current_user_id()) OR ' ||
+      'EXISTS (SELECT 1 FROM properties WHERE properties.id = maintenance_requests.property_id AND properties.user_id = current_user_id())'
+    );
+  END IF;
+END $$;
+
+-- Configuration pour les formulaires soumis
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'form_submissions') THEN
+    EXECUTE 'ALTER TABLE form_submissions ENABLE ROW LEVEL SECURITY';
+    PERFORM safe_create_policy(
+      'form_submissions_policy',
+      'form_submissions',
+      'current_setting(''role'') = ''postgres'''
+    );
+  END IF;
+END $$;
+
+-- Configuration pour les feedbacks
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'feedbacks') THEN
+    EXECUTE 'ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY';
+    PERFORM safe_create_policy(
+      'feedbacks_policy',
+      'feedbacks',
+      'current_setting(''role'') = ''postgres'''
     );
   END IF;
 END $$;
@@ -164,6 +226,34 @@ EXCEPTION
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Nettoyer les autres rôles custom, sauf postgres et clients
+DO $$
+DECLARE
+  role_record RECORD;
+BEGIN
+  FOR role_record IN 
+    SELECT rolname 
+    FROM pg_roles 
+    WHERE rolname NOT IN ('postgres', 'clients')
+    AND rolname NOT LIKE 'pg_%'
+  LOOP
+    BEGIN
+      -- Essayer de réassigner les objets détenus par ce rôle à postgres
+      EXECUTE format('REASSIGN OWNED BY %I TO postgres', role_record.rolname);
+      
+      -- Essayer de supprimer les objets détenus
+      EXECUTE format('DROP OWNED BY %I', role_record.rolname);
+      
+      -- Supprimer le rôle
+      EXECUTE format('DROP ROLE IF EXISTS %I', role_record.rolname);
+      
+      RAISE NOTICE 'Rôle % supprimé avec succès', role_record.rolname;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Impossible de supprimer le rôle %: %', role_record.rolname, SQLERRM;
+    END;
+  END LOOP;
+END $$;
 
 -- Ajouter un commentaire sur la configuration
 COMMENT ON FUNCTION current_user_id() IS 'Retourne l''ID de l''utilisateur actuel à partir du contexte d''application';

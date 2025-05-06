@@ -1,4 +1,3 @@
-import passport from "passport";
 import { type Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -9,11 +8,8 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import logger from "./utils/logger";
 import { compareSync } from "bcrypt";
-import { setClientSchema } from "./middleware/schema";
 import { pool as dbPool } from "./db";
-
-// Importer la configuration Passport
-import './config/passport';
+import jwt from 'jsonwebtoken';
 
 const scryptAsync = promisify(scrypt);
 
@@ -39,7 +35,7 @@ const AUTH_CONFIG = {
 
 // Fonction pour hasher un mot de passe avec scrypt
 export async function hashPassword(password: string): Promise<string> {
-      const salt = randomBytes(SALT_BYTES).toString("hex");
+  const salt = randomBytes(SALT_BYTES).toString("hex");
   const hash = await scryptAsync(password, salt, SCRYPT_KEYLEN);
   return `${salt}:${(hash as Buffer).toString("hex")}`;
 }
@@ -83,7 +79,7 @@ async function createTestUser() {
     const passwordHash = await hashPassword("admin123");
 
     // Insertion du nouvel utilisateur
-    const newUser = await db.insert(users).values({
+    await db.insert(users).values([{
       username: "admin",
       password: passwordHash,
       email: "admin@example.com",
@@ -94,7 +90,7 @@ async function createTestUser() {
       storageTier: "basic",
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    }]);
 
     logger.info("Utilisateur test créé avec succès");
   } catch (error) {
@@ -137,15 +133,8 @@ export async function authenticateUser(
   }
 }
 
-// Middleware pour vérifier l'authentification
-// Fonctions pour la sérialisation/désérialisation des utilisateurs
-// NOTE: Ces fonctions sont utilisées par Passport.js
-export async function serializeUser(user: any, done: any) {
-  // Stocker uniquement l'ID utilisateur dans la session
-  done(null, user.id);
-}
-
-export async function deserializeUser(id: number, done: any) {
+// Fonction pour vérifier si un utilisateur existe à partir de son ID
+export async function getUserById(id: number): Promise<User | null> {
   try {
     // Récupérer l'utilisateur complet à partir de l'ID
     const user = await db.query.users.findFirst({
@@ -153,38 +142,64 @@ export async function deserializeUser(id: number, done: any) {
     });
 
     if (!user) {
-      logger.warn(`Session utilisateur invalide: utilisateur ${id} non trouvé`);
-      return done(null, null);
+      logger.warn(`Utilisateur ${id} non trouvé`);
+      return null;
     }
 
-    // Normaliser et sanitiser l'utilisateur pour la session
-    const sessionUser = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-      storageUsed: user.storageUsed?.toString() || '0',
-      storageLimit: user.storageLimit?.toString() || '5368709120', // 5GB par défaut
-      storageTier: user.storageTier || 'basic'
-    };
+    // Configurer le schéma PostgreSQL pour l'utilisateur
+    try {
+      await configureSchemasForUser(id);
+    } catch (error) {
+      logger.error(`Erreur lors de la configuration du schéma pour l'utilisateur ${id}:`, error);
+    }
 
-    done(null, sessionUser);
+    return user;
   } catch (error) {
     logger.error(`Erreur lors de la récupération de l'utilisateur ${id}:`, error);
-    done(error, null);
+    return null;
   }
 }
 
-// Fonction de débogage des sessions pour le développement
-const debugSession = (req: any) => {
-  if (process.env.DEBUG_SESSION === 'true') {
-    logger.debug(`Session ID: ${req.sessionID}`);
-    logger.debug(`Authenticated: ${req.isAuthenticated()}`);
-    if (req.user) {
-      logger.debug(`User ID: ${req.user.id}, Username: ${req.user.username}`);
+// Configurer le schéma PostgreSQL pour un utilisateur
+async function configureSchemasForUser(userId: number) {
+  try {
+    // Essayer d'utiliser la procédure stockée setup_user_environment
+    await dbPool.query('SELECT public.setup_user_environment($1)', [userId]);
+    logger.debug(`Environnement configuré pour l'utilisateur ${userId}`);
+  } catch (error) {
+    // Si la procédure échoue, essayer de configurer directement le schéma
+    try {
+      await dbPool.query(`SET search_path TO client_${userId}, public`);
+      logger.debug(`Schéma configuré manuellement pour l'utilisateur ${userId}`);
+    } catch (directError) {
+      logger.error(`Impossible de configurer le schéma pour l'utilisateur ${userId}:`, directError);
+      throw directError;
     }
   }
+}
+
+// Middleware d'authentification basé sur la session
+export const authenticateSession = async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.session.userId;
+  
+  if (!userId) {
+    return next();
+  }
+  
+  try {
+    const user = await getUserById(userId);
+    if (user) {
+      req.user = user;
+      req.isAuthenticated = () => true;
+    } else {
+      req.isAuthenticated = () => false;
+    }
+  } catch (error) {
+    logger.error('Erreur lors de l\'authentification par session:', error);
+    req.isAuthenticated = () => false;
+  }
+  
+  next();
 };
 
 // Configuration principale de l'authentification et des sessions
@@ -211,16 +226,10 @@ export function setupAuth(app: Express) {
   };
 
   app.use(session(sessionSettings));
-  app.use(passport.initialize());
   
-  // N'activer les sessions que si on est en mode session ou hybride
-  if (AUTH_CONFIG.mode !== 'jwt') {
-    app.use(passport.session());
-  }
+  // Ajouter le middleware d'authentification
+  app.use(authenticateSession);
   
-  // Utiliser le middleware de schéma client
-  app.use(setClientSchema);
-
   // Middleware de débogage des sessions (activé uniquement si la variable DEBUG_SESSION est à true)
   if (process.env.DEBUG_SESSION === 'true') {
     app.use((req, res, next) => {
@@ -232,9 +241,20 @@ export function setupAuth(app: Express) {
   logger.info(`Authentication configured in ${AUTH_CONFIG.mode} mode`);
 }
 
+// Fonction de débogage des sessions pour le développement
+const debugSession = (req: any) => {
+  if (process.env.DEBUG_SESSION === 'true') {
+    logger.debug(`Session ID: ${req.sessionID}`);
+    logger.debug(`Authenticated: ${req.isAuthenticated?.()}`);
+    if (req.user) {
+      logger.debug(`User ID: ${req.user.id}, Username: ${req.user.username}`);
+    }
+  }
+};
+
 // Middleware d'authentification pour les routes API
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  if (req.isAuthenticated()) {
+  if (req.isAuthenticated?.()) {
     return next();
   }
   
@@ -243,47 +263,85 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 
 // Middleware simple pour vérifier l'authentification
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  if (!req.isAuthenticated?.()) {
     return res.status(401).json({ error: 'Non authentifié' });
   }
   next();
 };
 
-/** Fonction pour authentifier un utilisateur et configurer le contexte PostgreSQL */
-export async function loginUser(email: string, password: string) {
-  try {
-    // Tentative de récupération de l'utilisateur
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email.toLowerCase()));
+/**
+ * Vérifie si l'utilisateur est un administrateur
+ * @param req Requête Express
+ * @returns Booléen indiquant si l'utilisateur est admin
+ */
+export function isAdmin(req: Request): boolean {
+  if (!req.isAuthenticated?.()) return false;
+  const user = req.user as any;
+  return user && user.role === 'admin';
+}
 
-    // Vérifier si l'utilisateur existe
-    if (!user) {
-      return { success: false, message: "Identifiants invalides" };
+/**
+ * Middleware pour vérifier si l'utilisateur est administrateur
+ */
+export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ message: "Accès réservé aux administrateurs" });
+  }
+  next();
+};
+
+/** Fonction pour connecter un utilisateur */
+export async function loginUser(username: string, password: string, req: Request) {
+  const user = await authenticateUser(username, password);
+  
+  if (!user) {
+    return { success: false, message: "Identifiants invalides" };
+  }
+  
+  // Stocker l'ID utilisateur dans la session
+  req.session.userId = user.id;
+  
+  // Ajouter l'utilisateur à la requête
+  req.user = user;
+  req.isAuthenticated = () => true;
+  
+  // Configurer le schéma PostgreSQL pour l'utilisateur
+  await configureSchemasForUser(user.id);
+  
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      storageUsed: user.storageUsed?.toString() || '0',
+      storageLimit: user.storageLimit?.toString() || '5368709120',
+      storageTier: user.storageTier || 'basic',
     }
+  };
+}
 
-    // Vérifier le mot de passe
-    const passwordValid = await compareSync(password, user.password);
-    if (!passwordValid) {
-      return { success: false, message: "Identifiants invalides" };
+/** Fonction pour déconnecter un utilisateur */
+export function logoutUser(req: Request) {
+  req.session.destroy((err) => {
+    if (err) {
+      logger.error('Erreur lors de la destruction de la session:', err);
     }
+  });
+  
+  // Réinitialiser l'état d'authentification
+  req.user = undefined;
+  req.isAuthenticated = () => false;
+}
 
-    // Journalisation de la connexion
-    logger.info(`Utilisateur connecté: ${user.email} (${user.id})`);
-
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        settings: user.settings,
-      },
-    };
-  } catch (error) {
-    logger.error(`Erreur d'authentification: ${error}`);
-    return { success: false, message: "Erreur de serveur" };
+// Déclaration pour étendre l'interface Request
+declare global {
+  namespace Express {
+    interface Request {
+      isAuthenticated: () => boolean;
+      user?: any;
+    }
   }
 }

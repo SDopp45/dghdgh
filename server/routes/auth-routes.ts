@@ -1,85 +1,74 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import passport from 'passport';
 import { db } from '../db';
 import logger from '../utils/logger';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { setClientSchema } from '../middleware/schema';
+import { loginUser, logoutUser, hashPassword } from '../auth';
 
 const router = Router();
 
 // Route de connexion
-router.post('/login', (req: Request, res: Response, next: NextFunction) => {
-  passport.authenticate('local', (err: Error, user: any, info: any) => {
-    if (err) {
-      logger.error('Erreur d\'authentification:', err);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Erreur lors de l\'authentification' 
+router.post('/login', async (req: Request, res: Response) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nom d\'utilisateur et mot de passe requis'
       });
     }
     
-    if (!user) {
-      logger.warn(`Tentative de connexion échouée pour ${req.body.username}`);
-      return res.status(401).json({ 
-        success: false, 
-        message: info?.message || 'Nom d\'utilisateur ou mot de passe incorrect' 
+    // Utiliser la nouvelle fonction loginUser
+    const result = await loginUser(username, password, req);
+    
+    if (!result.success) {
+      logger.warn(`Tentative de connexion échouée pour ${username}`);
+      return res.status(401).json({
+        success: false,
+        message: result.message || 'Nom d\'utilisateur ou mot de passe incorrect'
       });
     }
     
-    req.login(user, async (loginErr) => {
-      if (loginErr) {
-        logger.error('Erreur lors de l\'initialisation de la session:', loginErr);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Une erreur est survenue lors de l\'initialisation de la session' 
-        });
-      }
-      
-      logger.info(`Utilisateur connecté: ${user.username} (ID: ${user.id})`);
-      
-      // Application du middleware de schéma client
-      try {
-        await setClientSchema(req, res, () => {});
-      } catch (error) {
-        logger.warn('Erreur lors de la définition du schéma client:', error);
-      }
-      
-      return res.json({
-        success: true,
-        user: {
-          id: user.id,
-          username: user.username,
-          fullName: user.fullName,
-          role: user.role,
-          email: user.email,
-          storageUsed: user.storageUsed,
-          storageLimit: user.storageLimit,
-          storageTier: user.storageTier
-        }
-      });
+    logger.info(`Utilisateur connecté: ${username} (ID: ${result.user.id})`);
+    
+    // Réponse JSON après authentification réussie
+    return res.json({
+      success: true,
+      user: result.user
     });
-  })(req, res, next);
+  } catch (error) {
+    logger.error('Erreur lors de l\'authentification:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Une erreur est survenue lors de l\'authentification'
+    });
+  }
 });
 
 // Route de déconnexion
 router.post('/logout', (req: Request, res: Response) => {
   const username = (req.user as any)?.username;
-  req.logout((err) => {
-    if (err) {
-      logger.error('Erreur lors de la déconnexion:', err);
-      return res.status(500).json({ success: false, message: 'Erreur lors de la déconnexion' });
-    }
+  
+  try {
+    // Utiliser la nouvelle fonction logoutUser
+    logoutUser(req);
     
     logger.info(`Utilisateur déconnecté: ${username || 'Anonyme'}`);
     res.json({ success: true, message: 'Déconnexion réussie' });
-  });
+  } catch (error) {
+    logger.error('Erreur lors de la déconnexion:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erreur lors de la déconnexion' 
+    });
+  }
 });
 
 // Route pour vérifier l'état de l'authentification
 router.get('/check', (req: Request, res: Response) => {
   if (req.isAuthenticated()) {
-    const user = req.user as any;
+    const user = req.user;
     logger.debug(`Vérification de session: utilisateur ${user.username} authentifié`);
     
     res.json({
@@ -134,12 +123,11 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
     
-    // Hasher le mot de passe (à implémenter avec votre fonction de hachage)
-    const { hashPassword } = await import('../auth');
+    // Hasher le mot de passe
     const passwordHash = await hashPassword(password);
     
     // Création du nouvel utilisateur
-    await db.insert(users).values({
+    await db.insert(users).values([{
       username,
       password: passwordHash,
       email,
@@ -150,7 +138,7 @@ router.post('/register', async (req: Request, res: Response) => {
       storageTier: 'basic',
       createdAt: new Date(),
       updatedAt: new Date()
-    });
+    }]);
     
     logger.info(`Nouvel utilisateur inscrit: ${username}`);
     

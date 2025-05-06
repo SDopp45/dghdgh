@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { ensureAuth } from '../middleware/auth';
-import { isAdmin } from '../middleware/admin';
+import { ensureAuth, isAdmin, adminOnly } from '../middleware/auth';
 import { db } from '@db';
 import { stringify } from 'csv-stringify';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';

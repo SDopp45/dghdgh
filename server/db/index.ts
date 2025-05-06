@@ -34,7 +34,8 @@ try {
   pool.on('connect', (client) => {
     logger.info('New client connected to PostgreSQL database');
     
-    // Configurer automatiquement le schéma RLS pour chaque nouvelle connexion
+    // Modification: Par défaut, utiliser uniquement le schéma public
+    // Le schéma client sera défini dynamiquement lors de l'authentification
     client.query('SET search_path TO public').catch(err => {
       logger.warn('Error setting search path:', err);
     });
@@ -64,6 +65,26 @@ try {
   logger.error('Failed to initialize database connection:', error);
   const errorMessage = error instanceof Error ? error.message : String(error);
   throw new Error(`Database connection failed: ${errorMessage}`);
+}
+
+// Nouvelle fonction pour définir le schéma client en fonction de l'utilisateur
+export async function setSchemaForUser(userId: number | null) {
+  if (!userId) {
+    // Si pas d'utilisateur, utiliser uniquement le schéma public
+    return dbPool.query('SET search_path TO public');
+  }
+  
+  try {
+    // Définir le search_path pour inclure le schéma du client puis le schéma public
+    await dbPool.query(`SET search_path TO client_${userId}, public`);
+    logger.info(`Set search_path to client_${userId}, public`);
+    return true;
+  } catch (error) {
+    logger.error(`Failed to set schema for user ${userId}:`, error);
+    // En cas d'échec, revenir au schéma public
+    await dbPool.query('SET search_path TO public');
+    return false;
+  }
 }
 
 // Exporter les variables après le bloc try/catch

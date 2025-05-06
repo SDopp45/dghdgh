@@ -8,6 +8,8 @@ import { users, insertUserSchema, type User } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import logger from "./utils/logger";
+import { compareSync } from "bcrypt";
+import { setClientSchema } from "./middleware/schema";
 
 // Importer la configuration Passport
 import './config/passport';
@@ -34,210 +36,153 @@ const AUTH_CONFIG = {
   }
 };
 
-// Utilitaires de cryptage pour la gestion des mots de passe
-const crypto = {
-  hash: async (password: string): Promise<string> => {
-    try {
+// Fonction pour hasher un mot de passe avec scrypt
+export async function hashPassword(password: string): Promise<string> {
       const salt = randomBytes(SALT_BYTES).toString("hex");
-      const derivedKey = (await scryptAsync(password, salt, SCRYPT_KEYLEN)) as Buffer;
-      const hashedPassword = derivedKey.toString("hex");
-      logger.info(`Hashing password - salt length: ${salt.length}, hash length: ${hashedPassword.length}`);
-      return `${hashedPassword}.${salt}`;
-    } catch (error) {
-      logger.error("Error hashing password:", error);
-      throw new Error("Could not hash password");
-    }
-  },
+  const hash = await scryptAsync(password, salt, SCRYPT_KEYLEN);
+  return `${salt}:${(hash as Buffer).toString("hex")}`;
+}
 
-  verify: async (suppliedPassword: string, storedPassword: string): Promise<boolean> => {
-    try {
-      if (!storedPassword || !storedPassword.includes('.')) {
-        logger.warn("Invalid stored password format - missing separator");
-        return false;
-      }
+// Fonction pour vérifier un mot de passe avec scrypt
+export async function verifyPassword(
+  storedPassword: string,
+  suppliedPassword: string
+): Promise<boolean> {
+  const [salt, storedHash] = storedPassword.split(":");
+  const hash = await scryptAsync(suppliedPassword, salt, SCRYPT_KEYLEN);
+  const suppliedHash = (hash as Buffer).toString("hex");
+  return suppliedHash === storedHash;
+}
 
-      const [hashedPassword, salt] = storedPassword.split(".");
-
-      if (!hashedPassword || !salt) {
-        logger.warn("Invalid stored password format - missing components");
-        return false;
-      }
-
-      const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
-      const derivedKey = (await scryptAsync(suppliedPassword, salt, SCRYPT_KEYLEN)) as Buffer;
-
-      if (hashedPasswordBuf.length !== derivedKey.length) {
-        logger.warn(`Buffer length mismatch: stored=${hashedPasswordBuf.length}, derived=${derivedKey.length}`);
-        return false;
-      }
-
-      return timingSafeEqual(hashedPasswordBuf, derivedKey);
-    } catch (error) {
-      logger.error("Error verifying password:", error);
-      return false;
-    }
-  }
-};
-
-// Fonction pour créer un utilisateur de test (utile pour le développement)
-export async function createTestUser() {
+// Créer un utilisateur de test pour le développement
+async function createTestUser() {
   try {
-    const hashedPassword = await crypto.hash("testpass123");
-    logger.info("Creating test user with hashed password");
-
-    const [existingUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, "testuser"))
-      .limit(1);
-
-    if (!existingUser) {
-      // Créer un utilisateur administrateur pour les tests
-      await db.insert(users).values({
-        username: "testuser",
-        password: hashedPassword,
-        role: "admin",
-        fullName: "Test Admin",
-        email: "test@example.com",
-        settings: {},
-        accountType: "individual",
-        phoneNumber: null,
-        profileImage: null,
-        archived: false,
-        parentAccountId: null,
-        storageUsed: "0",
-        storageLimit: "5368709120",
-        storageTier: "basic",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-      logger.info("Test admin user created successfully");
-      
-      // Créer un utilisateur client pour les tests
-      await db.insert(users).values({
-        username: "testclient",
-        password: hashedPassword,
-        role: "clients",
-        fullName: "Test Client",
-        email: "client@example.com",
-        settings: {},
-        accountType: "individual",
-        phoneNumber: null,
-        profileImage: null,
-        archived: false,
-        parentAccountId: null,
-        storageUsed: "0",
-        storageLimit: "5368709120",
-        storageTier: "basic",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-      logger.info("Test client user created successfully");
-    } else {
-      await db.update(users)
-        .set({ 
-          password: hashedPassword,
-          role: "admin",
-          storageUsed: existingUser.storageUsed || "0",
-          storageLimit: existingUser.storageLimit || "5368709120",
-          storageTier: existingUser.storageTier || "basic"
-        })
-        .where(eq(users.username, "testuser"));
-      logger.info("Test admin user password and role updated");
-      
-      // Mettre à jour ou créer l'utilisateur client
-      const [existingClient] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, "testclient"))
-        .limit(1);
-        
-      if (existingClient) {
-        await db.update(users)
-          .set({ 
-            password: hashedPassword,
-            role: "clients",
-            storageUsed: existingClient.storageUsed || "0",
-            storageLimit: existingClient.storageLimit || "5368709120",
-            storageTier: existingClient.storageTier || "basic"
-          })
-          .where(eq(users.username, "testclient"));
-        logger.info("Test client user password and role updated");
-      } else {
-        await db.insert(users).values({
-          username: "testclient",
-          password: hashedPassword,
-          role: "clients",
-          fullName: "Test Client",
-          email: "client@example.com",
-          settings: {},
-          accountType: "individual",
-          phoneNumber: null,
-          profileImage: null,
-          archived: false,
-          parentAccountId: null,
-          storageUsed: "0",
-          storageLimit: "5368709120",
-          storageTier: "basic",
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-        logger.info("Test client user created successfully");
-      }
+    // Ne créer un utilisateur test que dans un environnement de développement
+    if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
+      logger.info("Utilisateur test non créé (non en mode développement)");
+      return;
     }
+
+    logger.info("Vérification de l'utilisateur test...");
+
+    // Chercher l'utilisateur test existant
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.username, "admin"),
+    });
+
+    if (existingUser) {
+      logger.info("L'utilisateur test existe déjà");
+      return;
+    }
+
+    // Créer l'utilisateur test s'il n'existe pas
+    logger.info("Création de l'utilisateur test (admin/admin123)...");
+
+    // Hash du mot de passe pour l'utilisateur test
+    const passwordHash = await hashPassword("admin123");
+
+    // Insertion du nouvel utilisateur
+    const newUser = await db.insert(users).values({
+      username: "admin",
+      passwordHash: passwordHash,
+      email: "admin@example.com",
+      fullName: "Administrator",
+      role: "admin",
+      storageUsed: 0,
+      storageLimit: 5368709120, // 5 GB
+      storageTier: "basic",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    logger.info("Utilisateur test créé avec succès");
   } catch (error) {
-    logger.error("Error creating test users:", error);
+    logger.error("Erreur lors de la création de l'utilisateur test:", error);
   }
 }
 
-// Middleware pour définir l'ID utilisateur dans le contexte PostgreSQL pour le RLS
-export const setUserIdForRLS = async (req: Request, res: Response, next: NextFunction) => {
+// Fonction pour authentifier un utilisateur avec le nom d'utilisateur et le mot de passe
+export async function authenticateUser(
+  username: string,
+  password: string
+): Promise<User | null> {
   try {
-    if (req.isAuthenticated() && (req as any).user && (req as any).user.id) {
-      // Si l'utilisateur est authentifié, on définit son ID dans le contexte PostgreSQL
-      const userId = (req as any).user.id;
-      
-      // Utiliser la pool de connexion pour exécuter la requête
-      try {
-        await db.transaction(async (tx) => {
-          // Définir l'ID utilisateur pour RLS
-          await tx.execute(`SELECT set_config('app.user_id', '${userId.toString()}', false)`);
-          logger.info(`RLS: Set PostgreSQL user_id to ${userId}`);
-          
-          // Si l'utilisateur a le rôle 'clients', s'assurer que les restrictions sont appliquées
-          const userRole = (req as any).user.role;
-          if (userRole === 'clients') {
-            // Définir le rôle PostgreSQL à 'clients' pour appliquer les restrictions RLS
-            await tx.execute(`SET ROLE clients`);
-            logger.info(`RLS: Set PostgreSQL role to 'clients' for user ${userId}`);
-          } else {
-            // Pour les administrateurs, garder le rôle 'postgres' avec tous les privilèges
-            await tx.execute(`SET ROLE postgres`);
-            logger.info(`RLS: Set PostgreSQL role to 'postgres' for admin user ${userId}`);
-          }
-        });
-      } catch (dbError) {
-        logger.error("Database transaction error during RLS setup:", dbError);
-      }
-    } else {
-      // Si l'utilisateur n'est pas authentifié, on utilise un ID anonyme (0)
-      try {
-        await db.transaction(async (tx) => {
-          await tx.execute(`SELECT set_config('app.user_id', '0', false)`);
-          logger.info(`RLS: Set PostgreSQL user_id to 0 (anonymous)`);
-          
-          // Pour les accès anonymes, utiliser le rôle clients avec des restrictions
-          await tx.execute(`SET ROLE clients`);
-          logger.info(`RLS: Set PostgreSQL role to 'clients' for anonymous access`);
-        });
-      } catch (dbError) {
-        logger.error("Database transaction error during anonymous RLS setup:", dbError);
-      }
+    // Rechercher l'utilisateur par nom d'utilisateur
+    const user = await db.query.users.findFirst({
+      where: eq(users.username, username),
+    });
+
+    if (!user) {
+      logger.warn(`Tentative de connexion avec un nom d'utilisateur inexistant: ${username}`);
+      return null;
     }
-    next();
+
+    // Vérifier le mot de passe
+    const isValid = user.passwordHash 
+      ? await verifyPassword(user.passwordHash, password)
+      : false;
+
+    if (!isValid) {
+      logger.warn(`Tentative de connexion avec un mot de passe incorrect pour: ${username}`);
+      return null;
+    }
+
+    // Si l'authentification a réussi, renvoyer l'utilisateur
+    logger.info(`Authentification réussie pour: ${username}`);
+    return user;
   } catch (error) {
-    logger.error("Error setting user ID for RLS:", error);
-    next();
+    logger.error(`Erreur lors de l'authentification de l'utilisateur ${username}:`, error);
+    return null;
+  }
+}
+
+// Middleware pour vérifier l'authentification
+// Fonctions pour la sérialisation/désérialisation des utilisateurs
+// NOTE: Ces fonctions sont utilisées par Passport.js
+export async function serializeUser(user: any, done: any) {
+  // Stocker uniquement l'ID utilisateur dans la session
+  done(null, user.id);
+}
+
+export async function deserializeUser(id: number, done: any) {
+  try {
+    // Récupérer l'utilisateur complet à partir de l'ID
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
+
+    if (!user) {
+      logger.warn(`Session utilisateur invalide: utilisateur ${id} non trouvé`);
+      return done(null, null);
+    }
+
+    // Normaliser et sanitiser l'utilisateur pour la session
+    const sessionUser = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      storageUsed: user.storageUsed?.toString() || '0',
+      storageLimit: user.storageLimit?.toString() || '5368709120', // 5GB par défaut
+      storageTier: user.storageTier || 'basic'
+    };
+
+    done(null, sessionUser);
+  } catch (error) {
+    logger.error(`Erreur lors de la récupération de l'utilisateur ${id}:`, error);
+    done(error, null);
+  }
+}
+
+// Fonction de débogage des sessions pour le développement
+const debugSession = (req: any) => {
+  if (process.env.DEBUG_SESSION === 'true') {
+    logger.debug(`Session ID: ${req.sessionID}`);
+    logger.debug(`Authenticated: ${req.isAuthenticated()}`);
+    if (req.user) {
+      logger.debug(`User ID: ${req.user.id}, Username: ${req.user.username}`);
+    }
   }
 };
 
@@ -272,8 +217,8 @@ export function setupAuth(app: Express) {
     app.use(passport.session());
   }
 
-  // Ajouter le middleware pour définir l'ID utilisateur pour RLS
-  app.use(setUserIdForRLS);
+  // Utiliser le middleware de schéma client à la place de RLS
+  app.use(setClientSchema);
 
   // Middleware de débogage des sessions (activé uniquement si la variable DEBUG_SESSION est à true)
   if (process.env.DEBUG_SESSION === 'true') {
@@ -285,17 +230,6 @@ export function setupAuth(app: Express) {
   
   logger.info(`Authentication configured in ${AUTH_CONFIG.mode} mode`);
 }
-
-// Fonction de débogage des sessions pour le développement
-const debugSession = (req: any) => {
-  if (process.env.DEBUG_SESSION === 'true') {
-    logger.debug(`Session ID: ${req.sessionID}`);
-    logger.debug(`Authenticated: ${req.isAuthenticated()}`);
-    if (req.user) {
-      logger.debug(`User ID: ${req.user.id}, Username: ${req.user.username}`);
-    }
-  }
-};
 
 // Middleware d'authentification pour les routes API
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
@@ -330,3 +264,52 @@ export const requireRole = (roles: string[]) => {
     return res.status(403).json({ error: 'Accès non autorisé' });
   };
 };
+
+/** Fonction pour authentifier un utilisateur et configurer le contexte PostgreSQL */
+export async function loginUser(email: string, password: string) {
+  try {
+    // Tentative de récupération de l'utilisateur
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()));
+
+    // Vérifier si l'utilisateur existe
+    if (!user) {
+      return { success: false, message: "Identifiants invalides" };
+    }
+
+    // Vérifier le mot de passe
+    const passwordValid = await compareSync(password, user.password);
+    if (!passwordValid) {
+      return { success: false, message: "Identifiants invalides" };
+    }
+
+    // Configurer le schéma pour l'utilisateur dans PostgreSQL
+    try {
+      await db.execute(`SELECT public.setup_user_environment(${user.id})`);
+      logger.info(`Schéma configuré pour l'utilisateur ${user.id}`);
+    } catch (error) {
+      logger.error(`Erreur lors de la configuration du schéma: ${error}`);
+      // On continue même si la configuration du schéma échoue
+    }
+
+    // Journalisation de la connexion
+    logger.info(`Utilisateur connecté: ${user.email} (${user.id})`);
+
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        settings: user.settings,
+        active: user.active,
+      },
+    };
+  } catch (error) {
+    logger.error(`Erreur d'authentification: ${error}`);
+    return { success: false, message: "Erreur de serveur" };
+  }
+}

@@ -419,7 +419,7 @@ router.get("/:id/download", ensureAuth, async (req, res) => {
 });
 
 // Preview a document
-router.get("/:id/preview", async (req, res) => {
+router.get("/:id/preview", ensureAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const documentId = parseInt(id);

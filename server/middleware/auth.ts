@@ -1,21 +1,68 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger';
-import { db } from '@db';
+import { db, pool } from '../db';
+import jwt from 'jsonwebtoken';
+import config from '../config';
 
-// Fonction pour normaliser les propriétés de stockage utilisateur
-function normalizeUser(user: any) {
-  if (!user) return null;
-  
-  // Créer un nouvel objet pour éviter les références directes
-  const normalizedUser = { ...user };
-  
-  // Normaliser les propriétés de stockage (gérer à la fois camelCase et snake_case)
-  normalizedUser.storageUsed = (user.storage_used || user.storageUsed || '0').toString();
-  normalizedUser.storageLimit = (user.storage_limit || user.storageLimit || '5368709120').toString(); // 5GB par défaut
-  normalizedUser.storageTier = user.storage_tier || user.storageTier || 'basic';
-  
-  return normalizedUser;
+// Interface pour représenter un utilisateur authentifié
+export interface AuthUser {
+  id: number;
+  username: string;
+  role: string;
+  email?: string;
 }
+
+// Interface pour le token décodé
+interface DecodedToken {
+  userId: number;
+  username: string;
+  role: string;
+  iat: number;
+  exp: number;
+}
+
+/**
+ * Configure le schéma PostgreSQL en fonction de l'ID utilisateur
+ */
+async function setSchemaForUser(userId: number | null) {
+  if (!userId) {
+    // Si pas d'utilisateur, utiliser uniquement le schéma public
+    return pool.query('SET search_path TO public');
+  }
+  
+  try {
+    // Définir le search_path pour inclure le schéma du client puis le schéma public
+    await pool.query(`SET search_path TO client_${userId}, public`);
+    logger.debug(`Set search_path to client_${userId}, public`);
+    return true;
+  } catch (error) {
+    logger.error(`Failed to set schema for user ${userId}:`, error);
+    // En cas d'échec, revenir au schéma public
+    await pool.query('SET search_path TO public');
+    return false;
+  }
+}
+
+/**
+ * Vérifie si l'utilisateur est un administrateur
+ * @param req Requête Express
+ * @returns Booléen indiquant si l'utilisateur est admin
+ */
+export function isAdmin(req: Request): boolean {
+  if (!req.isAuthenticated()) return false;
+  const user = req.user as any;
+  return user && user.role === 'admin';
+}
+
+/**
+ * Middleware pour vérifier si l'utilisateur est administrateur
+ */
+export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ message: "Accès réservé aux administrateurs" });
+  }
+  next();
+};
 
 /**
  * Vérifie si l'utilisateur est authentifié
@@ -25,93 +72,90 @@ export function isAuthenticated(req: Request): boolean {
 }
 
 /**
- * Middleware pour s'assurer que l'utilisateur est authentifié
- * Si oui, normalise les propriétés de stockage
+ * Middleware pour la gestion de l'authentification
+ * Configure également le contexte PostgreSQL pour le schéma approprié
  */
-export function ensureAuth(req: Request, res: Response, next: NextFunction) {
-  // Vérifier l'authentification via Passport
-  if (req.isAuthenticated()) {
-    // Normaliser les propriétés de l'utilisateur
-    if (req.user) {
-      (req as any).user = normalizeUser(req.user);
-    }
-    return next();
-  }
-  
-  // Renvoyer une erreur 401 si non authentifié
-  res.status(401).json({ error: 'Non authentifié' });
-}
-
-/**
- * Récupère l'ID de l'utilisateur courant
- */
-export function getUserId(req: Request): number | undefined {
-  return req.user?.id;
-}
-
-/**
- * Middleware pour vérifier si l'utilisateur est un administrateur
- */
-export function isAdmin(req: Request): boolean {
-  return Boolean(req.user && (req.user as any).role === 'admin');
-}
-
-/**
- * Middleware pour s'assurer que l'utilisateur est un administrateur
- */
-export function ensureAdmin(req: Request, res: Response, next: NextFunction) {
-  if (isAuthenticated(req) && isAdmin(req)) {
-    return next();
-  }
-  
-  // Renvoyer une erreur 403 si l'utilisateur n'est pas administrateur
-  res.status(403).json({ error: 'Accès non autorisé' });
-}
-
-/**
- * Middleware pour s'assurer que l'utilisateur a le rôle 'clients'
- */
-export function ensureClient(req: Request, res: Response, next: NextFunction) {
-  if (isAuthenticated(req) && (req.user as any).role === 'clients') {
-    return next();
-  }
-  
-  // Les administrateurs peuvent également accéder
-  if (isAdmin(req)) {
-    return next();
-  }
-  
-  // Renvoyer une erreur 403 si l'utilisateur n'a pas le rôle approprié
-  res.status(403).json({ error: 'Accès non autorisé' });
-}
-
-/**
- * Middleware pour configurer le contexte PostgreSQL pour RLS
- */
-export async function setupRLSContext(req: Request, res: Response, next: NextFunction) {
+export const ensureAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (req.isAuthenticated() && req.user) {
-      const userId = (req.user as any).id;
-      
-      // Définir l'ID utilisateur pour le contexte RLS
-      await db.execute(`SELECT set_config('app.user_id', '${userId}', false)`);
-      
-      // Définir le rôle PostgreSQL en fonction du rôle de l'utilisateur
-      if ((req.user as any).role === 'admin') {
-        await db.execute(`SET ROLE postgres`);
-      } else {
-        await db.execute(`SET ROLE clients`);
-      }
-    } else {
-      // Utilisateur anonyme
-      await db.execute(`SELECT set_config('app.user_id', '0', false)`);
-      await db.execute(`SET ROLE clients`);
+    if (!req.isAuthenticated()) {
+      logger.warn(`Tentative d'accès non autorisé: ${req.originalUrl}`);
+      return res.status(401).json({ message: "Non autorisé" });
     }
-    next();
+
+    const userId = (req.user as any)?.id;
+    if (!userId) {
+      logger.warn("Session utilisateur invalide (pas d'ID)");
+      return res.status(401).json({ message: "Session invalide" });
+    }
+
+    try {
+      // Utiliser la fonction pour définir le schéma client
+      await setSchemaForUser(userId);
+    } catch (error) {
+      logger.error(`Erreur lors de la configuration du schéma: ${error}`);
+      // Ne pas bloquer la requête en cas d'erreur de configuration du schéma
+    }
+
+    return next();
   } catch (error) {
-    logger.error('Erreur lors de la configuration du contexte RLS:', error);
-    next();
+    logger.error(`Erreur d'authentification: ${error}`);
+    return res.status(500).json({ message: "Erreur serveur" });
   }
+};
+
+/**
+ * Middleware pour les routes nécessitant une authentification Manager ou Admin
+ */
+export const managerOrAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Authentification requise" });
+  }
+  
+  const user = req.user as any;
+  if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+    return res.status(403).json({ message: "Accès réservé aux gestionnaires et administrateurs" });
+  }
+  
+  next();
+};
+
+/**
+ * Récupère l'ID de l'utilisateur à partir de la requête
+ */
+export function getUserId(req: Request): number | null {
+  if (!req.isAuthenticated() || !req.user) {
+    return null;
+  }
+  
+  const user = req.user as any;
+  return user.id || null;
+}
+
+/**
+ * Récupère les informations de l'utilisateur à partir de la requête
+ */
+export function getUser(req: Request): AuthUser | null {
+  if (!req.isAuthenticated() || !req.user) {
+    return null;
+  }
+  
+  const user = req.user as any;
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    email: user.email
+  };
+}
+
+/**
+ * Middleware pour définir l'ID utilisateur comme variable de configuration PostgreSQL
+ * pour le Row-Level Security
+ */
+export async function setUserIdForRLS(req: Request, res: Response, next: NextFunction) {
+  // Obsolète - remplacé par la sélection de schéma
+  // Conservé temporairement pour compatibilité
+  next();
 }
 
 /**
@@ -120,3 +164,66 @@ export async function setupRLSContext(req: Request, res: Response, next: NextFun
 export const authenticateMiddleware = (req: Request, res: Response, next: NextFunction) => {
   ensureAuth(req, res, next);
 };
+
+// Middleware d'authentification JWT
+export async function authMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    // Récupérer le token d'authentification
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authentification requise' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    // Vérifier et décoder le token
+    // Utiliser directement la variable d'environnement
+    const jwtSecret = process.env.JWT_SECRET || 'default-secret-key-replace-in-production';
+    const decoded = jwt.verify(token, jwtSecret) as DecodedToken;
+
+    // Extraire les informations de l'utilisateur
+    const user: AuthUser = {
+      id: decoded.userId,
+      username: decoded.username,
+      role: decoded.role,
+    };
+
+    // Attacher l'utilisateur à la requête
+    req.user = user;
+
+    // Configurer le schéma PostgreSQL pour l'utilisateur
+    try {
+      // Utiliser la fonction pour définir le schéma client
+      await setSchemaForUser(user.id);
+      
+      // Continuer avec le traitement de la requête
+      next();
+    } catch (error) {
+      logger.error(`Erreur lors de la configuration du schéma: ${error}`);
+      return res.status(500).json({ message: 'Erreur serveur lors de la configuration de la session' });
+    }
+  } catch (error) {
+    console.error('Erreur d\'authentification:', error);
+    return res.status(401).json({ message: 'Token invalide ou expiré' });
+  }
+}
+
+// Middleware pour les pools de connexion PostgreSQL par utilisateur - Obsolète avec la nouvelle architecture
+export async function getClientDbConnection(userId: number) {
+  logger.warn('Fonction getClientDbConnection obsolète - Utiliser directement le pool de connexion avec setSchemaForUser');
+  
+  // Pour la compatibilité, nous retournons quand même une connexion
+  const client = await pool.connect();
+  try {
+    // Configurer le schéma pour cet utilisateur
+    await client.query(`SET search_path TO client_${userId}, public`);
+    return client;
+  } catch (error) {
+    client.release();
+    throw error;
+  }
+}

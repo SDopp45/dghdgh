@@ -10,7 +10,7 @@ import fs from "fs";
 import logger from "./utils/logger";
 import cors from 'cors';
 import { setupDefaultImages } from './utils/default-images';
-import { setupRLSContext } from './middleware/auth';
+import { setClientSchema } from './middleware/schema';
 
 // Import routes
 import documentsRouter from './routes/documents';
@@ -40,17 +40,18 @@ import authRoutes from './routes/auth-routes';
 const uploadDir = path.resolve(process.cwd(), 'uploads');
 const propertyImagesDir = path.resolve(uploadDir, 'properties');
 const documentsDir = path.resolve(uploadDir, 'documents');
+const visitReportsDir = path.resolve(uploadDir, 'visit-reports');
+const contractsDir = path.resolve(uploadDir, 'contracts');
+const profileImagesDir = path.resolve(uploadDir, 'profile');
+const tempDir = path.resolve(uploadDir, 'temp');
 
-// Create directories if they don't exist
-[uploadDir, propertyImagesDir, documentsDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
+// Ensure directories exist
+[uploadDir, propertyImagesDir, documentsDir, visitReportsDir, 
+ contractsDir, profileImagesDir, tempDir].forEach(dir => {
+  if (!fs.existsSync(dir)){
     fs.mkdirSync(dir, { recursive: true });
-    logger.info(`Created directory: ${dir}`);
   }
 });
-
-// Setup default property type images
-setupDefaultImages();
 
 export function setupRoutes(app: Express) {
   // Setup authentication first
@@ -68,8 +69,8 @@ export function setupRoutes(app: Express) {
     next();
   });
 
-  // Add RLS context middleware to all routes
-  app.use(setupRLSContext);
+  // Remplacer setupRLSContext par le nouveau middleware de schéma
+  app.use(setClientSchema);
 
   // Serve static files
   app.use('/uploads', express.static(uploadDir, {
@@ -91,61 +92,59 @@ export function setupRoutes(app: Express) {
   // API Router
   const apiRouter = express.Router();
 
-  // Middleware to ensure authentication for API routes
-  apiRouter.use((req, res, next) => {
-    // Exclure les routes publiques de l'authentification
-    if (
-      req.path === '/login' ||
-      req.path === '/logout' ||
-      (req.path.startsWith('/links/profile/') && req.method === 'GET' && !req.path.includes('/view') && !req.path.includes('/click')) ||
-      req.path.startsWith('/u/') ||
-      req.path.startsWith('/links/click/') ||
-      req.path.startsWith('/links/form-submit/') ||
-      req.path.startsWith('/links/submit/')
-    ) {
-      return next();
-    }
-    
-    // En mode développement, permettre l'accès aux réponses de formulaire avec 
-    // un paramètre spécial ou un en-tête
-    if (process.env.NODE_ENV === 'development' && 
-        (req.path.startsWith('/links/form-submissions/') || 
-         req.path.includes('form-submissions')) && 
-        (req.query.dev === 'true' || req.headers['x-dev-mode'] === 'true')) {
-      
-      logger.info('Accès développeur aux soumissions de formulaire autorisé pour:', req.path);
-      // Utiliser l'utilisateur déjà authentifié ou passer à la vérification standard
-      if (req.user) {
-        return next();
+  // Auth routes (no auth required)
+  apiRouter.use("/auth", authRoutes);
+  
+  // Statics routes (no auth required)
+  apiRouter.use("/statics", staticsRouter);
+
+  // Links routes (no auth required)
+  apiRouter.use("/links", linksRouter);
+
+  // Add CORS to API routes
+  apiRouter.use(cors());
+
+  // Configure file uploads
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      if (file.fieldname === 'propertyImages') {
+        cb(null, propertyImagesDir);
+      } else if (file.fieldname === 'document') {
+        cb(null, documentsDir);
+      } else if (file.fieldname === 'contract') {
+        cb(null, contractsDir);
+      } else if (file.fieldname === 'visitReport') {
+        cb(null, visitReportsDir);
+      } else if (file.fieldname === 'profileImage') {
+        cb(null, profileImagesDir);
+      } else {
+        cb(null, tempDir);
       }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const extension = path.extname(file.originalname);
+      cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
     }
-    
-    if (!req.isAuthenticated()) {
-      logger.warn('Unauthorized access attempt:', {
-        path: req.path,
-        method: req.method,
-        ip: req.ip
-      });
-      return res.status(401).json({ error: "Non authentifié" });
-    }
-    next();
   });
 
-  // Register routes with debug logging
-  logger.info('Mounting API routes...');
+  const upload = multer({ 
+    storage: storage,
+    limits: {
+      fileSize: 25 * 1024 * 1024, // 25MB
+    } 
+  });
 
-  // Routes d'authentification (pas besoin de middleware d'authentification)
-  apiRouter.use('/', authRoutes);
-  
+  // Register all routes
+  apiRouter.use('/properties', propertiesRouter);
+  apiRouter.use('/tenants', tenantsRouter);
   apiRouter.use('/documents', documentsRouter);
   apiRouter.use('/folders', foldersRouter);
   apiRouter.use('/maintenance', maintenanceRoutes);
-  apiRouter.use('/properties', propertiesRouter);
   apiRouter.use('/visits', visitsRouter);
-  apiRouter.use('/tenants', tenantsRouter);
   apiRouter.use('/transactions', transactionsRouter);
   apiRouter.use('/notifications', notificationsRouter);
-  apiRouter.use('/user/notification-settings', userNotificationSettingsRouter);
+  apiRouter.use('/user-notifications', userNotificationSettingsRouter);
   apiRouter.use('/export', dataExportRouter);
   apiRouter.use('/property-features', propertyFeaturesRouter);
   apiRouter.use('/ai-assistant', aiAssistantRouter);
@@ -156,39 +155,9 @@ export function setupRoutes(app: Express) {
   apiRouter.use('/contracts', contractsRouter);
   apiRouter.use('/image-enhancement', imageEnhancementRouter);
   apiRouter.use('/marketplace', marketplaceRouter);
-  apiRouter.use('/links', linksRouter);
-  apiRouter.use('/statics', staticsRouter);
 
-  // Get all users - limité à l'administrateur
-  apiRouter.get("/users", async (req, res) => {
-    try {
-      // Vérifier le rôle de l'utilisateur - uniquement les admins peuvent voir tous les utilisateurs
-      if ((req.user as any)?.role !== 'admin') {
-        return res.status(403).json({ error: "Accès non autorisé" });
-      }
-      
-      const allUsers = await db.select().from(users);
-      res.json(allUsers);
-    } catch (error) {
-      logger.error('Error fetching users:', error);
-      res.status(500).json({ error: "Error fetching users" });
-    }
-  });
-
-  // Get all transactions - maintenant via RLS
-  apiRouter.get("/transactions", async (req, res) => {
-    try {
-      // La sécurité Row-Level Security filtre automatiquement les transactions
-      const userTransactions = await db.select().from(transactions);
-      res.json(userTransactions);
-    } catch (error) {
-      logger.error('Error fetching transactions:', error);
-      res.status(500).json({ 
-        error: "Erreur lors de la récupération des transactions",
-        details: error instanceof Error ? error.message : "Erreur inconnue"
-      });
-    }
-  });
+  // Configurer les images par défaut
+  setupDefaultImages();
 
   // Mount API router with prefix
   app.use('/api', apiRouter);

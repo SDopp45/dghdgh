@@ -71,7 +71,7 @@ async function checkDocumentAssociations(documentId: number) {
 }
 
 // Route GET pour récupérer tous les locataires
-router.get("/", async (req, res) => {
+router.get("/", ensureAuth, async (req, res) => {
   try {
     logger.info("Fetching all tenants");
     
@@ -566,7 +566,7 @@ router.post("/", async (req, res, next) => {
 });
 
 // GET all tenants
-router.get("/", async (req, res, next) => {
+router.get("/", ensureAuth, async (req, res, next) => {
   try {
     logger.info("Fetching tenants");
     const allTenants = await db.query.tenants.findMany({
@@ -1080,7 +1080,7 @@ router.post("/generate-visits-test-data", async (req, res, next) => {
 });
 
 // Update the feedback endpoint to use the new feedback_history table
-router.post("/:id/feedback", async (req, res, next) => {
+router.post("/:id/feedback", ensureAuth, async (req, res, next) => {
   try {
     logger.info("Feedback endpoint called", {
       isAuthenticated: req.isAuthenticated(),
@@ -1185,7 +1185,7 @@ router.post("/:id/feedback", async (req, res, next) => {
 });
 
 // Get feedback history for a tenant
-router.get("/:id/feedback", async (req, res, next) => {
+router.get("/:id/feedback", ensureAuth, async (req, res, next) => {
   try {
     logger.info("Get feedback endpoint called", {
       isAuthenticated: req.isAuthenticated(),
@@ -1215,7 +1215,7 @@ router.get("/:id/feedback", async (req, res, next) => {
 });
 
 // Get orphaned feedback (feedback with null tenantId)
-router.get("/feedbacks/orphaned", async (req, res, next) => {
+router.get("/feedbacks/orphaned", ensureAuth, async (req, res, next) => {
   try {
     logger.info("Get orphaned feedback endpoint called", {
       isAuthenticated: req.isAuthenticated()

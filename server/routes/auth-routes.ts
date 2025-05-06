@@ -3,7 +3,9 @@ import { db } from '../db';
 import logger from '../utils/logger';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { loginUser, logoutUser, hashPassword } from '../auth';
+import { loginUser, logoutUser, hashPassword, requireAuth } from '../auth';
+import { setupUserEnvironment } from '../middleware/schema';
+import { pool } from '../db';
 
 const router = Router();
 
@@ -19,7 +21,7 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
     
-    // Utiliser la nouvelle fonction loginUser
+    // Utiliser la fonction loginUser qui configure aussi le schéma
     const result = await loginUser(username, password, req);
     
     if (!result.success) {
@@ -30,7 +32,13 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
     
-    logger.info(`Utilisateur connecté: ${username} (ID: ${result.user.id})`);
+    // Configurer la session avec l'utilisateur authentifié
+    req.session.save((err) => {
+      if (err) {
+        logger.error(`Erreur lors de la sauvegarde de la session: ${err}`);
+      }
+      logger.info(`Utilisateur connecté: ${username} (ID: ${result.user.id})`);
+    });
     
     // Réponse JSON après authentification réussie
     return res.json({
@@ -127,7 +135,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const passwordHash = await hashPassword(password);
     
     // Création du nouvel utilisateur
-    await db.insert(users).values([{
+    const result = await db.insert(users).values({
       username,
       password: passwordHash,
       email,
@@ -138,7 +146,21 @@ router.post('/register', async (req: Request, res: Response) => {
       storageTier: 'basic',
       createdAt: new Date(),
       updatedAt: new Date()
-    }]);
+    }).returning({ id: users.id });
+    
+    if (result.length > 0) {
+      const userId = result[0].id;
+      
+      // Créer le schéma pour ce nouvel utilisateur
+      try {
+        // Créer directement le schéma pour cet utilisateur
+        await db.execute(`CREATE SCHEMA IF NOT EXISTS client_${userId}`);
+        logger.info(`Schéma client_${userId} créé pour l'utilisateur ${username}`);
+      } catch (schemaError) {
+        logger.error(`Erreur lors de la création du schéma pour l'utilisateur ${username}:`, schemaError);
+        // Continuer malgré l'erreur de schéma
+      }
+    }
     
     logger.info(`Nouvel utilisateur inscrit: ${username}`);
     
@@ -155,5 +177,71 @@ router.post('/register', async (req: Request, res: Response) => {
     });
   }
 });
+
+// Route de diagnostic pour vérifier la configuration des schémas (réservée au développement)
+if (process.env.NODE_ENV === 'development') {
+  router.get('/diagnostic', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = req.user;
+      
+      // Vérifier la session utilisateur
+      const sessionInfo = {
+        isAuthenticated: req.isAuthenticated?.() || false,
+        user: user ? { 
+          id: user.id, 
+          username: user.username, 
+          role: user.role 
+        } : null,
+        sessionID: req.sessionID
+      };
+      
+      // Vérifier la configuration du schéma actuel
+      let schemaInfo;
+      try {
+        const schemaResult = await pool.query('SHOW search_path');
+        schemaInfo = {
+          currentSearchPath: schemaResult.rows[0].search_path,
+          status: 'ok'
+        };
+      } catch (error) {
+        schemaInfo = {
+          status: 'error',
+          error: error.message || 'Erreur inconnue'
+        };
+      }
+      
+      // Essayer de reconfigurer le schéma si un utilisateur est connecté
+      let reconfigureResult = { success: false, message: 'Non tenté (pas d\'utilisateur)' };
+      if (user?.id) {
+        try {
+          const success = await setupUserEnvironment(user.id);
+          reconfigureResult = { 
+            success, 
+            message: success ? 'Schéma reconfiguré avec succès' : 'Échec de la reconfiguration'
+          };
+        } catch (error) {
+          reconfigureResult = { 
+            success: false, 
+            message: `Erreur: ${error.message || 'Erreur inconnue'}` 
+          };
+        }
+      }
+      
+      res.json({
+        sessionInfo,
+        schemaInfo,
+        reconfigureResult,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      logger.error('Erreur lors du diagnostic:', error);
+      res.status(500).json({ 
+        error: 'Erreur lors du diagnostic', 
+        message: error.message || 'Erreur inconnue' 
+      });
+    }
+  });
+}
 
 export default router; 

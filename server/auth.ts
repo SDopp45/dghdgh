@@ -292,35 +292,48 @@ export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
 
 /** Fonction pour connecter un utilisateur */
 export async function loginUser(username: string, password: string, req: Request) {
-  const user = await authenticateUser(username, password);
-  
-  if (!user) {
-    return { success: false, message: "Identifiants invalides" };
-  }
-  
-  // Stocker l'ID utilisateur dans la session
-  req.session.userId = user.id;
-  
-  // Ajouter l'utilisateur à la requête
-  req.user = user;
-  req.isAuthenticated = () => true;
-  
-  // Configurer le schéma PostgreSQL pour l'utilisateur
-  await configureSchemasForUser(user.id);
-  
-  return {
-    success: true,
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-      storageUsed: user.storageUsed?.toString() || '0',
-      storageLimit: user.storageLimit?.toString() || '5368709120',
-      storageTier: user.storageTier || 'basic',
+  try {
+    // Authentifier l'utilisateur avec le nom d'utilisateur et le mot de passe
+    const user = await authenticateUser(username, password);
+    
+    if (!user) {
+      logger.warn(`Échec d'authentification pour l'utilisateur: ${username}`);
+      return { success: false, message: "Identifiants invalides" };
     }
-  };
+    
+    // Stocker l'ID utilisateur dans la session
+    req.session.userId = user.id;
+    
+    // Ajouter l'utilisateur à la requête
+    req.user = user;
+    req.isAuthenticated = () => true;
+    
+    // Configurer le schéma PostgreSQL pour l'utilisateur
+    try {
+      await configureSchemasForUser(user.id);
+      logger.info(`Schéma configuré pour l'utilisateur ${user.username} (ID: ${user.id})`);
+    } catch (schemaError) {
+      logger.error(`Erreur lors de la configuration du schéma pour ${user.username}:`, schemaError);
+      // Continuer malgré l'erreur de schéma
+    }
+    
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        storageUsed: user.storageUsed?.toString() || '0',
+        storageLimit: user.storageLimit?.toString() || '5368709120',
+        storageTier: user.storageTier || 'basic',
+      }
+    };
+  } catch (error) {
+    logger.error(`Erreur lors de la connexion pour ${username}:`, error);
+    return { success: false, message: "Erreur de serveur" };
+  }
 }
 
 /** Fonction pour déconnecter un utilisateur */

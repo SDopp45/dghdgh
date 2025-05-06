@@ -1,7 +1,7 @@
 import express from 'express';
 import { UserQuotaService, AIModelType } from '../services/user-quota';
 import { LanguageModelService } from '../services/language-model';
-import { authenticateToken } from '../auth';
+import { authenticateToken, requireAuth } from '../auth';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -76,65 +76,6 @@ router.post('/user/ai-settings', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error updating user AI model:', error);
     res.status(500).json({ message: 'Erreur lors de la mise à jour du modèle d\'IA' });
-  }
-});
-
-/**
- * Réinitialiser le compteur de requêtes (utilisateur autorisé uniquement)
- */
-router.post('/admin/reset-user-quota/:userId', authenticateToken, async (req, res) => {
-  try {
-    // Vérifier que l'utilisateur est autorisé
-    if (req.user?.role !== 'clients') {
-      return res.status(403).json({ error: 'Accès non autorisé' });
-    }
-    
-    const targetUserId = parseInt(req.params.userId);
-    
-    if (isNaN(targetUserId)) {
-      return res.status(400).json({ message: 'ID utilisateur invalide' });
-    }
-    
-    // Réinitialiser le compteur
-    await UserQuotaService.resetRequestCount(targetUserId);
-    
-    res.json({ message: 'Compteur de requêtes réinitialisé avec succès' });
-  } catch (error) {
-    console.error('Error resetting user quota:', error);
-    res.status(500).json({ error: 'Une erreur est survenue lors de la réinitialisation du quota' });
-  }
-});
-
-/**
- * Mettre à jour la limite de requêtes d'un utilisateur (utilisateur autorisé uniquement)
- */
-router.post('/admin/update-user-limit/:userId', authenticateToken, async (req, res) => {
-  try {
-    // Vérifier que l'utilisateur est autorisé
-    if (req.user?.role !== 'clients') {
-      return res.status(403).json({ error: 'Accès non autorisé' });
-    }
-    
-    const targetUserId = parseInt(req.params.userId);
-    
-    if (isNaN(targetUserId)) {
-      return res.status(400).json({ message: 'ID utilisateur invalide' });
-    }
-    
-    // Valider le nouveau quota
-    const newLimit = parseInt(req.body.limit);
-    
-    if (isNaN(newLimit) || newLimit < 0) {
-      return res.status(400).json({ message: 'Limite invalide' });
-    }
-    
-    // Mettre à jour la limite
-    await UserQuotaService.updateRequestLimit(targetUserId, newLimit);
-    
-    res.json({ message: 'Limite de requêtes mise à jour avec succès' });
-  } catch (error) {
-    console.error('Error updating user limit:', error);
-    res.status(500).json({ message: 'Erreur lors de la mise à jour de la limite' });
   }
 });
 

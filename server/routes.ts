@@ -10,7 +10,6 @@ import fs from "fs";
 import logger from "./utils/logger";
 import cors from 'cors';
 import { setupDefaultImages } from './utils/default-images';
-import { setClientSchema } from './middleware/schema';
 
 // Import routes
 import documentsRouter from './routes/documents';
@@ -68,9 +67,6 @@ export function setupRoutes(app: Express) {
     });
     next();
   });
-
-  // Remplacer setupRLSContext par le nouveau middleware de schéma
-  app.use(setClientSchema);
 
   // Serve static files
   app.use('/uploads', express.static(uploadDir, {

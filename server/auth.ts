@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import logger from "./utils/logger";
 import { compareSync } from "bcrypt";
 import { setClientSchema } from "./middleware/schema";
+import { pool as dbPool } from "./db";
 
 // Importer la configuration Passport
 import './config/passport';
@@ -216,8 +217,8 @@ export function setupAuth(app: Express) {
   if (AUTH_CONFIG.mode !== 'jwt') {
     app.use(passport.session());
   }
-
-  // Utiliser le middleware de schéma client à la place de RLS
+  
+  // Utiliser le middleware de schéma client
   app.use(setClientSchema);
 
   // Middleware de débogage des sessions (activé uniquement si la variable DEBUG_SESSION est à true)
@@ -240,24 +241,12 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   return res.status(401).json({ error: 'Non authentifié' });
 };
 
-// Middleware de contrôle d'accès basé sur les rôles
-export const requireRole = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: 'Non authentifié' });
-    }
-    
-    const userRole = (req.user as any).role;
-    
-    // Tous les utilisateurs sont des clients dans cette application
-    if (userRole === 'clients') {
-      // Vérifier que l'utilisateur accède à ses propres ressources
-      // Cela est déjà garanti par la séparation des schémas en base de données
-      return next();
-    }
-    
-    return res.status(403).json({ error: 'Accès non autorisé' });
-  };
+// Middleware simple pour vérifier l'authentification
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Non authentifié' });
+  }
+  next();
 };
 
 /** Fonction pour authentifier un utilisateur et configurer le contexte PostgreSQL */

@@ -13,7 +13,6 @@ import config from "./config";
 import { initNotificationWebSocket } from "./websocket/notification-ws";
 import { initCronJobs } from "./cron";
 import { initializeWebSockets } from './websocket/init-websocket';
-import { setClientSchema } from './middleware/schema';
 import './schema/links';
 
 // Configuration des répertoires
@@ -83,9 +82,6 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Configuration de l'authentification
 setupAuth(app);
-
-// Appliquer le middleware de gestion des schémas PostgreSQL pour tous les utilisateurs
-app.use(setClientSchema);
 
 // Configuration des routes API
 setupRoutes(app);

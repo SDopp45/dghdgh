@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from '../auth';
+import { authenticateToken, requireAuth } from '../auth';
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { UserQuotaService } from '../services/user-quota';
@@ -8,21 +8,20 @@ import { z } from 'zod';
 
 const router = express.Router();
 
-// Vérification que l'utilisateur est autorisé
-const isAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (req.user?.role !== 'clients') {
-    return res.status(403).json({ message: 'Accès non autorisé. Rôle utilisateur requis.' });
-  }
-  next();
-};
-
 /**
- * Récupérer les données d'utilisation de l'IA pour tous les utilisateurs
+ * Récupérer les données d'utilisation de l'IA pour l'utilisateur actuel
  */
-router.get('/api/admin/users-ai-data', authenticateToken, isAdmin, async (req, res) => {
+router.get('/api/user/ai-data', authenticateToken, async (req, res) => {
   try {
-    // Récupérer tous les utilisateurs avec leurs données
-    const allUsers = await db.query.users.findMany({
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Utilisateur non authentifié' });
+    }
+    
+    // Récupérer uniquement les données de l'utilisateur connecté
+    const userData = await db.query.users.findFirst({
+      where: { id: userId },
       columns: {
         id: true,
         username: true,
@@ -34,30 +33,41 @@ router.get('/api/admin/users-ai-data', authenticateToken, isAdmin, async (req, r
       },
     });
 
-    const formattedUsers = allUsers.map(user => ({
-      id: user.id,
-      username: user.username,
-      fullName: user.fullName || user.username,
-      email: user.email || 'N/A',
-      requestCount: user.requestCount || 0,
-      requestLimit: user.requestLimit || 100,
-      preferredModel: user.preferredAiModel,
-    }));
+    if (!userData) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
 
-    res.json({ users: formattedUsers });
+    const formattedUser = {
+      id: userData.id,
+      username: userData.username,
+      fullName: userData.fullName || userData.username,
+      email: userData.email || 'N/A',
+      requestCount: userData.requestCount || 0,
+      requestLimit: userData.requestLimit || 100,
+      preferredModel: userData.preferredAiModel,
+    };
+
+    res.json({ user: formattedUser });
   } catch (error) {
-    console.error('Error fetching users AI data:', error);
+    console.error('Error fetching user AI data:', error);
     res.status(500).json({ message: 'Erreur lors de la récupération des données' });
   }
 });
 
 /**
- * Récupérer des statistiques globales sur l'utilisation de l'IA
+ * Récupérer des statistiques sur l'utilisation de l'IA pour l'utilisateur actuel
  */
-router.get('/api/admin/ai-stats', authenticateToken, isAdmin, async (req, res) => {
+router.get('/api/user/ai-stats', authenticateToken, async (req, res) => {
   try {
-    // Récupérer toutes les données nécessaires
-    const allUsers = await db.query.users.findMany({
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Utilisateur non authentifié' });
+    }
+    
+    // Récupérer les données de l'utilisateur
+    const userData = await db.query.users.findFirst({
+      where: { id: userId },
       columns: {
         requestCount: true,
         requestLimit: true,
@@ -65,66 +75,23 @@ router.get('/api/admin/ai-stats', authenticateToken, isAdmin, async (req, res) =
       },
     });
 
+    if (!userData) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
     // Statistiques d'utilisation
-    const totalRequests = allUsers.reduce((sum, user) => sum + (user.requestCount || 0), 0);
-    const activeUsers = allUsers.filter(user => (user.requestCount || 0) > 0).length;
-    const limitExceeded = allUsers.filter(user => (user.requestCount || 0) >= (user.requestLimit || 100)).length;
+    const userStats = {
+      requestCount: userData.requestCount || 0,
+      requestLimit: userData.requestLimit || 100,
+      usagePercentage: userData.requestLimit ? 
+        Math.round(((userData.requestCount || 0) / userData.requestLimit) * 100) : 0,
+      preferredModel: userData.preferredAiModel || 'default'
+    };
 
-    // Répartition des modèles
-    const modelUsage = allUsers.reduce((acc, user) => {
-      const model = user.preferredAiModel || 'default';
-      acc[model] = (acc[model] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    res.json({
-      totalRequests,
-      activeUsers,
-      limitExceeded,
-      totalUsers: allUsers.length,
-      modelUsage
-    });
+    res.json(userStats);
   } catch (error) {
-    console.error('Error fetching AI stats:', error);
+    console.error('Error fetching user AI stats:', error);
     res.status(500).json({ message: 'Erreur lors de la récupération des statistiques' });
-  }
-});
-
-/**
- * Mettre à jour en masse les limites de requêtes
- */
-router.post('/api/admin/update-all-limits', authenticateToken, isAdmin, async (req, res) => {
-  try {
-    const schema = z.object({
-      newLimit: z.number().min(0),
-      applyTo: z.enum(['all', 'active', 'exceeded'])
-    });
-
-    const validationResult = schema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({ message: 'Données invalides', errors: validationResult.error.errors });
-    }
-
-    const { newLimit, applyTo } = validationResult.data;
-
-    // Définir les utilisateurs à mettre à jour selon le filtre
-    let userFilter = {};
-    if (applyTo === 'active') {
-      userFilter = { requestCount: { gt: 0 } };
-    } else if (applyTo === 'exceeded') {
-      // Cette logique est plus complexe et nécessiterait une requête personnalisée
-      // Pour simplifier, on pourrait utiliser un traitement post-requête
-    }
-
-    // Mise à jour des limites
-    const updateResult = await db.update(users)
-      .set({ requestLimit: newLimit })
-      .where(userFilter);
-
-    res.json({ message: 'Limites mises à jour avec succès' });
-  } catch (error) {
-    console.error('Error updating all limits:', error);
-    res.status(500).json({ message: 'Erreur lors de la mise à jour des limites' });
   }
 });
 

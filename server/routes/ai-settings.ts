@@ -80,13 +80,13 @@ router.post('/user/ai-settings', authenticateToken, async (req, res) => {
 });
 
 /**
- * Réinitialiser le compteur de requêtes (admin uniquement)
+ * Réinitialiser le compteur de requêtes (utilisateur autorisé uniquement)
  */
 router.post('/admin/reset-user-quota/:userId', authenticateToken, async (req, res) => {
   try {
-    // Vérifier que l'utilisateur est administrateur
-    if (req.user?.role !== 'admin') {
-      return res.status(403).json({ message: 'Accès non autorisé' });
+    // Vérifier que l'utilisateur est autorisé
+    if (req.user?.role !== 'clients') {
+      return res.status(403).json({ error: 'Accès non autorisé' });
     }
     
     const targetUserId = parseInt(req.params.userId);
@@ -101,18 +101,18 @@ router.post('/admin/reset-user-quota/:userId', authenticateToken, async (req, re
     res.json({ message: 'Compteur de requêtes réinitialisé avec succès' });
   } catch (error) {
     console.error('Error resetting user quota:', error);
-    res.status(500).json({ message: 'Erreur lors de la réinitialisation du compteur' });
+    res.status(500).json({ error: 'Une erreur est survenue lors de la réinitialisation du quota' });
   }
 });
 
 /**
- * Mettre à jour la limite de requêtes d'un utilisateur (admin uniquement)
+ * Mettre à jour la limite de requêtes d'un utilisateur (utilisateur autorisé uniquement)
  */
 router.post('/admin/update-user-limit/:userId', authenticateToken, async (req, res) => {
   try {
-    // Vérifier que l'utilisateur est administrateur
-    if (req.user?.role !== 'admin') {
-      return res.status(403).json({ message: 'Accès non autorisé' });
+    // Vérifier que l'utilisateur est autorisé
+    if (req.user?.role !== 'clients') {
+      return res.status(403).json({ error: 'Accès non autorisé' });
     }
     
     const targetUserId = parseInt(req.params.userId);

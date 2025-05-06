@@ -149,8 +149,8 @@ router.get("/", ensureAuth, async (req, res) => {
   try {
     logger.info("Fetching all properties - start");
     
-    // La sécurité Row-Level Security filtre automatiquement les propriétés
-    // en fonction de l'utilisateur authentifié via le contexte PostgreSQL
+    // La sécurité par schémas filtre automatiquement les propriétés
+    // en fonction de l'utilisateur authentifié via la configuration du chemin de recherche PostgreSQL
     try {
       const allProperties = await db.select().from(properties).limit(100).catch(err => {
         logger.error("Database error in properties route:", err);

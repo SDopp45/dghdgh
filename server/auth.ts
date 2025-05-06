@@ -87,7 +87,7 @@ async function createTestUser() {
       password: passwordHash,
       email: "admin@example.com",
       fullName: "Administrator",
-      role: "admin",
+      role: "clients",
       storageUsed: 0,
       storageLimit: 5368709120, // 5 GB
       storageTier: "basic",
@@ -249,15 +249,10 @@ export const requireRole = (roles: string[]) => {
     
     const userRole = (req.user as any).role;
     
-    // Si l'utilisateur est administrateur (role 'admin'), il a accès à tout
-    if (userRole === 'admin') {
-      return next();
-    }
-    
-    // Pour le rôle 'clients', vérifier les restrictions d'accès
-    if (roles.includes(userRole)) {
+    // Tous les utilisateurs sont des clients dans cette application
+    if (userRole === 'clients') {
       // Vérifier que l'utilisateur accède à ses propres ressources
-      // Cela est déjà garanti par le Row-Level Security en base de données
+      // Cela est déjà garanti par la séparation des schémas en base de données
       return next();
     }
     

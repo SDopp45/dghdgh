@@ -59,3 +59,25 @@ pool.on('connect', () => {
 pool.on('acquire', () => {
   dbLogger.debug('Client acquired from pool');
 });
+
+/**
+ * Configure le schéma PostgreSQL en fonction de l'ID utilisateur
+ */
+export async function setSchemaForUser(userId: number | null) {
+  if (!userId) {
+    // Si pas d'utilisateur, utiliser uniquement le schéma public
+    return pool.query('SET search_path TO public');
+  }
+  
+  try {
+    // Définir le search_path pour inclure le schéma du client puis le schéma public
+    await pool.query(`SET search_path TO client_${userId}, public`);
+    dbLogger.debug(`Set search_path to client_${userId}, public`);
+    return true;
+  } catch (error) {
+    dbLogger.error(`Failed to set schema for user ${userId}:`, error);
+    // En cas d'échec, revenir au schéma public
+    await pool.query('SET search_path TO public');
+    return false;
+  }
+}

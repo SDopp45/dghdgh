@@ -75,24 +75,6 @@ router.get("/", ensureAuth, async (req, res) => {
   try {
     logger.info("Fetching all tenants");
     
-    // Toujours simuler un utilisateur authentifié
-    req.user = { 
-      id: 1,
-      role: "admin",
-      username: "admin",
-      password: "",
-      fullName: "Admin",
-      email: null, 
-      phoneNumber: null,
-      profileImage: null,
-      archived: false,
-      accountType: "individual",
-      parentAccountId: null,
-      settings: {},
-      createdAt: new Date(),
-      updatedAt: new Date() 
-    };
-    
     // Récupérer les locataires avec leurs relations
     const allTenants = await db.query.tenants.findMany({
       with: {
@@ -154,26 +136,12 @@ router.get("/", ensureAuth, async (req, res) => {
 });
 
 // Update tenant creation route to handle automatic transaction creation
-router.post("/", async (req, res, next) => {
+router.post("/", ensureAuth, async (req, res, next) => {
   try {
-    // Simuler l'authentification
-    req.user = { 
-      id: 1,
-      role: "admin",
-      username: "admin",
-      password: "",
-      fullName: "Admin",
-      email: null, 
-      phoneNumber: null,
-      profileImage: null,
-      archived: false,
-      accountType: "individual",
-      parentAccountId: null,
-      settings: {},
-      createdAt: new Date(),
-      updatedAt: new Date() 
-    };
-    const authenticatedUserId = 1;
+    const authenticatedUserId = getUserId(req);
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
 
     const {
       fullName,

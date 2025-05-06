@@ -12,14 +12,15 @@ declare global {
 
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
+    // Tout utilisateur authentifié avec rôle 'clients' est autorisé
+    if (!req.user || req.user.role !== 'clients') {
       return res.status(403).json({ 
-        error: 'Accès refusé. Seuls les administrateurs peuvent effectuer cette action.' 
+        error: 'Accès refusé. Vous devez être connecté pour effectuer cette action.' 
       });
     }
     next();
   } catch (error) {
-    logger.error('Erreur de vérification admin:', error);
+    logger.error('Erreur de vérification des permissions:', error);
     res.status(500).json({ error: 'Erreur lors de la vérification des permissions' });
   }
 };

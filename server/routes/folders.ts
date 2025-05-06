@@ -47,12 +47,9 @@ router.post("/", ensureAuth, async (req, res) => {
 });
 
 // Get all folders for the current user
-router.get("/", async (req, res) => {
+router.get("/", ensureAuth, async (req, res) => {
   try {
     logger.info("Fetching all folders");
-    
-    // Simuler un utilisateur authentifié
-    req.user = { id: 1, role: 'admin' };
     
     // Récupérer les dossiers
     const allFolders = await db.select().from(folders).catch(err => {

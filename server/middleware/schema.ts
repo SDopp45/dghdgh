@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { setSchemaForUser } from '../db';
+import { setSchemaForUser, pool as dbPool } from '../db';
 import logger from '../utils/logger';
 
 /**
@@ -44,15 +44,18 @@ export const setClientSchema = async (req: Request, res: Response, next: NextFun
  */
 export const setAdminSchemaViews = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Vérifier si l'utilisateur est un administrateur
+    // Dans cette application, tous les utilisateurs sont des clients
+    // Nous n'utilisons plus la vérification du rôle admin
     const isAuthenticated = req.isAuthenticated && req.isAuthenticated();
-    const isAdmin = isAuthenticated && req.user && (req.user as any).role === 'admin';
     
-    if (isAdmin) {
-      // Définir le chemin de recherche pour inclure les vues admin
-      await setSchemaForUser(null); // Reset d'abord
-      await setAdminViews();
-      logger.debug('Admin views schema set for admin user');
+    if (isAuthenticated && req.user) {
+      // Pour tous les utilisateurs authentifiés, utiliser le schéma du client
+      // Ne pas utiliser les vues admin car tous les utilisateurs sont des clients
+      const userId = typeof req.user === 'object' ? (req.user as any).id : req.user;
+      if (userId) {
+        await setSchemaForUser(userId);
+        logger.debug(`Schema set for client user ${userId}`);
+      }
     }
     
     next();
@@ -64,14 +67,15 @@ export const setAdminSchemaViews = async (req: Request, res: Response, next: Nex
 
 /**
  * Configure le chemin de recherche pour inclure les vues admin
+ * Note: Cette fonction n'est plus utilisée car nous n'avons plus d'administrateurs
  */
 export async function setAdminViews() {
   try {
-    const { dbPool } = await import('../db');
-    await dbPool.query('SET search_path TO admin_views, public');
+    // Par défaut, utiliser le schéma public uniquement
+    await dbPool.query('SET search_path TO public');
     return true;
   } catch (error) {
-    logger.error('Failed to set admin views schema:', error);
+    logger.error('Failed to set schema:', error);
     return false;
   }
 }
@@ -80,8 +84,6 @@ export async function setAdminViews() {
  * Fonction utilitaire pour exécuter une requête dans le schéma d'un client spécifique
  */
 export async function runInClientSchema(clientId: number, callback: () => Promise<any>) {
-  const { dbPool } = await import('../db');
-  
   try {
     // Sauvegarder le search_path actuel
     const { rows } = await dbPool.query('SHOW search_path');

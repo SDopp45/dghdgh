@@ -144,7 +144,7 @@ router.post('/register', async (req: Request, res: Response) => {
       password: passwordHash,
       email,
       fullName,
-      role: 'user', // Par défaut, attribuer un rôle standard
+      role: 'clients', // Attribuer le rôle clients à tous les utilisateurs
       storageUsed: 0,
       storageLimit: 1073741824, // 1 GB par défaut
       storageTier: 'basic',

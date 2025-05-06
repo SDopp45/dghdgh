@@ -316,10 +316,10 @@ router.post("/multiple", ensureAuth, async (req, res) => {
   }
 });
 
-// Get all documents - ensure authentication to respect RLS
+// Get all documents - ensure authentication to respect schema-based security
 router.get("/", ensureAuth, async (req, res) => {
   try {
-    // RLS will filter documents based on user ownership
+    // Le chemin de recherche PostgreSQL filtre automatiquement les documents en fonction du schéma de l'utilisateur
     const all = await db.select().from(documentsTable).orderBy(desc(documentsTable.createdAt));
     
     logger.info(`Documents fetched successfully: ${all.length} documents found`);

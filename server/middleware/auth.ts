@@ -60,7 +60,7 @@ export function isAdmin(req: Request): boolean {
 export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
   if (!isAdmin(req)) {
     return res.status(403).json({ message: "Accès réservé aux administrateurs" });
-}
+  }
   next();
 };
 
@@ -114,7 +114,7 @@ export const managerOrAdmin = (req: Request, res: Response, next: NextFunction) 
   const user = req.user as any;
   if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
     return res.status(403).json({ message: "Accès réservé aux gestionnaires et administrateurs" });
-}
+  }
   
   next();
 };
@@ -146,16 +146,6 @@ export function getUser(req: Request): AuthUser | null {
     role: user.role,
     email: user.email
   };
-}
-
-/**
- * Middleware pour définir l'ID utilisateur comme variable de configuration PostgreSQL
- * pour le Row-Level Security
- */
-export async function setUserIdForRLS(req: Request, res: Response, next: NextFunction) {
-  // Obsolète - remplacé par la sélection de schéma
-  // Conservé temporairement pour compatibilité
-  next();
 }
 
 /**
@@ -209,21 +199,5 @@ export async function authMiddleware(
   } catch (error) {
     console.error('Erreur d\'authentification:', error);
     return res.status(401).json({ message: 'Token invalide ou expiré' });
-  }
-}
-
-// Middleware pour les pools de connexion PostgreSQL par utilisateur - Obsolète avec la nouvelle architecture
-export async function getClientDbConnection(userId: number) {
-  logger.warn('Fonction getClientDbConnection obsolète - Utiliser directement le pool de connexion avec setSchemaForUser');
-  
-  // Pour la compatibilité, nous retournons quand même une connexion
-  const client = await pool.connect();
-  try {
-    // Configurer le schéma pour cet utilisateur
-    await client.query(`SET search_path TO client_${userId}, public`);
-    return client;
-  } catch (error) {
-    client.release();
-    throw error;
   }
 }

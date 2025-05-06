@@ -8,10 +8,10 @@ import { z } from 'zod';
 
 const router = express.Router();
 
-// Vérification que l'utilisateur est admin
+// Vérification que l'utilisateur est autorisé
 const isAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (req.user?.role !== 'admin') {
-    return res.status(403).json({ message: 'Accès non autorisé. Rôle d\'administrateur requis.' });
+  if (req.user?.role !== 'clients') {
+    return res.status(403).json({ message: 'Accès non autorisé. Rôle utilisateur requis.' });
   }
   next();
 };

@@ -68,7 +68,7 @@ try {
 }
 
 // Nouvelle fonction pour définir le schéma client en fonction de l'utilisateur
-export async function setSchemaForUser(userId: number | null) {
+async function setSchemaForUser(userId: number | null) {
   if (!userId) {
     // Si pas d'utilisateur, utiliser uniquement le schéma public
     return dbPool.query('SET search_path TO public');
@@ -88,4 +88,4 @@ export async function setSchemaForUser(userId: number | null) {
 }
 
 // Exporter les variables après le bloc try/catch
-export { dbPool, db }; 
+export { dbPool, db, setSchemaForUser }; 

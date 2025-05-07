@@ -2,9 +2,12 @@ import { type Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import logger from "./utils/logger";
-import { dbPool } from "./db/index";
+import { pool } from "./db/index";
 import bcrypt from "bcrypt";
-import { setupUserEnvironment, setSchemaForUser } from "./middleware/schema";
+import { setUserSchema, resetToPublicSchema } from "./db/index";
+import { Router } from 'express';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 // Déclaration d'interface pour Session
 declare module 'express-session' {
@@ -50,13 +53,13 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Vérifie si un mot de passe correspond à son hash
+ * Vérifie un mot de passe hashé
  * @param password Mot de passe en clair
- * @param hash Hash du mot de passe
- * @returns True si correspondance
+ * @param hashedPassword Mot de passe hashé
+ * @returns True si le mot de passe correspond
  */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  return bcrypt.compare(password, hashedPassword);
 }
 
 /**
@@ -79,7 +82,7 @@ export type LoginResult = {
 export async function loginUser(username: string, password: string): Promise<LoginResult> {
   try {
     // Rechercher l'utilisateur dans la base de données
-    const userResult = await dbPool.query(
+    const userResult = await pool.query(
       'SELECT id, username, password, role FROM users WHERE username = $1',
       [username]
     );
@@ -100,7 +103,7 @@ export async function loginUser(username: string, password: string): Promise<Log
     }
 
     // Configuration du schéma pour cet utilisateur
-    await setupUserEnvironment(user.id);
+    await setUserSchema(user.id);
     
     logger.info(`Utilisateur ${username} (ID: ${user.id}, Role: ${user.role}) connecté avec succès`);
     
@@ -132,7 +135,7 @@ export async function logoutUser(req: Request): Promise<boolean> {
     });
     
     // Réinitialiser le search_path à public
-    await dbPool.query('SET search_path TO public');
+    await resetToPublicSchema();
     
     return true;
   } catch (error) {
@@ -191,10 +194,10 @@ export const configureAuth = (app: Express) => {
       // Si l'utilisateur est authentifié, récupérer ses informations
       if (req.session && req.session.userId) {
         // Configurer le schéma pour cet utilisateur
-        await setSchemaForUser(req.session.userId);
+        await setUserSchema(req.session.userId);
         
         // Récupérer l'utilisateur en utilisant l'ID de session
-        const userResult = await dbPool.query(
+        const userResult = await pool.query(
           'SELECT * FROM users WHERE id = $1',
           [req.session.userId]
         );

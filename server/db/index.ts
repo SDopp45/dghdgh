@@ -3,66 +3,53 @@ import { Pool } from 'pg';
 import 'dotenv/config';
 import logger from '../utils/logger';
 import * as schema from '@shared/schema';
-import fs from 'fs';
-import path from 'path';
+// fs et path ne sont pas utilisés, peuvent être enlevés si non nécessaires ailleurs.
+// import fs from 'fs'; 
+// import path from 'path';
 
-// Déclarer les variables pour l'export en dehors du bloc try
 let dbPool: Pool;
 let db: ReturnType<typeof drizzle>;
 
-// Validation de la chaîne de connexion
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set. Did you forget to provision a database?');
 }
 
-// Afficher une version anonymisée de l'URL pour le débogage
 logger.info(`Initializing database connection with URL: ${process.env.DATABASE_URL.replace(/:[^:]*@/, ':***@')}`);
 
 try {
-  // Configuration plus robuste du pool de connexions
-  const pool = new Pool({
+  const poolInstance = new Pool({
     connectionString: process.env.DATABASE_URL,
-    // Paramètres optimisés pour la stabilité
-    query_timeout: 30000, // 30 secondes pour les requêtes
-    connectionTimeoutMillis: 10000, // 10 secondes pour établir une connexion
-    max: 10, // Nombre maximum de clients dans le pool
-    idleTimeoutMillis: 30000, // Fermer les clients inactifs après 30 secondes
-    // Activer SSL en production uniquement
+    query_timeout: 30000,
+    connectionTimeoutMillis: 10000,
+    max: 10,
+    idleTimeoutMillis: 30000,
     ssl: process.env.NODE_ENV === 'production' 
       ? { rejectUnauthorized: false } 
       : false
   });
 
-  // Gestion avancée des événements de connexion
-  pool.on('connect', (client) => {
+  poolInstance.on('connect', async (client) => {
     logger.info('New client connected to PostgreSQL database');
-    
-    // Modification: Par défaut, utiliser uniquement le schéma public
-    // Le schéma client sera défini dynamiquement lors de l'authentification
-    client.query('SET search_path TO public').catch(err => {
-      logger.warn('Error setting search path:', err);
-    });
+    // Par défaut, utiliser le schéma public au niveau de la connexion initiale du pool
+    // Le search_path sera ajusté dynamiquement par setUserSchema ou resetToPublicSchema
+    await client.query('SET search_path TO public');
   });
 
-  pool.on('error', (err, client) => {
+  poolInstance.on('error', (err, client) => {
     logger.error('PostgreSQL pool error:', err);
-    
-    // En cas d'erreur fatale, essayer de récupérer le client
-    if (err && typeof err === 'object' && 'fatal' in err && err.fatal === true) {
+    if (err && typeof err === 'object' && 'fatal' in err && (err as any).fatal === true) {
       logger.error('Fatal database connection error - attempting recovery');
     }
   });
 
-  // Test de connexion initial
-  pool.query('SELECT NOW()').then(() => {
+  poolInstance.query('SELECT NOW()').then(() => {
     logger.info('✅ PostgreSQL connection verified successfully');
   }).catch(err => {
     logger.error('❌ Failed to verify PostgreSQL connection:', err);
   });
 
-  // Affecter les valeurs aux variables exportées
-  dbPool = pool;
-  db = drizzle(pool, { schema });
+  dbPool = poolInstance;
+  db = drizzle(poolInstance, { schema }); // 'schema' ici fait référence aux définitions Drizzle, pas aux schémas PG en tant que tels pour les requêtes directes.
   
 } catch (error) {
   logger.error('Failed to initialize database connection:', error);
@@ -70,141 +57,88 @@ try {
   throw new Error(`Database connection failed: ${errorMessage}`);
 }
 
-// Nouvelle fonction pour définir le schéma client en fonction de l'utilisateur
-async function setSchemaForUser(userId: number | null) {
-  if (!userId) {
-    // Si pas d'utilisateur, utiliser uniquement le schéma public
-    return dbPool.query('SET search_path TO public');
-  }
-  
+/**
+ * Définit le search_path pour un utilisateur spécifique.
+ * Les administrateurs utilisent 'public, admin_views'.
+ * Les clients utilisent 'client_X, public'.
+ * @param userId ID de l'utilisateur
+ * @returns Le nom du schéma principal défini (ou 'public' pour admin)
+ */
+async function setUserSchema(userId: number): Promise<string> {
   try {
-    // Définir le search_path pour inclure le schéma du client puis le schéma public
-    await dbPool.query(`SET search_path TO client_${userId}, public`);
-    logger.info(`Set search_path to client_${userId}, public`);
-    return true;
+    // Vérifier si l'utilisateur existe et récupérer son rôle
+    // Il est crucial que la table 'users' soit accessible, donc dans le schéma 'public' par défaut ou via un search_path qui l'inclut.
+    const userResult = await dbPool.query('SELECT role FROM public.users WHERE id = $1', [userId]);
+    if (!userResult.rows.length) {
+      throw new Error(`Utilisateur ${userId} non trouvé`);
+    }
+
+    const user = userResult.rows[0];
+    let effectiveSearchPath: string;
+    let primarySchema: string;
+
+    if (user.role === 'admin') {
+      // Les administrateurs ont accès à 'public' et 'admin_views'
+      // 'admin_views' doit être créé dans votre DB pour que ceci fonctionne
+      effectiveSearchPath = 'public, admin_views'; 
+      primarySchema = 'public';
+      // Pour les admins, on peut aussi simplement utiliser le search_path par défaut du rôle admin s'il est configuré en DB.
+      // Ou explicitement le positionner :
+      await dbPool.query(`SET search_path TO ${effectiveSearchPath}`);
+    } else {
+      // Les clients utilisent leur schéma dédié et public
+      primarySchema = `client_${userId}`;
+      // S'assurer que le schéma client existe avant de tenter de le définir.
+      // createClientSchema devrait être appelé à l'inscription pour garantir son existence.
+      effectiveSearchPath = `${primarySchema}, public`;
+      await dbPool.query(`SET search_path TO ${effectiveSearchPath}`);
+    }
+
+    logger.info(`Search_path défini à "${effectiveSearchPath}" pour l'utilisateur ${userId} (rôle: ${user.role})`);
+    return primarySchema;
   } catch (error) {
-    logger.error(`Failed to set schema for user ${userId}:`, error);
-    // En cas d'échec, revenir au schéma public
-    await dbPool.query('SET search_path TO public');
-    return false;
+    logger.error(`Erreur lors de la définition du search_path pour l'utilisateur ${userId}:`, error);
+    // En cas d'erreur, réinitialiser au schéma public pour éviter des états inconsistants
+    await resetToPublicSchema();
+    throw error;
   }
 }
 
 /**
- * Initialiser les fonctions de gestion des schémas
+ * Réinitialise le search_path à 'public'.
+ * Typiquement utilisé à la déconnexion ou pour les accès anonymes.
  */
-export async function initializeSchemaFunctions() {
+async function resetToPublicSchema(): Promise<void> {
   try {
-    logger.info('Initialisation des fonctions de gestion des schémas...');
-    
-    // Vérifier si la fonction setup_user_environment existe déjà
-    const checkFunctionResult = await dbPool.query(`
-      SELECT 1 FROM pg_proc 
-      WHERE proname = 'setup_user_environment' 
-      AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
-    `);
-    
-    // Si les fonctions existent déjà, les supprimer d'abord
-    if (checkFunctionResult && checkFunctionResult.rowCount && checkFunctionResult.rowCount > 0) {
-      logger.info('Suppression des fonctions de schéma existantes...');
-      try {
-        await dbPool.query(`DROP FUNCTION IF EXISTS public.setup_user_environment(integer);`);
-        await dbPool.query(`DROP FUNCTION IF EXISTS public.create_client_schema(integer);`);
-        logger.info('Fonctions de schéma supprimées avec succès');
-      } catch (dropError) {
-        logger.error('Erreur lors de la suppression des fonctions:', dropError);
-      }
-    }
-    
-    // Définir les fonctions SQL directement dans le code
-    const setupSchemaSql = `
-    -- Fonction pour configurer l'environnement utilisateur
-    CREATE OR REPLACE FUNCTION public.setup_user_environment(p_user_id integer)
-    RETURNS void AS
-    $$
-    DECLARE
-        schema_name text := 'client_' || p_user_id;
-    BEGIN
-        -- Vérifier si le schéma existe
-        IF NOT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = schema_name) THEN
-            -- Créer le schéma s'il n'existe pas
-            EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I', schema_name);
-            RAISE NOTICE 'Schéma % créé', schema_name;
-        END IF;
-        
-        -- Configurer le chemin de recherche des schémas pour la session actuelle
-        EXECUTE format('SET search_path TO %I, public', schema_name);
-        RAISE NOTICE 'Search path configuré à %', schema_name;
-
-        -- Configurer les autorisations
-        EXECUTE format('GRANT USAGE ON SCHEMA %I TO current_user', schema_name);
-        EXECUTE format('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA %I TO current_user', schema_name);
-        EXECUTE format('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA %I TO current_user', schema_name);
-        
-        RETURN;
-    END;
-    $$
-    LANGUAGE plpgsql;
-
-    -- Fonction pour créer un nouveau schéma client
-    CREATE OR REPLACE FUNCTION public.create_client_schema(p_user_id integer)
-    RETURNS boolean AS
-    $$
-    DECLARE
-        schema_name text := 'client_' || p_user_id;
-    BEGIN
-        -- Vérifier si le schéma existe déjà
-        IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = schema_name) THEN
-            RAISE NOTICE 'Le schéma % existe déjà', schema_name;
-            RETURN true;
-        END IF;
-        
-        -- Créer le schéma
-        BEGIN
-            EXECUTE format('CREATE SCHEMA %I', schema_name);
-            RAISE NOTICE 'Schéma % créé avec succès', schema_name;
-            
-            -- Configurer les autorisations
-            EXECUTE format('GRANT USAGE ON SCHEMA %I TO current_user', schema_name);
-            EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT ALL PRIVILEGES ON TABLES TO current_user', schema_name);
-            EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT ALL PRIVILEGES ON SEQUENCES TO current_user', schema_name);
-            
-            RETURN true;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE NOTICE 'Erreur lors de la création du schéma %: %', schema_name, SQLERRM;
-            RETURN false;
-        END;
-    END;
-    $$
-    LANGUAGE plpgsql;
-    `;
-    
-    // Exécuter le script SQL
-    await dbPool.query(setupSchemaSql);
-    logger.info('Fonctions de gestion des schémas installées avec succès');
-    return true;
+    await dbPool.query('SET search_path TO public');
+    logger.info('Search_path réinitialisé à "public"');
   } catch (error) {
-    logger.error('Erreur lors de l\'initialisation des fonctions de schéma:', error);
-    return false;
+    logger.error('Erreur lors de la réinitialisation du search_path:', error);
+    throw error;
   }
 }
 
-// Module d'initialisation
-export async function initializeDatabase() {
+/**
+ * Appelle la fonction PostgreSQL pour créer un nouveau schéma client et ses tables.
+ * @param userId ID de l'utilisateur pour qui créer le schéma (ex: client_X)
+ */
+async function createClientSchema(userId: number): Promise<void> {
   try {
-    // Tester la connexion
-    await dbPool.query('SELECT NOW()');
-    logger.info('Connexion à la base de données établie');
-    
-    // Initialiser les fonctions de schéma
-    await initializeSchemaFunctions();
-    
-    return true;
+    // La fonction public.create_client_schema(p_user_id integer) dans votre SQL
+    // s'occupe de créer le schéma, les tables (depuis template), les rôles et les permissions.
+    await dbPool.query('SELECT public.create_client_schema($1)', [userId]);
+    logger.info(`Fonction public.create_client_schema appelée avec succès pour l'utilisateur ${userId}. Le schéma client_${userId} devrait être créé.`);
   } catch (error) {
-    logger.error('Erreur de connexion à la base de données:', error);
-    process.exit(1);
+    logger.error(`Erreur lors de l'appel à public.create_client_schema pour l'utilisateur ${userId}:`, error);
+    throw error; // Propage l'erreur pour qu'elle soit gérée par l'appelant (ex: route d'inscription)
   }
 }
 
-// Exporter les variables après le bloc try/catch
-export { dbPool, db, setSchemaForUser }; 
+// Regrouper tous les exports à la fin
+export {
+  db, // Instance Drizzle
+  dbPool as pool, // Pool de connexions pg
+  setUserSchema,
+  resetToPublicSchema,
+  createClientSchema
+}; 

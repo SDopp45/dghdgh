@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { dbPool } from './db/index';
+import { pool as dbPool } from './db/index';
 import logger from './utils/logger';
 
 /**

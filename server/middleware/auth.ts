@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger';
-import { db, pool } from '../db';
+import { db, pool, setUserSchema, resetToPublicSchema, createClientSchema } from '../db/index';
 import jwt from 'jsonwebtoken';
 import config from '../config';
 
@@ -26,19 +26,28 @@ interface DecodedToken {
  */
 async function setSchemaForUser(userId: number | null) {
   if (!userId) {
-    // Si pas d'utilisateur, utiliser uniquement le schéma public
-    return pool.query('SET search_path TO public');
+    return resetToPublicSchema();
   }
   
   try {
+    // Vérifier si le schéma existe
+    const schemaExists = await pool.query(
+      'SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = $1)',
+      [`client_${userId}`]
+    );
+
+    if (!schemaExists.rows[0].exists) {
+      // Si le schéma n'existe pas, le créer
+      await createClientSchema(userId);
+    }
+
     // Définir le search_path pour inclure le schéma du client puis le schéma public
-    await pool.query(`SET search_path TO client_${userId}, public`);
+    await setUserSchema(userId);
     logger.debug(`Set search_path to client_${userId}, public`);
     return true;
   } catch (error) {
     logger.error(`Failed to set schema for user ${userId}:`, error);
-    // En cas d'échec, revenir au schéma public
-    await pool.query('SET search_path TO public');
+    await resetToPublicSchema();
     return false;
   }
 }
@@ -49,7 +58,7 @@ async function setSchemaForUser(userId: number | null) {
  * @returns Booléen indiquant si l'utilisateur est admin
  */
 export function isAdmin(req: Request): boolean {
-  if (!req.isAuthenticated()) return false;
+  if (!req.isAuthenticated?.()) return false;
   const user = req.user as any;
   return user && user.role === 'admin';
 }
@@ -68,7 +77,7 @@ export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
  * Vérifie si l'utilisateur est authentifié
  */
 export function isAuthenticated(req: Request): boolean {
-  return req.isAuthenticated();
+  return req.isAuthenticated?.() || false;
 }
 
 /**
@@ -77,7 +86,7 @@ export function isAuthenticated(req: Request): boolean {
  */
 export const ensureAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated?.()) {
       logger.warn(`Tentative d'accès non autorisé: ${req.originalUrl}`);
       return res.status(401).json({ message: "Non autorisé" });
     }
@@ -88,14 +97,8 @@ export const ensureAuth = async (req: Request, res: Response, next: NextFunction
       return res.status(401).json({ message: "Session invalide" });
     }
 
-    try {
-      // Utiliser la fonction pour définir le schéma client
-      await setSchemaForUser(userId);
-    } catch (error) {
-      logger.error(`Erreur lors de la configuration du schéma: ${error}`);
-      // Ne pas bloquer la requête en cas d'erreur de configuration du schéma
-    }
-
+    // Configurer automatiquement le schéma client
+    await setSchemaForUser(userId);
     return next();
   } catch (error) {
     logger.error(`Erreur d'authentification: ${error}`);
@@ -107,7 +110,7 @@ export const ensureAuth = async (req: Request, res: Response, next: NextFunction
  * Middleware pour les routes nécessitant une authentification Manager ou Admin
  */
 export const managerOrAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  if (!req.isAuthenticated?.()) {
     return res.status(401).json({ message: "Authentification requise" });
   }
   
@@ -123,7 +126,7 @@ export const managerOrAdmin = (req: Request, res: Response, next: NextFunction) 
  * Récupère l'ID de l'utilisateur à partir de la requête
  */
 export function getUserId(req: Request): number | null {
-  if (!req.isAuthenticated() || !req.user) {
+  if (!req.isAuthenticated?.() || !req.user) {
     return null;
   }
   
@@ -135,7 +138,7 @@ export function getUserId(req: Request): number | null {
  * Récupère les informations de l'utilisateur à partir de la requête
  */
 export function getUser(req: Request): AuthUser | null {
-  if (!req.isAuthenticated() || !req.user) {
+  if (!req.isAuthenticated?.() || !req.user) {
     return null;
   }
   
@@ -171,7 +174,6 @@ export async function authMiddleware(
     const token = authHeader.split(' ')[1];
 
     // Vérifier et décoder le token
-    // Utiliser directement la variable d'environnement
     const jwtSecret = process.env.JWT_SECRET || 'default-secret-key-replace-in-production';
     const decoded = jwt.verify(token, jwtSecret) as DecodedToken;
 
@@ -187,10 +189,7 @@ export async function authMiddleware(
 
     // Configurer le schéma PostgreSQL pour l'utilisateur
     try {
-      // Utiliser la fonction pour définir le schéma client
-      await setSchemaForUser(user.id);
-      
-      // Continuer avec le traitement de la requête
+      await setUserSchema(user.id);
       next();
     } catch (error) {
       logger.error(`Erreur lors de la configuration du schéma: ${error}`);
@@ -201,3 +200,53 @@ export async function authMiddleware(
     return res.status(401).json({ message: 'Token invalide ou expiré' });
   }
 }
+
+/**
+ * Middleware pour vérifier l'authentification
+ */
+export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.isAuthenticated?.()) {
+      logger.debug('Accès non autorisé: utilisateur non authentifié');
+      return res.status(401).json({ error: 'Authentification requise' });
+    }
+
+    const user = req.user as AuthUser;
+    if (!user || !user.id) {
+      logger.debug('Accès non autorisé: utilisateur invalide');
+      return res.status(401).json({ error: 'Session utilisateur invalide' });
+    }
+
+    // Définir le schéma pour cet utilisateur
+    await setUserSchema(user.id);
+    
+    next();
+  } catch (error) {
+    logger.error('Erreur lors de la vérification de l\'authentification:', error);
+    return res.status(500).json({ error: 'Erreur serveur lors de la vérification de l\'authentification' });
+  }
+};
+
+/**
+ * Middleware pour vérifier si l'utilisateur est un administrateur
+ */
+export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.isAuthenticated?.()) {
+      return res.status(401).json({ error: 'Authentification requise' });
+    }
+
+    const user = req.user as AuthUser;
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Accès administrateur requis' });
+    }
+
+    // Pour les administrateurs, utiliser le schéma public
+    await resetToPublicSchema();
+    
+    next();
+  } catch (error) {
+    logger.error('Erreur lors de la vérification des droits administrateur:', error);
+    return res.status(500).json({ error: 'Erreur serveur lors de la vérification des droits' });
+  }
+};

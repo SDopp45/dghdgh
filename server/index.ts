@@ -12,11 +12,10 @@ import { setupRoutes } from "./routes";
 import config from "./config";
 import { initCronJobs } from "./cron";
 import { initializeWebSockets } from './websocket/init-websocket';
-import { setClientSchema } from './middleware/schema';
-import { debugMiddleware } from './debug-middleware';
+import { schemaMiddleware, resetSchemaAfterHandler } from './middleware/schema';
 import './schema/links';
-import { initializeDatabase } from './db/index';
 import { repairDatabaseFunctions } from './db/repair-functions';
+import { debugMiddleware } from './debug-middleware';
 
 // Configuration des répertoires
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
@@ -90,9 +89,9 @@ app.use((req, res, next) => {
 // Fonction principale d'initialisation de l'application
 async function startServer() {
   try {
-    // Initialiser la base de données et ses fonctions
-    await initializeDatabase();
-    logger.info('Base de données initialisée avec succès');
+    // La connexion à la base de données est initialisée lorsque db/index.ts est importé.
+    // L'appel explicite à initializeDatabase() est supprimé.
+    logger.info('Initialisation de la base de données gérée par l\'import de db/index.ts');
     
     // Réparer les fonctions de gestion des schémas
     logger.info('Réparation des fonctions de gestion des schémas...');
@@ -103,11 +102,12 @@ async function startServer() {
       logger.warn('Problèmes lors de la réparation des fonctions de schéma - vérifiez les logs pour plus de détails');
     }
     
-    // Configuration de l'authentification (doit être AVANT setClientSchema)
+    // Configuration de l'authentification (doit être AVANT les middlewares de schéma)
     configureAuth(app);
     
-    // Middleware pour configurer le schéma PostgreSQL (doit être APRÈS auth)
-    app.use(setClientSchema);
+    // Middlewares pour la gestion des schémas PostgreSQL
+    app.use(resetSchemaAfterHandler); 
+    app.use(schemaMiddleware); 
     
     // Configuration des routes API
     setupRoutes(app);

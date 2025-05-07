@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { User } from "@shared/schema";
+import type { User } from "../types";
 import { useState } from 'react';
 
 type RequestResult = {
@@ -31,13 +31,33 @@ async function handleRequest(
       credentials: "include",
     });
 
-    const data = await response.json();
+    // Vérifier si la réponse est vide
+    const text = await response.text();
+    if (!text) {
+      console.error(`La réponse est vide pour ${url}`);
+      return { 
+        ok: false, 
+        error: "Réponse vide du serveur" 
+      };
+    }
+
+    // Essayer de parser le texte en JSON
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error(`Erreur de parsing JSON: ${parseError}`, text);
+      return {
+        ok: false,
+        error: "Réponse invalide du serveur (impossible de parser le JSON)"
+      };
+    }
 
     if (!response.ok) {
       return { 
         ok: false, 
         error: typeof data.error === 'string' ? data.error : 
-          (data.message || response.statusText || 'An error occurred')
+          (data.message || response.statusText || 'Une erreur est survenue')
       };
     }
 
@@ -47,9 +67,10 @@ async function handleRequest(
       message: data.message
     };
   } catch (e: any) {
+    console.error(`Erreur lors de la requête ${url}:`, e);
     return { 
       ok: false, 
-      error: e.message || "An unexpected error occurred" 
+      error: e.message || "Une erreur inattendue s'est produite" 
     };
   }
 }
@@ -102,7 +123,7 @@ export function useUser() {
   });
 
   const loginMutation = useMutation<RequestResult, Error, { username: string; password: string; }>({
-    mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),
+    mutationFn: (userData) => handleRequest('/api/auth/login', 'POST', userData),
     onSuccess: (data) => {
       if (data.ok && data.user) {
         queryClient.setQueryData(['user'], data.user);
@@ -111,7 +132,7 @@ export function useUser() {
   });
 
   const logoutMutation = useMutation<RequestResult, Error>({
-    mutationFn: () => handleRequest('/api/logout', 'POST'),
+    mutationFn: () => handleRequest('/api/auth/logout', 'POST'),
     onSuccess: () => {
       queryClient.setQueryData(['user'], null);
       queryClient.clear();
@@ -126,7 +147,7 @@ export function useUser() {
     phoneNumber?: string;
     company?: string;
   }>({
-    mutationFn: (userData) => handleRequest('/api/register', 'POST', userData),
+    mutationFn: (userData) => handleRequest('/api/auth/register', 'POST', userData),
     onSuccess: (data) => {
       if (data.ok && data.user) {
         queryClient.setQueryData(['user'], data.user);

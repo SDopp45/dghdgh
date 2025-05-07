@@ -18,6 +18,24 @@ export type TenantInfo = {
   };
 } | null;
 
+export interface User {
+  id: number;
+  username: string;
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+  role: string;
+  profileImage?: string;
+  accountType?: string;
+  settings?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
+  preferredAiModel?: string;
+  storageUsed?: string | number;
+  storageLimit?: string | number;
+  storageTier?: string;
+}
+
 export interface FormattedTransaction {
   id: string | number;
   userId?: number;

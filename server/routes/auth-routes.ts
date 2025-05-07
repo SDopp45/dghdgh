@@ -4,7 +4,7 @@ import logger from '../utils/logger';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { loginUser, logoutUser, requireAuth, hashPassword, type LoginResult } from '../auth';
-import { setupUserEnvironment, createClientSchema } from '../middleware/schema';
+import { setUserSchema, resetToPublicSchema, createClientSchema } from '../db/index';
 import { pool } from '../db';
 
 const router = Router();
@@ -12,9 +12,12 @@ const router = Router();
 // Route pour la connexion
 router.post('/login', async (req: Request, res: Response) => {
   try {
+    logger.info(`Tentative de connexion pour l'utilisateur: ${req.body?.username || 'inconnu'}`);
+    
     const { username, password } = req.body;
 
     if (!username || !password) {
+      logger.warn(`Tentative de connexion avec des identifiants incomplets`);
       return res.status(400).json({ 
         success: false, 
         message: 'Nom d\'utilisateur et mot de passe requis' 
@@ -22,13 +25,16 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Utiliser la fonction loginUser mise à jour qui ne nécessite plus la requête
+    logger.info(`Vérification des identifiants pour l'utilisateur: ${username}`);
     const result = await loginUser(username, password);
 
     if (!result.success) {
+      logger.warn(`Échec de connexion pour l'utilisateur: ${username} - ${result.message}`);
       return res.status(401).json(result);
     }
 
     // Si connexion réussie, créer la session
+    logger.info(`Authentification réussie pour l'utilisateur: ${username}, création de la session...`);
     req.session.userId = result.userId;
     req.session.username = result.username;
     req.session.role = result.role;
@@ -36,37 +42,68 @@ router.post('/login', async (req: Request, res: Response) => {
     // Sauvegarder la session avant de continuer
     req.session.save((err) => {
       if (err) {
-        logger.error('Erreur lors de la sauvegarde de la session:', err);
+        logger.error(`Erreur lors de la sauvegarde de la session pour ${username}:`, err);
         return res.status(500).json({ success: false, message: 'Erreur lors de la sauvegarde de la session' });
       }
 
       logger.info(`Utilisateur ${username} connecté avec succès, ID: ${result.userId}`);
-      res.json({
-        success: true,
-        user: {
-          id: result.userId,
-          username: result.username,
-          role: result.role
+      
+      try {
+        // Essayer de configurer le schéma pour l'utilisateur
+        setUserSchema(result.userId!).then(() => {
+          logger.info(`Schéma configuré avec succès pour l'utilisateur ${username}`);
+        }).catch(schemaErr => {
+          logger.error(`Erreur lors de la configuration du schéma pour ${username}:`, schemaErr);
+          // Ne pas bloquer la connexion si le schéma ne peut pas être configuré
+        });
+
+        // Renvoyer la réponse sans attendre la configuration du schéma
+        res.json({
+          success: true,
+          user: {
+            id: result.userId,
+            username: result.username,
+            role: result.role
+          }
+        });
+      } catch (responseError) {
+        logger.error(`Erreur lors de l'envoi de la réponse pour ${username}:`, responseError);
+        // Essayer d'envoyer une réponse d'erreur si la réponse n'a pas encore été envoyée
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            success: false, 
+            message: 'Erreur interne du serveur' 
+          });
         }
-      });
+      }
     });
   } catch (error) {
     logger.error('Erreur lors de la connexion:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur lors de la connexion' });
+    
+    // S'assurer que la réponse est toujours envoyée, même en cas d'erreur
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Erreur serveur lors de la connexion',
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      });
+    }
   }
 });
 
 // Route pour la déconnexion
-router.post('/logout', async (req: Request, res: Response) => {
+router.post('/logout', requireAuth, async (req: Request, res: Response) => {
   try {
-    // Utiliser la fonction logoutUser mise à jour
     const success = await logoutUser(req);
     
-    if (success) {
-      return res.json({ success: true, message: 'Déconnexion réussie' });
-    } else {
-      return res.status(500).json({ success: false, message: 'Erreur lors de la déconnexion' });
+    if (!success) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erreur lors de la déconnexion' 
+      });
     }
+    
+    res.json({ success: true });
   } catch (error) {
     logger.error('Erreur lors de la déconnexion:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur lors de la déconnexion' });
@@ -117,16 +154,12 @@ router.post('/register', async (req: Request, res: Response) => {
     }
     
     // Créer un schéma pour ce nouvel utilisateur
-    const schemaCreated = await createClientSchema(newUser.id);
-    
-    if (!schemaCreated) {
-      logger.warn(`Échec de création du schéma pour le nouvel utilisateur: ${username} (ID: ${newUser.id})`);
-    }
+    await createClientSchema(newUser.id);
     
     // Configurer la session pour le nouvel utilisateur
     req.session.userId = newUser.id;
     req.session.username = newUser.username;
-    req.session.role = newUser.role || 'clients'; // Utiliser une valeur par défaut si null
+    req.session.role = newUser.role || 'clients';
     
     req.session.save((err) => {
       if (err) {
@@ -225,10 +258,10 @@ if (process.env.NODE_ENV === 'development') {
       let reconfigureResult = { success: false, message: 'Non tenté (pas d\'utilisateur)' };
       if (user?.id) {
         try {
-          const success = await setupUserEnvironment(user.id);
+          await setUserSchema(user.id);
           reconfigureResult = { 
-            success, 
-            message: success ? 'Schéma reconfiguré avec succès' : 'Échec de la reconfiguration'
+            success: true, 
+            message: 'Schéma reconfiguré avec succès' 
           };
         } catch (error) {
           reconfigureResult = { 

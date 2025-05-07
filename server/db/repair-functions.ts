@@ -1,4 +1,4 @@
-import { dbPool } from './index';
+import { pool as dbPool } from './index';
 import logger from '../utils/logger';
 
 /**

@@ -16,9 +16,56 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useEmblaCarousel from 'embla-carousel-react';
-import type { Property, PropertyImage } from "@shared/types";
 import { cn } from "@/lib/utils";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
+
+// Définition des interfaces
+interface PropertyImage {
+  id: number;
+  filename: string;
+  order: number;
+}
+
+interface Property {
+  id: number;
+  name: string;
+  address: string;
+  description?: string;
+  type: string;
+  status: 'available' | 'rented' | 'maintenance' | 'sold';
+  purchasePrice?: number;
+  monthlyRent?: number;
+  monthlyExpenses?: number;
+  loanAmount?: number;
+  loanDuration?: number;
+  monthlyLoanPayment?: number;
+  energyClass: string;
+  energyEmissions?: string;
+  livingArea?: number;
+  landArea?: number;
+  area?: number;
+  units?: number;
+  rooms?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  toilets?: number;
+  floors?: number;
+  constructionYear?: number;
+  purchaseDate?: string;
+  acquisitionDate?: string;
+  hasParking?: boolean;
+  hasGarage?: boolean;
+  hasTerrace?: boolean;
+  hasBalcony?: boolean;
+  hasElevator?: boolean;
+  hasCellar?: boolean;
+  hasGarden?: boolean;
+  hasOutbuilding?: boolean;
+  isNewConstruction?: boolean;
+  images?: PropertyImage[];
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 const formSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
@@ -39,6 +86,10 @@ const formSchema = z.object({
   hasTerrace: z.boolean().default(false),
   hasGarage: z.boolean().default(false),
   hasOutbuilding: z.boolean().default(false),
+  hasBalcony: z.boolean().default(false),
+  hasElevator: z.boolean().default(false),
+  hasCellar: z.boolean().default(false),
+  hasGarden: z.boolean().default(false),
   purchasePrice: z.coerce.number().min(0),
   monthlyRent: z.coerce.number().min(0).optional(),
   monthlyLoanPayment: z.coerce.number().min(0).optional(),
@@ -102,6 +153,10 @@ export function EditPropertyDialog({ property, buttonProps }: EditPropertyDialog
       hasTerrace: property.hasTerrace || false,
       hasGarage: property.hasGarage || false,
       hasOutbuilding: property.hasOutbuilding || false,
+      hasBalcony: property.hasBalcony || false,
+      hasElevator: property.hasElevator || false,
+      hasCellar: property.hasCellar || false,
+      hasGarden: property.hasGarden || false,
       area: property.area || 0,
       acquisitionDate: property.acquisitionDate
         ? new Date(property.acquisitionDate).toISOString().split('T')[0]
@@ -879,6 +934,74 @@ export function EditPropertyDialog({ property, buttonProps }: EditPropertyDialog
                               </FormItem>
                             )}
                           />
+                          <FormField
+                            control={form.control}
+                            name="hasBalcony"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Balcon</FormLabel>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="hasElevator"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Ascenseur</FormLabel>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="hasCellar"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Cave</FormLabel>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="hasGarden"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Jardin</FormLabel>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
                         </div>
                       </motion.div>
                     </ScrollArea>
@@ -898,30 +1021,35 @@ export function EditPropertyDialog({ property, buttonProps }: EditPropertyDialog
                         <div className="space-y-2">
                           <FormLabel>Images actuelles</FormLabel>
                           {property.images && property.images.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                              {property.images.map((image, index) =>(
-                                <div key={image.id} className="relative group">
-                                  <img
-                                  src={`${import.meta.env.VITE_SERVER_URL || ''}/uploads/properties/${(image as any).filename}`}
-                                    alt={`Property ${index}`}
-                                    className={`h-40 w-full object-cover rounded-md ${
+                            <div className="embla overflow-hidden" ref={emblaRef}>
+                              <div className="embla__container flex h-[200px]">
+                                {property.images.map((image: PropertyImage, index: number) => (
+                                  <div 
+                                    key={`image-${image.id || index}`}
+                                    className={`embla__slide flex-[0_0_100%] min-w-0 relative ${
                                       imagesToDelete.includes(image.id) ? 'opacity-30' : ''
                                     }`}
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleImageForDeletion(image.id)}
-                                    className="absolute top-2 right-2 bg-white/90 p-1 rounded-full text-red-500 hover:text-red-700"
                                   >
-                                    {imagesToDelete.includes(image.id) ? <Undo2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-                                  </button>
-                                {((image as any).filename)?.includes('-default.jpg') && (
-                                    <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                                      Image par défaut
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
+                                    <img
+                                      src={`${import.meta.env.VITE_SERVER_URL || ''}/uploads/properties/${(image as any).filename}`}
+                                      alt={`Property ${index}`}
+                                      className={`h-full w-full object-cover`}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleImageForDeletion(image.id)}
+                                      className="absolute top-2 right-2 bg-white/90 p-1 rounded-full text-red-500 hover:text-red-700"
+                                    >
+                                      {imagesToDelete.includes(image.id) ? <Undo2 className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                                    </button>
+                                    {((image as any).filename)?.includes('-default.jpg') && (
+                                      <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                                        Image par défaut
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           ) : (
                             <div className="text-center p-4 bg-muted rounded-md">

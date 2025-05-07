@@ -66,7 +66,8 @@ const formSchema = z.object({
   hasOutbuilding: z.boolean().default(false),
   hasBalcony: z.boolean().default(false),
   hasElevator: z.boolean().default(false),
-  hasBasement: z.boolean().default(false),
+  hasCellar: z.boolean().default(false),
+  hasGarden: z.boolean().default(false),
   purchasePrice: z.coerce.number().min(0),
   monthlyRent: z.coerce.number().min(0).optional(),
   monthlyExpenses: z.coerce.number().min(0).optional(),
@@ -124,7 +125,8 @@ export function AddPropertyDialog() {
       hasOutbuilding: false,
       hasBalcony: false,
       hasElevator: false,
-      hasBasement: false,
+      hasCellar: false,
+      hasGarden: false,
       purchasePrice: 0,
       monthlyRent: 0,
       loanAmount: 0,
@@ -1263,11 +1265,28 @@ export function AddPropertyDialog() {
                     />
                     <FormField
                       control={form.control}
-                      name="hasBasement"
+                      name="hasCellar"
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                           <div className="space-y-0.5">
                             <FormLabel>Cave</FormLabel>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="hasGarden"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel>Jardin</FormLabel>
                           </div>
                           <FormControl>
                             <Switch

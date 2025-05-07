@@ -52,9 +52,11 @@ export interface Property {
   hasGarden?: boolean;
   hasOutbuilding?: boolean;
   isNewConstruction?: boolean;
+  isnewconstruction?: boolean;
   images?: Array<{ filename: string }>;
   createdAt?: string;
   updatedAt?: string;
+  user_id?: number;
 }
 
 export interface FormValues {

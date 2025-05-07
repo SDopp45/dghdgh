@@ -580,6 +580,7 @@ export interface Property {
   hasCellar?: boolean;
   hasGarden?: boolean;
   isNewConstruction?: boolean;
+  isnewconstruction?: boolean;
   images?: Array<{ filename: string }>;
 }
 

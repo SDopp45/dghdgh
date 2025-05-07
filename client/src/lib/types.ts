@@ -23,17 +23,20 @@ export interface Property {
   hasCellar: boolean;
   hasGarden: boolean;
   isNewConstruction: boolean;
+  isnewconstruction?: boolean;
   purchasePrice: number;
   monthlyRent?: number;
   monthlyExpenses?: number;
   loanAmount?: number;
   monthlyLoanPayment?: number;
+  loanDuration?: number;
   status: string;
   constructionYear?: number;
   purchaseDate?: string;
   area?: number;
   createdAt: string;
   updatedAt: string;
+  user_id?: number;
   images?: Array<{
     id: number;
     filename: string;

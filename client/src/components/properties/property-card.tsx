@@ -880,14 +880,10 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                       </motion.div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Diagnostic de Performance Énergétique</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        De A (très performant) à G (peu performant)
-                      </p>
+                      <p>Performance énergétique</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-
 
                 {property.hasParking && (
                   <TooltipProvider>
@@ -897,12 +893,12 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                           whileHover={{ scale: 1.05 }}
                           className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
                         >
-                          <ParkingSquare className="h-4 w-4 text-yellow-500 group-hover/item:text-yellow-600 transition-colors" />
-                          <span className="group-hover/item:text-yellow-600 transition-colors">Parking</span>
+                          <ParkingSquare className="h-4 w-4 text-blue-500 group-hover/item:text-blue-600 transition-colors" />
+                          <span>Parking</span>
                         </motion.div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Place de parking privative</p>
+                        <p>Place de parking disponible</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -916,12 +912,12 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                           whileHover={{ scale: 1.05 }}
                           className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
                         >
-                          <Car className="h-4 w-4 text-pink-500 group-hover/item:text-pink-600 transition-colors" />
-                          <span className="group-hover/item:text-pink-600 transition-colors">Garage</span>
+                          <Car className="h-4 w-4 text-purple-500 group-hover/item:text-purple-600 transition-colors" />
+                          <span>Garage</span>
                         </motion.div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Garage privé fermé</p>
+                        <p>Garage inclus</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -935,36 +931,17 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                           whileHover={{ scale: 1.05 }}
                           className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
                         >
-                          <SunDim className="h-4 w-4 text-lime-500 group-hover/item:text-lime-600 transition-colors" />
-                          <span className="group-hover/item:text-lime-600 transition-colors">Terrasse</span>
+                          <SunDim className="h-4 w-4 text-amber-500 group-hover/item:text-amber-600 transition-colors" />
+                          <span>Terrasse</span>
                         </motion.div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Terrasse ou balcon privé</p>
+                        <p>Terrasse disponible</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 )}
-
-                {property.hasOutbuilding && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
-                        >
-                          <Warehouse className="h-4 w-4 text-sky-500 group-hover/item:text-sky-600 transition-colors" />
-                          <span className="group-hover/item:text-sky-600 transition-colors">Dépendance</span>
-                        </motion.div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Bâtiment annexe (atelier, abri, etc.)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-
+                
                 {property.hasBalcony && (
                   <TooltipProvider>
                     <Tooltip>
@@ -973,55 +950,112 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                           whileHover={{ scale: 1.05 }}
                           className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
                         >
-                          <LayoutTemplate className="h-4 w-4 text-teal-500 group-hover/item:text-teal-600 transition-colors" />
-                          <span className="group-hover/item:text-teal-600 transition-colors">Balcon</span>
-              </motion.div>
+                          <SunDim className="h-4 w-4 text-teal-500 group-hover/item:text-teal-600 transition-colors" />
+                          <span>Balcon</span>
+                        </motion.div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Balcon extérieur</p>
+                        <p>Balcon disponible</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 )}
-
+                
                 {property.hasElevator && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-              <motion.div
+                        <motion.div
                           whileHover={{ scale: 1.05 }}
                           className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
                         >
                           <ArrowUpDown className="h-4 w-4 text-indigo-500 group-hover/item:text-indigo-600 transition-colors" />
-                          <span className="group-hover/item:text-indigo-600 transition-colors">Ascenseur</span>
+                          <span>Ascenseur</span>
                         </motion.div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Ascenseur dans l'immeuble</p>
+                        <p>Ascenseur disponible</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 )}
-
+                
                 {property.hasCellar && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
                           className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
                         >
                           <Warehouse className="h-4 w-4 text-rose-500 group-hover/item:text-rose-600 transition-colors" />
-                          <span className="group-hover/item:text-rose-600 transition-colors">Cave</span>
+                          <span>Cave</span>
                         </motion.div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Cave ou espace de stockage</p>
+                        <p>Cave disponible</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 )}
-                </motion.div>
+                
+                {property.hasGarden && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
+                        >
+                          <LayoutTemplate className="h-4 w-4 text-green-500 group-hover/item:text-green-600 transition-colors" />
+                          <span>Jardin</span>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Jardin disponible</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                
+                {property.hasOutbuilding && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
+                        >
+                          <Building className="h-4 w-4 text-orange-500 group-hover/item:text-orange-600 transition-colors" />
+                          <span>Dépendance</span>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Dépendance disponible</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                
+                {(property.isNewConstruction || property.isnewconstruction) && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 group/item backdrop-blur-sm"
+                        >
+                          <Home className="h-4 w-4 text-cyan-500 group-hover/item:text-cyan-600 transition-colors" />
+                          <span>Construction neuve</span>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Bien neuf</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </motion.div>
 
               {/* Financial information with updated design - more compact for grid view */}
               <motion.div
@@ -1052,7 +1086,7 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                 )}
 
                 {/* Loyer mensuel */}
-                {property.monthlyRent !== null && property.monthlyRent !== undefined && property.monthlyRent > 0 && (
+                {property.monthlyRent && Number(property.monthlyRent) > 0 && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1072,7 +1106,7 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                 )}
 
                 {/* Charges mensuelles */}
-                {property.monthlyExpenses !== null && property.monthlyExpenses !== undefined && property.monthlyExpenses > 0 && (
+                {property.monthlyExpenses !== null && property.monthlyExpenses !== undefined && Number(property.monthlyExpenses) > 0 && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1092,7 +1126,7 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                 )}
                 
                 {/* Capital emprunté */}
-                {property.loanAmount !== null && property.loanAmount !== undefined && property.loanAmount > 0 && (
+                {property.loanAmount !== null && property.loanAmount !== undefined && Number(property.loanAmount) > 0 && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1112,7 +1146,7 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                 )}
                 
                 {/* Mensualité prêt */}
-                {property.monthlyLoanPayment !== null && property.monthlyLoanPayment !== undefined && property.monthlyLoanPayment > 0 && (
+                {property.monthlyLoanPayment !== null && property.monthlyLoanPayment !== undefined && Number(property.monthlyLoanPayment) > 0 && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>

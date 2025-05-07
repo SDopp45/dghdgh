@@ -17,7 +17,7 @@ export async function setSchemaForUser(userId: number | null) {
       'SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = $1)',
       [`client_${userId}`]
     );
-
+    
     if (!schemaExists.rows[0].exists) {
       // Si le schéma n'existe pas, le créer
       await createClientSchema(userId);

@@ -109,15 +109,15 @@ async function setUserSchema(userId: number): Promise<string> {
  * Typiquement utilisé à la déconnexion ou pour les accès anonymes.
  */
 async function resetToPublicSchema(): Promise<void> {
-  try {
+      try {
     await dbPool.query('SET search_path TO public');
     logger.info('Search_path réinitialisé à "public"');
   } catch (error) {
     logger.error('Erreur lors de la réinitialisation du search_path:', error);
     throw error;
-  }
-}
-
+      }
+    }
+    
 /**
  * Appelle la fonction PostgreSQL pour créer un nouveau schéma client et ses tables.
  * @param userId ID de l'utilisateur pour qui créer le schéma (ex: client_X)

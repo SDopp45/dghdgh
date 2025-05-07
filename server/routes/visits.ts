@@ -25,7 +25,7 @@ router.post("/", ensureAuth, async (req, res) => {
     // Obtenir un client DB configuré pour ce schéma client
     clientDbConnection = await getClientDb(user.id);
     const clientDb = clientDbConnection.db;
-    
+
     // Validate and transform the data using our Zod schema
     const validatedData = insertVisitSchema.parse({
       firstName: req.body.firstName,
@@ -78,7 +78,7 @@ router.post("/", ensureAuth, async (req, res) => {
     
     const newVisitDirect = result.rows[0];
     visitLogger.info('Visit created successfully with direct SQL:', { visitId: newVisitDirect.id });
-    
+
     // Format the response to match what the frontend expects
     const formattedVisit = {
       id: newVisitDirect.id,
@@ -103,7 +103,7 @@ router.post("/", ensureAuth, async (req, res) => {
     if (io) {
       io.emit('newVisit', formattedVisit);
     }
-    
+
     res.status(201).json(formattedVisit);
   } catch (error) {
     visitLogger.error('Error creating visit:', error);
@@ -137,7 +137,7 @@ router.get("/", ensureAuth, async (req, res) => {
     
     // Obtenir un client DB configuré pour ce schéma client
     clientDbConnection = await getClientDb(user.id);
-    
+
     const now = new Date();
     const { filter } = req.query;
 
@@ -152,15 +152,15 @@ router.get("/", ensureAuth, async (req, res) => {
     } else if (filter === 'past') {
       whereClause = "WHERE datetime < NOW() AND status != 'completed' AND archived = false";
     }
-    
+
     const directVisits = await pool.query(`
       SELECT * FROM ${schema}.visits 
       ${whereClause}
       ORDER BY datetime DESC
     `);
-    
+
     logger.info(`Retrieved ${directVisits.rows.length} visits via direct SQL`);
-    
+
     // Transformer les données pour qu'elles correspondent à ce qu'attend le frontend
     const formattedVisits = directVisits.rows.map((visit: any) => ({
       id: visit.id,
@@ -180,7 +180,7 @@ router.get("/", ensureAuth, async (req, res) => {
       reminderSent: visit.reminder_sent,
       archived: visit.archived
     }));
-    
+
     res.json(formattedVisits);
   } catch (error) {
     logger.error('Error fetching visits:', error);
@@ -215,13 +215,13 @@ router.patch("/:id/archive", ensureAuth, async (req, res) => {
       WHERE id = $3
       RETURNING *
     `, [archived, archived ? 'completed' : 'pending', parseInt(id)]);
-    
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Visite non trouvée" });
     }
     
     const updatedVisitDirect = result.rows[0];
-    
+
     // Format the response
     const formattedVisit = {
       id: updatedVisitDirect.id,
@@ -240,7 +240,7 @@ router.patch("/:id/archive", ensureAuth, async (req, res) => {
       documents: updatedVisitDirect.documents,
       archived: updatedVisitDirect.archived
     };
-    
+
     logger.info(`Visit ${id} archived successfully via direct SQL`);
     res.json(formattedVisit);
   } catch (error) {
@@ -273,11 +273,11 @@ router.delete("/:id", ensureAuth, async (req, res) => {
       WHERE id = $1
       RETURNING id
     `, [parseInt(id)]);
-    
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Visite non trouvée" });
     }
-    
+
     logger.info(`Visit ${id} deleted successfully via direct SQL`);
     res.json({ message: "Visite supprimée avec succès" });
   } catch (error) {
@@ -306,7 +306,7 @@ router.patch("/:id", ensureAuth, async (req, res) => {
     
     // Obtenir un client DB configuré pour ce schéma client
     clientDbConnection = await getClientDb(user.id);
-    
+
     // Validate the incoming data
     const validatedData = insertVisitSchema.partial().parse({
       firstName: req.body.firstName,
@@ -328,7 +328,7 @@ router.patch("/:id", ensureAuth, async (req, res) => {
     if (currentVisit.rows.length === 0) {
       return res.status(404).json({ error: "Visite non trouvée" });
     }
-    
+
     // Préparer les données à mettre à jour
     const current = currentVisit.rows[0];
     
@@ -361,11 +361,11 @@ router.patch("/:id", ensureAuth, async (req, res) => {
       validatedData.documents || current.documents,
       parseInt(id)
     ]);
-    
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Visite non trouvée" });
     }
-    
+
     const updatedVisitDirect = result.rows[0];
     
     // Format the response
@@ -392,7 +392,7 @@ router.patch("/:id", ensureAuth, async (req, res) => {
     if (io) {
       io.emit('visitUpdated', formattedVisit);
     }
-    
+
     visitLogger.info(`Visit ${id} updated successfully via direct SQL`);
     res.json(formattedVisit);
   } catch (error) {
@@ -430,7 +430,7 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
     
     // Obtenir un client DB configuré pour ce schéma client
     clientDbConnection = await getClientDb(user.id);
-    
+
     if (!['pending', 'completed', 'cancelled', 'no_show'].includes(status)) {
       return res.status(400).json({
         error: "Statut invalide",
@@ -446,13 +446,13 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
       WHERE id = $3
       RETURNING *
     `, [status, status === 'completed', parseInt(id)]);
-    
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Visite non trouvée" });
     }
     
     const updatedVisitDirect = result.rows[0];
-    
+
     // Format the response
     const formattedVisit = {
       id: updatedVisitDirect.id,
@@ -477,7 +477,7 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
     if (io) {
       io.emit('visitStatusUpdated', formattedVisit);
     }
-    
+
     logger.info(`Visit ${id} status updated successfully to ${status} via direct SQL`);
     res.json(formattedVisit);
   } catch (error) {

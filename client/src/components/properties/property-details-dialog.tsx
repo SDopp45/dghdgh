@@ -8,6 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { formatCurrency } from "@/utils/data-conversion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -147,14 +148,8 @@ export function PropertyDetailsDialog({ property, open, onOpenChange }: Property
     updateStatusMutation.mutate(newStatus);
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount || amount === 0) return '---';
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const formatCurrencyLocal = (amount?: number) => {
+    return formatCurrency(amount);
   };
 
   return (
@@ -469,7 +464,7 @@ export function PropertyDetailsDialog({ property, open, onOpenChange }: Property
                       <CircleDollarSign className="h-4 w-4 text-blue-500 group-hover/item:text-blue-600" />
                       Prix d'achat
                     </span>
-                    <span className="font-semibold">{formatCurrency(property.purchasePrice)}</span>
+                    <span className="font-semibold">{formatCurrencyLocal(property.purchasePrice)}</span>
                   </div>
                   )}
                   
@@ -479,7 +474,7 @@ export function PropertyDetailsDialog({ property, open, onOpenChange }: Property
                         <Banknote className="h-4 w-4 text-emerald-500 group-hover/item:text-emerald-600" />
                         Loyer mensuel
                       </span>
-                      <span className="font-semibold">{formatCurrency(property.monthlyRent)}</span>
+                      <span className="font-semibold">{formatCurrencyLocal(property.monthlyRent)}</span>
                     </div>
                   )}
                   
@@ -489,7 +484,7 @@ export function PropertyDetailsDialog({ property, open, onOpenChange }: Property
                         <Euro className="h-4 w-4 text-amber-500 group-hover/item:text-amber-600" />
                         Charges mensuelles
                       </span>
-                      <span className="font-semibold">{formatCurrency(property.monthlyExpenses)}</span>
+                      <span className="font-semibold">{formatCurrencyLocal(property.monthlyExpenses)}</span>
                     </div>
                   )}
                   
@@ -509,7 +504,7 @@ export function PropertyDetailsDialog({ property, open, onOpenChange }: Property
                         <Euro className="h-4 w-4 text-violet-500 group-hover/item:text-violet-600" />
                         Crédit
                       </span>
-                      <span className="font-semibold">{formatCurrency(property.loanAmount)}</span>
+                      <span className="font-semibold">{formatCurrencyLocal(property.loanAmount)}</span>
                     </div>
                   )}
                   
@@ -519,7 +514,7 @@ export function PropertyDetailsDialog({ property, open, onOpenChange }: Property
                         <Euro className="h-4 w-4 text-rose-500 group-hover/item:text-rose-600" />
                         Mensualité
                       </span>
-                      <span className="font-semibold">{formatCurrency(property.monthlyLoanPayment)}</span>
+                      <span className="font-semibold">{formatCurrencyLocal(property.monthlyLoanPayment)}</span>
                     </div>
                   )}
                 </div>
@@ -530,15 +525,15 @@ export function PropertyDetailsDialog({ property, open, onOpenChange }: Property
 
           <div className="flex items-center justify-between pt-2">
             <div className="flex flex-wrap gap-2">
-              {property.hasTerrace === true && <Badge variant="secondary">Terrasse</Badge>}
-              {property.hasParking === true && <Badge variant="secondary">Parking</Badge>}
-              {property.hasGarage === true && <Badge variant="secondary">Garage</Badge>}
-              {property.hasOutbuilding === true && <Badge variant="secondary">Dépendance</Badge>}
-              {property.hasBalcony === true && <Badge variant="secondary">Balcon</Badge>}
-              {property.hasElevator === true && <Badge variant="secondary">Ascenseur</Badge>}
-              {property.hasCellar === true && <Badge variant="secondary">Cave</Badge>}
-              {property.hasGarden === true && <Badge variant="secondary">Jardin</Badge>}
-              {property.isNewConstruction === true && <Badge variant="secondary">Construction neuve</Badge>}
+              {(property.hasTerrace === true || Boolean(property.hasTerrace)) && <Badge variant="secondary">Terrasse</Badge>}
+              {(property.hasParking === true || Boolean(property.hasParking)) && <Badge variant="secondary">Parking</Badge>}
+              {(property.hasGarage === true || Boolean(property.hasGarage)) && <Badge variant="secondary">Garage</Badge>}
+              {(property.hasOutbuilding === true || Boolean(property.hasOutbuilding)) && <Badge variant="secondary">Dépendance</Badge>}
+              {(property.hasBalcony === true || Boolean(property.hasBalcony)) && <Badge variant="secondary">Balcon</Badge>}
+              {(property.hasElevator === true || Boolean(property.hasElevator)) && <Badge variant="secondary">Ascenseur</Badge>}
+              {(property.hasCellar === true || Boolean(property.hasCellar)) && <Badge variant="secondary">Cave</Badge>}
+              {(property.hasGarden === true || Boolean(property.hasGarden)) && <Badge variant="secondary">Jardin</Badge>}
+              {(property.isNewConstruction === true || property.isnewconstruction === true) && <Badge variant="secondary">Construction neuve</Badge>}
             </div>
           </div>
         </div>
@@ -581,6 +576,7 @@ interface Property {
   hasGarden?: boolean;
   hasOutbuilding?: boolean;
   isNewConstruction?: boolean;
+  isnewconstruction?: boolean;
   images?: Array<{ filename: string }>;
 }
 

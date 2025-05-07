@@ -98,7 +98,7 @@ export const ensureAuth = async (req: Request, res: Response, next: NextFunction
     }
 
     // Configurer automatiquement le schéma client
-    await setSchemaForUser(userId);
+      await setSchemaForUser(userId);
     return next();
   } catch (error) {
     logger.error(`Erreur d'authentification: ${error}`);

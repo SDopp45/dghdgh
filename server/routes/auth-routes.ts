@@ -58,14 +58,14 @@ router.post('/login', async (req: Request, res: Response) => {
         });
 
         // Renvoyer la réponse sans attendre la configuration du schéma
-        res.json({
-          success: true,
-          user: {
-            id: result.userId,
-            username: result.username,
-            role: result.role
-          }
-        });
+      res.json({
+        success: true,
+        user: {
+          id: result.userId,
+          username: result.username,
+          role: result.role
+        }
+      });
       } catch (responseError) {
         logger.error(`Erreur lors de l'envoi de la réponse pour ${username}:`, responseError);
         // Essayer d'envoyer une réponse d'erreur si la réponse n'a pas encore été envoyée

@@ -13,6 +13,7 @@ import { PropertyCardSkeleton } from "@/components/properties/property-card-skel
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { normalizeProperties } from "@/utils/data-conversion";
 import { 
   Search, 
   Filter, 
@@ -239,7 +240,7 @@ export default function Properties() {
     }));
   };
 
-  const { data: properties = [], isLoading, error } = useQuery<Property[]>({
+  const { data: propertiesRaw = [], isLoading, error } = useQuery<any[]>({
     queryKey: ["/api/properties"],
     queryFn: async () => {
       const response = await fetch("/api/properties");
@@ -247,6 +248,9 @@ export default function Properties() {
       return response.json();
     }
   });
+
+  // Normaliser les propriétés pour assurer la compatibilité des types
+  const properties = normalizeProperties(propertiesRaw);
 
   const filteredProperties = properties.filter((property) => {
     const searchTerms = globalSearch.toLowerCase();
@@ -925,12 +929,22 @@ export default function Properties() {
                     Cave
                   </Badge>
                 )}
-                {(property as any).hasDependency === true && (
+                {property.hasGarden && (
                   <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-800/30 dark:text-green-300 border-green-200 dark:border-green-800/60">
+                    Jardin
+                  </Badge>
+                )}
+                {property.hasOutbuilding && (
+                  <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-800/30 dark:text-orange-300 border-orange-200 dark:border-orange-800/60">
                     Dépendance
                   </Badge>
                 )}
-                  </div>
+                {(property.isNewConstruction || property.isnewconstruction) && (
+                  <Badge variant="secondary" className="text-xs bg-cyan-100 text-cyan-700 dark:bg-cyan-800/30 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/60">
+                    Construction neuve
+                  </Badge>
+                )}
+              </div>
               
               {/* Boutons d'action */}
               <div className="flex items-center justify-end gap-2 mt-auto pt-4 border-t mt-4">

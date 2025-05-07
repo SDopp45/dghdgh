@@ -129,6 +129,14 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
     const [showTransactionDialog, setShowTransactionDialog] = useState(false);
     const [selectedMaintenance, setSelectedMaintenance] = useState<any>(null);
     
+    // Nouvel état pour la confirmation de changement de statut
+    const [showStatusConfirmDialog, setShowStatusConfirmDialog] = useState(false);
+    const [statusChangeData, setStatusChangeData] = useState<{ request: any, newStatus: string, updateProperty: boolean }>({ 
+        request: null, 
+        newStatus: '', 
+        updateProperty: true 
+    });
+    
     // États pour la prévisualisation des documents
     const [showPreview, setShowPreview] = useState(false);
     const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
@@ -167,7 +175,22 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
         },
     });
 
-    const handleStatusUpdate = async (request: any, newStatus: string) => {
+    const handleStatusChange = (request: any, newStatus: string) => {
+        if (newStatus === "in_progress" && request.status !== "in_progress") {
+            // Si passage au statut "en cours", demander confirmation pour la mise à jour de la propriété
+            setStatusChangeData({
+                request, 
+                newStatus, 
+                updateProperty: true
+            });
+            setShowStatusConfirmDialog(true);
+        } else {
+            // Pour les autres changements de statut, procéder directement
+            handleStatusUpdate(request, newStatus, true);
+        }
+    };
+
+    const handleStatusUpdate = async (request: any, newStatus: string, updateProperty: boolean = true) => {
         try {
             const response = await fetch(`/api/maintenance/${request.id}`, {
                 method: 'PUT',
@@ -176,7 +199,8 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
                 },
                 body: JSON.stringify({
                     status: newStatus,
-                    documentId: request.documentId
+                    documentId: request.documentId,
+                    updateProperty: updateProperty // Ce flag sera traité côté serveur
                 }),
             });
 
@@ -185,9 +209,13 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
             }
 
             queryClient.invalidateQueries({ queryKey: ['/api/maintenance'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/properties'] });
+            
             toast({
                 title: "Statut mis à jour",
-                description: "Le statut de la demande a été mis à jour avec succès."
+                description: newStatus === "in_progress" && updateProperty ? 
+                    "Le statut de la demande et de la propriété ont été mis à jour." :
+                    "Le statut de la demande a été mis à jour."
             });
 
             if (newStatus === "completed" && request.totalCost) {
@@ -496,7 +524,7 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="center" className="w-[150px]">
                                                     <DropdownMenuItem 
-                                                        onClick={() => handleStatusUpdate(request, "open")}
+                                                        onClick={() => handleStatusChange(request, "open")}
                                                         className={`flex items-center gap-2 ${request.status === "open" ? "bg-yellow-50 text-yellow-800" : ""}`}
                                                         disabled={request.status === "open"}
                                                     >
@@ -505,7 +533,7 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
                                                         {request.status === "open" && <Check className="h-3.5 w-3.5 ml-auto text-yellow-500" />}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem 
-                                                        onClick={() => handleStatusUpdate(request, "in_progress")}
+                                                        onClick={() => handleStatusChange(request, "in_progress")}
                                                         className={`flex items-center gap-2 ${request.status === "in_progress" ? "bg-blue-50 text-blue-800" : ""}`}
                                                         disabled={request.status === "in_progress"}
                                                     >
@@ -514,7 +542,7 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
                                                         {request.status === "in_progress" && <Check className="h-3.5 w-3.5 ml-auto text-blue-500" />}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem 
-                                                        onClick={() => handleStatusUpdate(request, "completed")}
+                                                        onClick={() => handleStatusChange(request, "completed")}
                                                         className={`flex items-center gap-2 ${request.status === "completed" ? "bg-green-50 text-green-800" : ""}`}
                                                         disabled={request.status === "completed"}
                                                     >
@@ -628,6 +656,63 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
             {['high', 'medium', 'low'].map((priority) =>
                 renderPrioritySection(requests, priority as 'high' | 'medium' | 'low')
             )}
+            
+            {/* Dialog de confirmation de changement de statut */}
+            <AlertDialog open={showStatusConfirmDialog} onOpenChange={setShowStatusConfirmDialog}>
+                <AlertDialogContent className="max-w-md bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 from-white to-blue-50/50 border dark:border-blue-900/50 border-blue-100">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-xl text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                            <Clock className="h-5 w-5" />
+                            Mise en maintenance
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-gray-700 dark:text-gray-300">
+                            <p className="mb-4">
+                                Vous êtes sur le point de passer cette demande en statut "En cours".
+                            </p>
+                            
+                            <div className="p-3 border border-blue-200 dark:border-blue-900/50 rounded-md bg-blue-50/50 dark:bg-blue-900/20 mb-4">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="updateProperty"
+                                        checked={statusChangeData.updateProperty}
+                                        onCheckedChange={(checked) => setStatusChangeData({
+                                            ...statusChangeData,
+                                            updateProperty: checked as boolean
+                                        })}
+                                        className="border-blue-400 text-blue-600 dark:border-blue-600 dark:text-blue-500"
+                                    />
+                                    <label
+                                        htmlFor="updateProperty"
+                                        className="text-sm font-medium leading-none text-blue-800 dark:text-blue-400 cursor-pointer select-none"
+                                    >
+                                        Déplacer la propriété dans l'onglet "Maintenance"
+                                    </label>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2 pl-6">
+                                    La propriété sera affichée dans l'onglet "Maintenance" jusqu'à ce que toutes les demandes en cours soient terminées.
+                                </p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            className="hover:bg-blue-50 dark:hover:bg-blue-900/30 border-blue-100 dark:border-blue-900/50"
+                        >
+                            Annuler
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                const { request, newStatus, updateProperty } = statusChangeData;
+                                setShowStatusConfirmDialog(false);
+                                handleStatusUpdate(request, newStatus, updateProperty);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white"
+                        >
+                            Confirmer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             
             {/* Document Preview Dialog */}
             <Dialog open={showPreview} onOpenChange={setShowPreview}>
@@ -1005,9 +1090,59 @@ const Maintenance = () => {
     const [filterMinCost, setFilterMinCost] = useState<string>("");
     const [filterMaxCost, setFilterMaxCost] = useState<string>("");
 
-    const { data: requests = [], isLoading } = useQuery<any[]>({
+    const { data: rawRequests = [], isLoading } = useQuery<any[]>({
         queryKey: ["/api/maintenance"],
     });
+
+    // Transformer les données pour qu'elles correspondent à ce que le composant attend
+    const requests = rawRequests.map(item => ({
+        ...item,
+        // Transformer propertyId en property_id si le frontend l'attend sous cette forme
+        property_id: item.propertyId,
+        tenant_id: item.tenantId,
+        // Mapper les champs de document et coût
+        totalCost: item.total_cost || item.totalCost || 0,
+        documentId: item.document_id || item.documentId,
+        // S'assurer que documentIds est un tableau
+        documentIds: getDocumentIds(item.document_ids || item.documentIds),
+        // Gérer le champ reportedBy
+        reportedBy: item.reported_by || item.reportedBy || "N/A",
+        // Assurer que les status correspondent aux valeurs attendues
+        status: mapStatus(item.status),
+        // Ajouter un priority par défaut si nécessaire
+        priority: item.priority || "medium",
+        // Assurer que property contient un nom
+        property: {
+            name: item.property_name || "Propriété inconnue",
+            address: item.property_address || ""
+        }
+    }));
+    
+    // Fonction pour s'assurer que documentIds est bien un tableau
+    function getDocumentIds(docs: any): number[] {
+        if (!docs) return [];
+        if (Array.isArray(docs)) return docs;
+        
+        // Si c'est une chaîne JSON, la parser
+        if (typeof docs === 'string') {
+            try {
+                const parsed = JSON.parse(docs);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+        
+        return [];
+    }
+
+    // Fonction pour mapper les statuts de la BDD aux statuts attendus par le frontend
+    function mapStatus(status: string): "open" | "in_progress" | "completed" {
+        if (status === "pending") return "open";
+        if (status === "in_progress") return "in_progress";
+        if (status === "completed") return "completed";
+        return "open"; // valeur par défaut
+    }
 
     const { data: properties = [] } = useQuery<any[]>({
         queryKey: ["/api/properties"],

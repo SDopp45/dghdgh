@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import express from "express";
-import { setupAuth } from "./auth";
+import { configureAuth } from "./auth";
 import { db } from "@db";
 import { properties, transactions, users } from '@db/schema';
 import { eq, inArray } from 'drizzle-orm';
@@ -54,7 +54,7 @@ const tempDir = path.resolve(uploadDir, 'temp');
 
 export function setupRoutes(app: Express) {
   // Setup authentication first
-  setupAuth(app);
+  configureAuth(app);
 
   // Logging middleware for all requests
   app.use((req, res, next) => {

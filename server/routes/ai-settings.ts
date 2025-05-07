@@ -1,7 +1,7 @@
 import express from 'express';
 import { UserQuotaService, AIModelType } from '../services/user-quota';
 import { LanguageModelService } from '../services/language-model';
-import { authenticateToken, requireAuth } from '../auth';
+import { requireAuth } from '../auth';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -16,7 +16,7 @@ const updateModelSchema = z.object({
 /**
  * Obtenir les paramètres d'IA de l'utilisateur courant
  */
-router.get('/user/ai-settings', authenticateToken, async (req, res) => {
+router.get('/user/ai-settings', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     
@@ -43,7 +43,7 @@ router.get('/user/ai-settings', authenticateToken, async (req, res) => {
 /**
  * Mettre à jour le modèle d'IA préféré de l'utilisateur
  */
-router.post('/user/ai-settings', authenticateToken, async (req, res) => {
+router.post('/user/ai-settings', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     

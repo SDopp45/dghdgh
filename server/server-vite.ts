@@ -4,6 +4,8 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { Server } from "http";
 import logger from "./utils/logger";
+import { pool } from "./db";
+import { setSchemaForUser } from "./middleware/schema";
 
 /**
  * Configure le middleware Vite pour le développement
@@ -52,6 +54,20 @@ export async function setupVite(app: Express, httpServer: Server) {
       // Ne pas traiter les routes API et uploads
       if (url.startsWith("/api") || url.startsWith("/uploads")) {
         return next();
+      }
+      
+      // Configurer le schéma SQL pour cette requête
+      if (req.user?.id) {
+        try {
+          await setSchemaForUser(req.user.id);
+        } catch (error) {
+          logger.warn(`Impossible de configurer le schéma pour l'utilisateur ${req.user.id}`, error);
+          // Revenir au schéma public pour éviter les problèmes
+          await pool.query('SET search_path TO public');
+        }
+      } else {
+        // Utilisateur non authentifié - schéma public uniquement
+        await pool.query('SET search_path TO public');
       }
       
       try {
@@ -111,6 +127,17 @@ export function serveStatic(app: Express) {
   
   // Toutes les autres routes -> index.html
   app.use("*", (req, res) => {
+    // Configurer le schéma SQL pour cette requête finale
+    if (req.user?.id) {
+      try {
+        setSchemaForUser(req.user.id).catch(err => {
+          logger.warn(`Erreur lors de la configuration du schéma pour la route statique: ${err.message}`);
+        });
+      } catch (error) {
+        logger.warn(`Impossible de configurer le schéma pour la route statique`, error);
+      }
+    }
+    
     res.sendFile(path.join(distDir, "index.html"));
   });
   

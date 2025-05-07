@@ -1,17 +1,18 @@
 import express from 'express';
-import { authenticateToken, requireAuth } from '../auth';
+import { requireAuth } from '../auth';
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { UserQuotaService } from '../services/user-quota';
 import { LanguageModelService } from '../services/language-model';
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 
 const router = express.Router();
 
 /**
  * Récupérer les données d'utilisation de l'IA pour l'utilisateur actuel
  */
-router.get('/api/user/ai-data', authenticateToken, async (req, res) => {
+router.get('/api/user/ai-data', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     
@@ -21,7 +22,7 @@ router.get('/api/user/ai-data', authenticateToken, async (req, res) => {
     
     // Récupérer uniquement les données de l'utilisateur connecté
     const userData = await db.query.users.findFirst({
-      where: { id: userId },
+      where: eq(users.id, userId),
       columns: {
         id: true,
         username: true,
@@ -57,7 +58,7 @@ router.get('/api/user/ai-data', authenticateToken, async (req, res) => {
 /**
  * Récupérer des statistiques sur l'utilisation de l'IA pour l'utilisateur actuel
  */
-router.get('/api/user/ai-stats', authenticateToken, async (req, res) => {
+router.get('/api/user/ai-stats', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     
@@ -67,7 +68,7 @@ router.get('/api/user/ai-stats', authenticateToken, async (req, res) => {
     
     // Récupérer les données de l'utilisateur
     const userData = await db.query.users.findFirst({
-      where: { id: userId },
+      where: eq(users.id, userId),
       columns: {
         requestCount: true,
         requestLimit: true,

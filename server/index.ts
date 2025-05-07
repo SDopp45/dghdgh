@@ -4,17 +4,19 @@ import cors from "cors";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { setupAuth } from "./auth";
+import { configureAuth } from "./auth";
 import { setupVite, serveStatic } from "./server-vite";
 import { globalErrorHandler } from "./middleware/errorHandler";
 import logger from "./utils/logger";
 import { setupRoutes } from "./routes";
 import config from "./config";
-import { initNotificationWebSocket } from "./websocket/notification-ws";
 import { initCronJobs } from "./cron";
 import { initializeWebSockets } from './websocket/init-websocket';
 import { setClientSchema } from './middleware/schema';
+import { debugMiddleware } from './debug-middleware';
 import './schema/links';
+import { initializeDatabase } from './db/index';
+import { repairDatabaseFunctions } from './db/repair-functions';
 
 // Configuration des répertoires
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
@@ -60,15 +62,11 @@ logger.info('Démarrage de l\'initialisation de l\'application...');
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// Journalisation des requêtes
-app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.url}`, {
-    headers: req.headers,
-    query: req.query,
-    body: req.method !== 'GET' ? req.body : undefined
-  });
-  next();
-});
+// Middleware de débogage (ajouter en mode développement uniquement)
+if (config.environment === "development") {
+  app.use(debugMiddleware);
+  logger.info('Middleware de débogage activé');
+}
 
 // Configuration CORS
 app.use(cors({
@@ -81,42 +79,71 @@ app.use(cors({
 // Accès aux fichiers uploadés
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-// Configuration de l'authentification
-setupAuth(app);
+// Journalisation des requêtes
+app.use((req, res, next) => {
+  if (req.url !== '/api/auth/check') { // Ne pas logger les vérifications fréquentes
+    logger.info(`${req.method} ${req.url}`);
+  }
+  next();
+});
 
-// Middleware pour configurer le schéma PostgreSQL en fonction de l'utilisateur
-app.use(setClientSchema);
-
-// Configuration des routes API
-setupRoutes(app);
-
-// Configuration de Vite ou servir les fichiers statiques
-if (config.environment === "development") {
-  logger.info('Configuration de Vite pour le développement...');
-  setupVite(app, server).catch(error => {
-    logger.error('Erreur lors de la configuration de Vite:', error);
+// Fonction principale d'initialisation de l'application
+async function startServer() {
+  try {
+    // Initialiser la base de données et ses fonctions
+    await initializeDatabase();
+    logger.info('Base de données initialisée avec succès');
+    
+    // Réparer les fonctions de gestion des schémas
+    logger.info('Réparation des fonctions de gestion des schémas...');
+    const repairResult = await repairDatabaseFunctions();
+    if (repairResult) {
+      logger.info('Fonctions de gestion des schémas réparées avec succès');
+    } else {
+      logger.warn('Problèmes lors de la réparation des fonctions de schéma - vérifiez les logs pour plus de détails');
+    }
+    
+    // Configuration de l'authentification (doit être AVANT setClientSchema)
+    configureAuth(app);
+    
+    // Middleware pour configurer le schéma PostgreSQL (doit être APRÈS auth)
+    app.use(setClientSchema);
+    
+    // Configuration des routes API
+    setupRoutes(app);
+    
+    // Configuration de Vite ou servir les fichiers statiques
+    if (config.environment === "development") {
+      logger.info('Configuration de Vite pour le développement...');
+      await setupVite(app, server);
+    } else {
+      logger.info('Configuration du serveur pour la production...');
+      serveStatic(app);
+    }
+    
+    // Gestionnaire d'erreurs global
+    app.use(globalErrorHandler);
+    
+    // Démarrer le serveur
+    const PORT = process.env.PORT || 5005;
+    server.listen(PORT, () => {
+      logger.info(`Serveur démarré sur le port ${PORT}`);
+      logger.info(`Mode: ${process.env.NODE_ENV}`);
+      logger.info(`Base de données: ${process.env.DATABASE_HOST || 'locale'}`);
+      
+      // Initialize WebSockets with error handling
+      initializeWebSockets(server);
+      
+      // Initialize cron jobs
+      initCronJobs();
+    });
+  } catch (error) {
+    logger.error('Erreur lors du démarrage du serveur:', error);
     process.exit(1);
-  });
-} else {
-  logger.info('Configuration du serveur pour la production...');
-  serveStatic(app);
+  }
 }
 
-// Gestionnaire d'erreurs global
-app.use(globalErrorHandler);
-
-// Start server
-const PORT = process.env.PORT || 5005;
-server.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
-  logger.info(`Mode: ${process.env.NODE_ENV}`);
-  logger.info(`Database: ${process.env.DATABASE_HOST}`);
-
-  // Initialize WebSockets with error handling
-  initializeWebSockets(server);
-  
-  // Initialize cron jobs
-  initCronJobs();
-});
+// Lancer l'application
+startServer();
 
 export default app;

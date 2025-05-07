@@ -23,7 +23,7 @@ export async function initializeDatabase() {
     logger.info('Configuration de l\'architecture multi-schémas...');
     try {
       // Charger le script SQL depuis un fichier
-      const scriptPath = path.join(process.cwd(), 'scripts', 'disable-rls.sql');
+      const scriptPath = path.join(process.cwd(), 'scripts', 'setup-schema-architecture.sql');
       const sqlScript = await fs.readFile(scriptPath, 'utf8');
       
       // Exécuter le script SQL
@@ -32,6 +32,7 @@ export async function initializeDatabase() {
     } catch (error) {
       logger.error('Erreur lors de la configuration multi-schémas:', error);
       // Continuer malgré l'erreur pour permettre l'initialisation
+      logger.info('Pour exécuter le script manuellement: psql -d [DATABASE_URL] -f scripts/setup-schema-architecture.sql');
     }
     
     logger.info('Base de données initialisée avec succès');

@@ -10,44 +10,44 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL must be set");
 }
 
-// Create the connection pool with retry options
-export const pool = new Pool({ 
+// Configuration de la connexion PostgreSQL
+export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 20, // Augmenter le nombre de connexions disponibles
+  idleTimeoutMillis: 30000, // 30 secondes
+  connectionTimeoutMillis: 10000, // 10 secondes
 });
 
-// Test the database connection with retries
-async function testConnection(retries = 3, delay = 2000) {
-  for (let i = 0; i < retries; i++) {
+// Vérifier l'état de la connexion
+pool.on('error', (err) => {
+  logger.error('Erreur inattendue de connexion PostgreSQL:', err);
+  // Ne pas arrêter le processus, laisser l'application gérer la reconnexion
+});
+
+// Fonction pour tester la connexion
+export async function testDatabaseConnection() {
+  try {
+    const client = await pool.connect();
     try {
-      const client = await pool.connect();
-      dbLogger.info('Successfully connected to database');
-      client.release();
+      const result = await client.query('SELECT NOW() as now');
+      logger.info(`Connexion à la base de données réussie: ${result.rows[0].now}`);
       return true;
-    } catch (error) {
-      dbLogger.error(`Failed to connect to database (attempt ${i + 1}/${retries}):`, error);
-      if (i < retries - 1) {
-        dbLogger.info(`Retrying in ${delay/1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
+    } finally {
+      client.release();
     }
+  } catch (error) {
+    logger.error('Erreur de connexion à la base de données:', error);
+    return false;
   }
-  return false;
 }
 
 // Create the Drizzle instance
 export const db = drizzle(pool, { schema });
 
 // Initialize the database connection
-testConnection().catch(error => {
+testDatabaseConnection().catch(error => {
   dbLogger.error('Database initialization failed:', error);
   process.exit(1);
-});
-
-// Handle pool errors
-pool.on('error', (err) => {
-  dbLogger.error('Unexpected database pool error:', err);
 });
 
 // Handle pool connect events

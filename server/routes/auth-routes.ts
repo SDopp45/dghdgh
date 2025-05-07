@@ -3,179 +3,190 @@ import { db } from '../db';
 import logger from '../utils/logger';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { loginUser, logoutUser, hashPassword, requireAuth } from '../auth';
-import { setupUserEnvironment } from '../middleware/schema';
+import { loginUser, logoutUser, requireAuth, hashPassword, type LoginResult } from '../auth';
+import { setupUserEnvironment, createClientSchema } from '../middleware/schema';
 import { pool } from '../db';
 
 const router = Router();
 
-// Route de connexion
+// Route pour la connexion
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
-    
+
     if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Nom d\'utilisateur et mot de passe requis'
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Nom d\'utilisateur et mot de passe requis' 
       });
     }
-    
-    // Utiliser la fonction loginUser qui configure aussi le schéma
-    const result = await loginUser(username, password, req);
-    
+
+    // Utiliser la fonction loginUser mise à jour qui ne nécessite plus la requête
+    const result = await loginUser(username, password);
+
     if (!result.success) {
-      logger.warn(`Tentative de connexion échouée pour ${username}`);
-      return res.status(401).json({
-        success: false,
-        message: result.message || 'Nom d\'utilisateur ou mot de passe incorrect'
-      });
+      return res.status(401).json(result);
     }
-    
-    // Configurer la session avec l'utilisateur authentifié
+
+    // Si connexion réussie, créer la session
+    req.session.userId = result.userId;
+    req.session.username = result.username;
+    req.session.role = result.role;
+
+    // Sauvegarder la session avant de continuer
     req.session.save((err) => {
       if (err) {
-        logger.error(`Erreur lors de la sauvegarde de la session: ${err}`);
+        logger.error('Erreur lors de la sauvegarde de la session:', err);
+        return res.status(500).json({ success: false, message: 'Erreur lors de la sauvegarde de la session' });
       }
-      logger.info(`Utilisateur connecté: ${username} (ID: ${result.user.id})`);
-    });
-    
-    // Réponse JSON après authentification réussie
-    return res.json({
-      success: true,
-      user: result.user
+
+      logger.info(`Utilisateur ${username} connecté avec succès, ID: ${result.userId}`);
+      res.json({
+        success: true,
+        user: {
+          id: result.userId,
+          username: result.username,
+          role: result.role
+        }
+      });
     });
   } catch (error) {
-    logger.error('Erreur lors de l\'authentification:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Une erreur est survenue lors de l\'authentification'
-    });
+    logger.error('Erreur lors de la connexion:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur lors de la connexion' });
   }
 });
 
-// Route de déconnexion
-router.post('/logout', (req: Request, res: Response) => {
-  const username = (req.user as any)?.username;
-  
+// Route pour la déconnexion
+router.post('/logout', async (req: Request, res: Response) => {
   try {
-    // Utiliser la nouvelle fonction logoutUser
-    logoutUser(req);
+    // Utiliser la fonction logoutUser mise à jour
+    const success = await logoutUser(req);
     
-    logger.info(`Utilisateur déconnecté: ${username || 'Anonyme'}`);
-    res.json({ success: true, message: 'Déconnexion réussie' });
+    if (success) {
+      return res.json({ success: true, message: 'Déconnexion réussie' });
+    } else {
+      return res.status(500).json({ success: false, message: 'Erreur lors de la déconnexion' });
+    }
   } catch (error) {
     logger.error('Erreur lors de la déconnexion:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Erreur lors de la déconnexion' 
+    res.status(500).json({ success: false, message: 'Erreur serveur lors de la déconnexion' });
+  }
+});
+
+// Route pour l'inscription (création de compte)
+router.post('/register', async (req: Request, res: Response) => {
+  try {
+    const { username, password, email, fullName } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Nom d\'utilisateur et mot de passe requis' 
+      });
+    }
+    
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await db.select().from(users).where(eq(users.username, username));
+    
+    if (existingUser.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Ce nom d\'utilisateur est déjà utilisé' 
+      });
+    }
+    
+    // Hasher le mot de passe avec la fonction mise à jour
+    const hashedPassword = await hashPassword(password);
+    
+    // Insérer le nouvel utilisateur
+    const role = 'clients'; // Par défaut, tous les nouveaux utilisateurs sont des clients
+    const [newUser] = await db.insert(users).values({
+      username,
+      password: hashedPassword,
+      email: email || null,
+      fullName: fullName || null,
+      role,
+      createdAt: new Date()
+    }).returning();
+    
+    if (!newUser) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erreur lors de la création du compte' 
+      });
+    }
+    
+    // Créer un schéma pour ce nouvel utilisateur
+    const schemaCreated = await createClientSchema(newUser.id);
+    
+    if (!schemaCreated) {
+      logger.warn(`Échec de création du schéma pour le nouvel utilisateur: ${username} (ID: ${newUser.id})`);
+    }
+    
+    // Configurer la session pour le nouvel utilisateur
+    req.session.userId = newUser.id;
+    req.session.username = newUser.username;
+    req.session.role = newUser.role || 'clients'; // Utiliser une valeur par défaut si null
+    
+    req.session.save((err) => {
+      if (err) {
+        logger.error('Erreur lors de la sauvegarde de la session:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Compte créé mais erreur lors de la connexion automatique' 
+        });
+      }
+      
+      logger.info(`Nouvel utilisateur inscrit: ${username} (ID: ${newUser.id})`);
+      
+      res.status(201).json({
+        success: true,
+        message: 'Compte créé avec succès',
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          role: newUser.role
+        }
+      });
     });
+  } catch (error) {
+    logger.error('Erreur lors de l\'inscription:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur lors de l\'inscription' });
   }
 });
 
 // Route pour vérifier l'état de l'authentification
 router.get('/check', (req: Request, res: Response) => {
-  if (req.isAuthenticated()) {
+  if (typeof req.isAuthenticated === 'function' && req.isAuthenticated()) {
     const user = req.user;
-    logger.debug(`Vérification de session: utilisateur ${user.username} authentifié`);
     
-    res.json({
+    if (!user) {
+      return res.json({
+        isAuthenticated: false,
+        user: null
+      });
+    }
+    
+    logger.debug(`Session active pour l'utilisateur: ${user.username} (ID: ${user.id})`);
+    
+    return res.json({
       isAuthenticated: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        fullName: user.fullName,
-        role: user.role,
-        email: user.email,
-        storageUsed: user.storageUsed,
-        storageLimit: user.storageLimit,
-        storageTier: user.storageTier
-      }
+      user
     });
   } else {
-    logger.debug('Vérification de session: aucun utilisateur authentifié');
-    res.json({
+    return res.json({
       isAuthenticated: false,
       user: null
     });
   }
 });
 
-// Route d'inscription (en option)
-router.post('/register', async (req: Request, res: Response) => {
-  // Cette route est une illustration - vous voudrez probablement la limiter en production
-  try {
-    const { username, password, email, fullName } = req.body;
-    
-    // Vérification si l'utilisateur existe déjà
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.username, username)
-    });
-    
-    if (existingUser) {
-      return res.status(409).json({ 
-        success: false, 
-        message: 'Un utilisateur avec ce nom d\'utilisateur existe déjà' 
-      });
-    }
-    
-    // Vérifier l'email
-    const existingEmail = await db.query.users.findFirst({
-      where: eq(users.email, email)
-    });
-    
-    if (existingEmail) {
-      return res.status(409).json({ 
-        success: false, 
-        message: 'Un utilisateur avec cet email existe déjà' 
-      });
-    }
-    
-    // Hasher le mot de passe
-    const passwordHash = await hashPassword(password);
-    
-    // Création du nouvel utilisateur
-    const result = await db.insert(users).values({
-      username,
-      password: passwordHash,
-      email,
-      fullName,
-      role: 'clients', // Attribuer le rôle clients à tous les utilisateurs
-      storageUsed: 0,
-      storageLimit: 1073741824, // 1 GB par défaut
-      storageTier: 'basic',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning({ id: users.id });
-    
-    if (result.length > 0) {
-      const userId = result[0].id;
-      
-      // Créer le schéma pour ce nouvel utilisateur
-      try {
-        // Créer directement le schéma pour cet utilisateur
-        await db.execute(`CREATE SCHEMA IF NOT EXISTS client_${userId}`);
-        logger.info(`Schéma client_${userId} créé pour l'utilisateur ${username}`);
-      } catch (schemaError) {
-        logger.error(`Erreur lors de la création du schéma pour l'utilisateur ${username}:`, schemaError);
-        // Continuer malgré l'erreur de schéma
-      }
-    }
-    
-    logger.info(`Nouvel utilisateur inscrit: ${username}`);
-    
-    return res.status(201).json({ 
-      success: true, 
-      message: 'Inscription réussie' 
-    });
-    
-  } catch (error) {
-    logger.error('Erreur lors de l\'inscription:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Une erreur est survenue lors de l\'inscription' 
-    });
-  }
+// Route protégée pour tester l'authentification
+router.get('/profile', requireAuth, (req, res) => {
+  res.json({
+    success: true,
+    user: req.user
+  });
 });
 
 // Route de diagnostic pour vérifier la configuration des schémas (réservée au développement)
@@ -206,7 +217,7 @@ if (process.env.NODE_ENV === 'development') {
       } catch (error) {
         schemaInfo = {
           status: 'error',
-          error: error.message || 'Erreur inconnue'
+          error: (error as Error).message || 'Erreur inconnue'
         };
       }
       
@@ -222,7 +233,7 @@ if (process.env.NODE_ENV === 'development') {
         } catch (error) {
           reconfigureResult = { 
             success: false, 
-            message: `Erreur: ${error.message || 'Erreur inconnue'}` 
+            message: `Erreur: ${(error as Error).message || 'Erreur inconnue'}` 
           };
         }
       }
@@ -238,10 +249,73 @@ if (process.env.NODE_ENV === 'development') {
       logger.error('Erreur lors du diagnostic:', error);
       res.status(500).json({ 
         error: 'Erreur lors du diagnostic', 
-        message: error.message || 'Erreur inconnue' 
+        message: (error as Error).message || 'Erreur inconnue' 
       });
     }
   });
 }
+
+// Route publique pour diagnostiquer les problèmes d'authentification
+router.get('/system-check', async (req: Request, res: Response) => {
+  try {
+    // Vérifier l'état de la session
+    const sessionInfo = {
+      sessionID: req.sessionID,
+      userId: req.session.userId,
+      isAuthenticated: typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false,
+      hasUser: req.user ? true : false,
+      userInfo: req.user ? {
+        id: req.user.id,
+        username: req.user.username,
+        role: req.user.role
+      } : null
+    };
+    
+    // Vérifier les schémas et fonctions de la base de données
+    let dbInfo = {};
+    try {
+      // Vérifier les fonctions de schéma
+      const schemaFunctionsResult = await pool.query(`
+        SELECT proname, pronamespace::regnamespace as schema
+        FROM pg_proc 
+        WHERE proname IN ('setup_user_environment', 'create_client_schema')
+      `);
+      
+      // Vérifier la configuration de schéma actuelle
+      const searchPathResult = await pool.query('SHOW search_path');
+      
+      // Vérifier les schémas existants
+      const schemasResult = await pool.query(`
+        SELECT schema_name 
+        FROM information_schema.schemata 
+        WHERE schema_name LIKE 'client_%'
+      `);
+      
+      dbInfo = {
+        schemaFunctions: schemaFunctionsResult.rows,
+        currentSearchPath: searchPathResult.rows[0]?.search_path,
+        availableSchemas: schemasResult.rows.map(row => row.schema_name)
+      };
+    } catch (dbError) {
+      dbInfo = { error: (dbError as Error).message };
+    }
+    
+    // Renvoyer un diagnostic complet
+    res.json({
+      timestamp: new Date().toISOString(),
+      session: sessionInfo,
+      database: dbInfo,
+      environment: {
+        nodeEnv: process.env.NODE_ENV || 'undefined'
+      }
+    });
+  } catch (error) {
+    logger.error('Erreur lors du diagnostic système:', error);
+    res.status(500).json({
+      error: 'Erreur lors du diagnostic',
+      message: (error as Error).message
+    });
+  }
+});
 
 export default router; 

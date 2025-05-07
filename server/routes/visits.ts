@@ -271,7 +271,7 @@ router.delete("/:id", ensureAuth, async (req, res) => {
     const result = await pool.query(`
       DELETE FROM ${schema}.visits
       WHERE id = $1
-      RETURNING id
+      RETURNING *
     `, [parseInt(id)]);
 
     if (result.rows.length === 0) {
@@ -424,7 +424,7 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
   try {
     const user = req.user as any;
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, rating, feedback } = req.body;
 
     logger.info(`Updating visit ${id} status to ${status} for user ${user.id}`);
     
@@ -442,10 +442,10 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
     
     const result = await pool.query(`
       UPDATE ${schema}.visits
-      SET status = $1, archived = $2, updated_at = NOW()
-      WHERE id = $3
+      SET status = $1, archived = $2, updated_at = NOW(), rating = $3, feedback = $4
+      WHERE id = $5
       RETURNING *
-    `, [status, status === 'completed', parseInt(id)]);
+    `, [status, status === 'completed', rating, feedback, parseInt(id)]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Visite non trouvée" });
@@ -484,6 +484,76 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
     logger.error('Error updating visit status:', error);
     res.status(500).json({ 
       error: "Erreur lors de la mise à jour du statut de la visite",
+      details: error instanceof Error ? error.message : "Erreur inconnue"
+    });
+  } finally {
+    // Libérer la connexion client si elle a été créée
+    if (clientDbConnection) {
+      clientDbConnection.release();
+    }
+  }
+});
+
+// Route for updating visit reminder status
+router.patch("/:id/reminder", ensureAuth, async (req, res) => {
+  let clientDbConnection = null;
+  
+  try {
+    const user = req.user as any;
+    const { id } = req.params;
+    const { reminderSent } = req.body;
+
+    logger.info(`Updating visit ${id} reminder status to ${reminderSent} for user ${user.id}`);
+    
+    // Obtenir un client DB configuré pour ce schéma client
+    clientDbConnection = await getClientDb(user.id);
+
+    const schema = user.role === 'admin' ? 'public' : `client_${user.id}`;
+    
+    const result = await pool.query(`
+      UPDATE ${schema}.visits
+      SET reminder_sent = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `, [reminderSent, parseInt(id)]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Visite non trouvée" });
+    }
+    
+    const updatedVisitDirect = result.rows[0];
+
+    // Format the response
+    const formattedVisit = {
+      id: updatedVisitDirect.id,
+      firstName: updatedVisitDirect.first_name,
+      lastName: updatedVisitDirect.last_name,
+      email: updatedVisitDirect.email,
+      phone: updatedVisitDirect.phone,
+      datetime: new Date(updatedVisitDirect.datetime).toISOString(),
+      formattedDatetime: formatInTimeZone(new Date(updatedVisitDirect.datetime), 'Europe/Paris', 'dd/MM/yyyy HH:mm'),
+      visitType: updatedVisitDirect.visit_type,
+      status: updatedVisitDirect.status,
+      propertyId: updatedVisitDirect.property_id,
+      manualAddress: updatedVisitDirect.manual_address,
+      message: updatedVisitDirect.message,
+      source: updatedVisitDirect.source,
+      documents: updatedVisitDirect.documents,
+      archived: updatedVisitDirect.archived
+    };
+    
+    // Emit socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('visitReminderUpdated', formattedVisit);
+    }
+
+    logger.info(`Visit ${id} reminder status updated successfully to ${reminderSent} via direct SQL`);
+    res.json(formattedVisit);
+  } catch (error) {
+    logger.error('Error updating visit reminder status:', error);
+    res.status(500).json({ 
+      error: "Erreur lors de la mise à jour du statut de rappel de la visite",
       details: error instanceof Error ? error.message : "Erreur inconnue"
     });
   } finally {

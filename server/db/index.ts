@@ -92,6 +92,9 @@ async function setUserSchema(userId: number): Promise<string> {
       // createClientSchema devrait être appelé à l'inscription pour garantir son existence.
       effectiveSearchPath = `${primarySchema}, public`;
       await dbPool.query(`SET search_path TO ${effectiveSearchPath}`);
+      
+      // Vérifier si la table property_coordinates existe dans ce schéma
+      await ensurePropertyCoordinatesTable(primarySchema);
     }
 
     logger.info(`Search_path défini à "${effectiveSearchPath}" pour l'utilisateur ${userId} (rôle: ${user.role})`);
@@ -101,6 +104,43 @@ async function setUserSchema(userId: number): Promise<string> {
     // En cas d'erreur, réinitialiser au schéma public pour éviter des états inconsistants
     await resetToPublicSchema();
     throw error;
+  }
+}
+
+/**
+ * Vérifie si la table property_coordinates existe dans le schéma spécifié
+ * et la crée si elle n'existe pas
+ */
+async function ensurePropertyCoordinatesTable(schemaName: string): Promise<void> {
+  try {
+    // Vérifier si la table existe
+    const tableExists = await dbPool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = $1 
+        AND table_name = 'property_coordinates'
+      )
+    `, [schemaName]);
+    
+    if (!tableExists.rows[0].exists) {
+      logger.info(`Table property_coordinates manquante dans le schéma ${schemaName}. Création en cours...`);
+      
+      // Créer la table property_coordinates
+      await dbPool.query(`
+        CREATE TABLE ${schemaName}.property_coordinates (
+          id serial PRIMARY KEY,
+          property_id integer NOT NULL,
+          latitude numeric,
+          longitude numeric,
+          created_at timestamp without time zone DEFAULT now() NOT NULL,
+          updated_at timestamp without time zone DEFAULT now() NOT NULL
+        )
+      `);
+      
+      logger.info(`Table property_coordinates créée dans le schéma ${schemaName}`);
+    }
+  } catch (error) {
+    logger.error(`Erreur lors de la vérification/création de la table property_coordinates dans le schéma ${schemaName}:`, error);
   }
 }
 
@@ -175,5 +215,6 @@ export {
   setUserSchema,
   resetToPublicSchema,
   createClientSchema,
+  ensurePropertyCoordinatesTable, // Exporter la nouvelle fonction
   getClientDb // Nouvelle fonction pour obtenir un client Drizzle spécifique à un schéma
 }; 

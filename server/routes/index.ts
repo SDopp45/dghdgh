@@ -14,6 +14,7 @@ import tenantsRoutes from "./tenants";
 import foldersRoutes from "./folders";
 import documentsRoutes from "./documents";
 import maintenanceRoutes from "./maintenance";
+import maintenanceSystemRoutes from "./maintenance-routes";
 import visitsRoutes from "./visits";
 import transactionsRoutes from "./transactions";
 import alertsRoutes from "./alerts";
@@ -80,6 +81,7 @@ export function setupRoutes(app: Express) {
   apiRouter.use("/folders", foldersRoutes);
   apiRouter.use("/documents", documentsRoutes);
   apiRouter.use("/maintenance", maintenanceRoutes);
+  apiRouter.use("/system", maintenanceSystemRoutes);
   apiRouter.use("/visits", visitsRoutes);
   apiRouter.use("/transactions", transactionsRoutes);
   apiRouter.use("/alerts", alertsRoutes);

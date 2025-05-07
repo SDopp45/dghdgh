@@ -118,7 +118,7 @@ router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
     logger.info("Final property data to insert:", propertyData);
 
     const propertyResult = await pool.query(`
-      INSERT INTO properties (
+      INSERT INTO ${user ? `client_${user.id}` : 'public'}.properties (
         name, address, description, type, units, bedrooms, floors,
         bathrooms, toilets, energy_class, energy_emissions, living_area,
         land_area, has_parking, has_terrace, has_garage, has_outbuilding,
@@ -180,7 +180,7 @@ router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
       logger.info("Inserting coordinates for property:", newProperty.id);
 
       await pool.query(`
-        INSERT INTO property_coordinates (
+        INSERT INTO ${user ? `client_${user.id}` : 'public'}.property_coordinates (
           property_id, latitude, longitude, created_at, updated_at
         ) VALUES (
           $1, $2, $3, NOW(), NOW()
@@ -220,7 +220,7 @@ router.get("/", ensureAuth, async (req, res) => {
     
     // Utiliser une requête SQL directe avec le schéma approprié
     const result = await pool.query(`
-      SELECT * FROM properties
+      SELECT * FROM ${user ? `client_${user.id}` : 'public'}.properties
       ORDER BY created_at DESC
       LIMIT 100
     `);
@@ -253,7 +253,7 @@ router.delete("/:id", ensureAuth, async (req, res) => {
 
     // First, get the property to retrieve its images
     const propertyResult = await pool.query(`
-      SELECT * FROM properties
+      SELECT * FROM ${user ? `client_${user.id}` : 'public'}.properties
       WHERE id = $1
     `, [propertyId]);
 
@@ -265,7 +265,7 @@ router.delete("/:id", ensureAuth, async (req, res) => {
 
     // Delete associated coordinates first
     await pool.query(`
-      DELETE FROM property_coordinates
+      DELETE FROM ${user ? `client_${user.id}` : 'public'}.property_coordinates
       WHERE property_id = $1
     `, [propertyId]);
     
@@ -289,7 +289,7 @@ router.delete("/:id", ensureAuth, async (req, res) => {
 
     // Delete the property from the database
     await pool.query(`
-      DELETE FROM properties
+      DELETE FROM ${user ? `client_${user.id}` : 'public'}.properties
       WHERE id = $1
     `, [propertyId]);
     
@@ -342,7 +342,7 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
 
     // Get existing property to handle image updates
     const existingPropertyResult = await pool.query(`
-      SELECT * FROM properties
+      SELECT * FROM ${user ? `client_${user.id}` : 'public'}.properties
       WHERE id = $1
     `, [propertyId]);
 
@@ -409,7 +409,7 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
 
       // Vérifier si des coordonnées existent déjà pour cette propriété
       const existingCoordsResult = await pool.query(`
-        SELECT * FROM property_coordinates
+        SELECT * FROM ${user ? `client_${user.id}` : 'public'}.property_coordinates
         WHERE property_id = $1
       `, [propertyId]);
       
@@ -418,14 +418,14 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
       if (existingCoordinates) {
         // Mettre à jour les coordonnées existantes
         await pool.query(`
-          UPDATE property_coordinates
+          UPDATE ${user ? `client_${user.id}` : 'public'}.property_coordinates
           SET latitude = $1, longitude = $2, updated_at = NOW()
           WHERE id = $3
         `, [latitude, longitude, existingCoordinates.id]);
       } else {
         // Créer de nouvelles coordonnées
         await pool.query(`
-          INSERT INTO property_coordinates (property_id, latitude, longitude, created_at, updated_at)
+          INSERT INTO ${user ? `client_${user.id}` : 'public'}.property_coordinates (property_id, latitude, longitude, created_at, updated_at)
           VALUES ($1, $2, $3, NOW(), NOW())
         `, [propertyId, latitude, longitude]);
       }
@@ -506,7 +506,7 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
 
     // Construire la requête SQL complète
     const updateQuery = `
-      UPDATE properties
+      UPDATE ${user ? `client_${user.id}` : 'public'}.properties
       SET ${updatePairs.join(', ')}
       WHERE id = $${values.length + 1}
       RETURNING *
@@ -551,7 +551,7 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
 
     // Update the property status
     const updateResult = await pool.query(`
-      UPDATE properties
+      UPDATE ${user ? `client_${user.id}` : 'public'}.properties
       SET status = $1, updated_at = NOW()
       WHERE id = $2
       RETURNING *
@@ -592,7 +592,9 @@ router.get("/history", ensureAuth, async (req, res) => {
     
     // Récupérer toutes les propriétés
     const propertiesResult = await pool.query(`
-      SELECT * FROM properties
+      SELECT p.*, pc.latitude, pc.longitude 
+      FROM ${user ? `client_${user.id}` : 'public'}.properties p
+      LEFT JOIN ${user ? `client_${user.id}` : 'public'}.property_coordinates pc ON p.id = pc.property_id
     `);
     
     const allProperties = propertiesResult.rows;

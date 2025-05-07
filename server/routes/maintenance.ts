@@ -328,8 +328,8 @@ router.put("/:id", ensureAuth, async (req, res, next) => {
       }
     }
     
-    // Si la maintenance passe de "in_progress" à "completed", vérifier s'il y a d'autres maintenances en cours
-    if (newStatus === "completed" && currentStatus === "in_progress") {
+    // Si la maintenance passe de "in_progress" à "completed" ou à "open"/"pending", vérifier s'il y a d'autres maintenances en cours
+    if ((newStatus === "completed" || newStatus === "open" || newStatus === "pending") && currentStatus === "in_progress") {
       try {
         const activeMaintenances = await pool.query(
           `SELECT COUNT(*) as count FROM maintenance 

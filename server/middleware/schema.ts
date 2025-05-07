@@ -64,19 +64,17 @@ export const schemaMiddleware = async (req: Request, res: Response, next: NextFu
 
 /**
  * Middleware pour réinitialiser le schéma à public après que la requête a été traitée et la réponse envoyée.
- * Utile pour s'assurer que les connexions du pool retournent à un état par défaut pour la prochaine requête non liée.
+ * Version modifiée qui ne réinitialise plus automatiquement le schéma pour éviter les problèmes.
  */
 export const resetSchemaAfterHandler = (req: Request, res: Response, next: NextFunction) => {
-  res.on('finish', async () => {
-    try {
-      // Nous réinitialisons systématiquement à public, car la prochaine requête 
-      // (si elle nécessite un schéma spécifique) le reconfigurera via schemaMiddleware.
-      // Cela évite de laisser une connexion du pool avec un search_path spécifique à un client.
-      await resetToPublicSchema();
-      // logger.debug('Schéma réinitialisé à public après la fin de la requête (res.on finish).'); // Décommenter pour debug si besoin
-    } catch (error) {
-      logger.error('Erreur lors de la réinitialisation du schéma après la fin de la requête (res.on finish):', error);
-    }
-  });
+  // Commenté pour éviter de réinitialiser le schéma après chaque requête
+  // res.on('finish', async () => {
+  //   try {
+  //     await resetToPublicSchema();
+  //     // logger.debug('Schéma réinitialisé à public après la fin de la requête (res.on finish).');
+  //   } catch (error) {
+  //     logger.error('Erreur lors de la réinitialisation du schéma après la fin de la requête (res.on finish):', error);
+  //   }
+  // });
   next();
 }; 

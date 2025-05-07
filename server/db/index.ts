@@ -134,11 +134,46 @@ async function createClientSchema(userId: number): Promise<void> {
   }
 }
 
+// Fonction pour obtenir un client Drizzle pour un schéma spécifique
+async function getClientDb(userId: number) {
+  try {
+    // Vérifier si l'utilisateur existe et son rôle
+    const userResult = await dbPool.query('SELECT role FROM public.users WHERE id = $1', [userId]);
+    if (!userResult.rows.length) {
+      throw new Error(`Utilisateur ${userId} non trouvé`);
+    }
+
+    const user = userResult.rows[0];
+    const schemaName = user.role === 'admin' ? 'public' : `client_${userId}`;
+    
+    // Plutôt que de créer une nouvelle connexion pour chaque requête,
+    // nous définissons simplement le search_path pour la connexion existante
+    // Ce qui est plus efficace et évite les réinitialisations constantes
+    await dbPool.query(`SET search_path TO ${schemaName}, public`);
+    
+    logger.info(`Search_path défini à "${schemaName}, public" pour l'utilisateur ${userId}`);
+    
+    // Retourner la même instance Drizzle avec le search_path mis à jour
+    return {
+      db: db,
+      // La méthode release est maintenant un no-op pour éviter de réinitialiser le search_path
+      release: () => {
+        // Ne pas faire de reset ici
+        logger.info(`Gardé search_path à "${schemaName}, public" pour l'utilisateur ${userId}`);
+      }
+    };
+  } catch (error) {
+    logger.error(`Erreur lors de la création d'un client DB pour l'utilisateur ${userId}:`, error);
+    throw error;
+  }
+}
+
 // Regrouper tous les exports à la fin
 export {
   db, // Instance Drizzle
   dbPool as pool, // Pool de connexions pg
   setUserSchema,
   resetToPublicSchema,
-  createClientSchema
+  createClientSchema,
+  getClientDb // Nouvelle fonction pour obtenir un client Drizzle spécifique à un schéma
 }; 

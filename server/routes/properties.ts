@@ -105,7 +105,8 @@ router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
     // Parse and validate the incoming data
     const parsedData = insertPropertySchema.parse({
       ...req.body,
-      images: images
+      images: images,
+      userId: user.id
     });
 
     // Clean up and transform data
@@ -166,7 +167,7 @@ router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
       propertyData.purchaseDate || null,
       propertyData.rooms || 0,
       JSON.stringify(images || []),
-      user.id,
+      propertyData.userId,
       propertyData.area || 0,
       new Date(),
       new Date()

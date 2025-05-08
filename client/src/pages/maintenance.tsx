@@ -653,9 +653,11 @@ const MaintenanceTable = ({ requests, showAll = false, queryClient, toast }: { r
 
     return (
         <div>
-            {['high', 'medium', 'low'].map((priority) =>
-                renderPrioritySection(requests, priority as 'high' | 'medium' | 'low')
-            )}
+            {['high', 'medium', 'low'].map((priority) => (
+                <div key={priority}>
+                    {renderPrioritySection(requests, priority as 'high' | 'medium' | 'low')}
+                </div>
+            ))}
             
             {/* Dialog de confirmation de changement de statut */}
             <AlertDialog open={showStatusConfirmDialog} onOpenChange={setShowStatusConfirmDialog}>

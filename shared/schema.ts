@@ -1264,7 +1264,62 @@ export const insertTransactionSchema = createInsertSchema(transactions)
     updatedAt: true,
   });
 
-// Contrats
+// Table pour les configurations d'analyse
+export const analysisConfigs = pgTable("analysis_configs", {
+  id: serial("id").primaryKey(),
+  propertyId: integer("property_id").references(() => properties.id),
+  userId: integer("user_id").references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  periodType: varchar("period_type", { length: 50 }).notNull(),
+  periodValue: integer("period_value").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+});
+
+// Relations pour analysisConfigs
+export const analysisConfigsRelations = relations(analysisConfigs, ({ one }) => ({
+  property: one(properties, {
+    fields: [analysisConfigs.propertyId],
+    references: [properties.id],
+  }),
+  user: one(users, {
+    fields: [analysisConfigs.userId],
+    references: [users.id],
+  })
+}));
+
+export type AnalysisConfig = typeof analysisConfigs.$inferSelect;
+export type InsertAnalysisConfig = typeof analysisConfigs.$inferInsert;
+
+// Table pour les rappels automatiques
+export const automaticReminders = pgTable("automatic_reminders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: text("type").notNull(),
+  relatedEntityType: text("related_entity_type").notNull(),
+  relatedEntityId: integer("related_entity_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  nextTriggerDate: date("next_trigger_date").notNull(),
+  daysInAdvance: integer("days_in_advance").default(0).notNull(),
+  recurrence: text("recurrence"),
+  status: text("status").default("active").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Relations pour automaticReminders
+export const automaticRemindersRelations = relations(automaticReminders, ({ one }) => ({
+  user: one(users, {
+    fields: [automaticReminders.userId],
+    references: [users.id],
+  })
+}));
+
+export type AutomaticReminder = typeof automaticReminders.$inferSelect;
+export type InsertAutomaticReminder = typeof automaticReminders.$inferInsert;
+
+// Contrats - Assurons-nous que la définition correspond à celle de SQL
 export const contracts = pgTable("contracts", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -1286,16 +1341,48 @@ export const contracts = pgTable("contracts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
-// Parties des contrats (locataires, propriétaires, gestionnaires)
+// Relations pour les contrats
+export const contractsRelations = relations(contracts, ({ one, many }) => ({
+  property: one(properties, {
+    fields: [contracts.propertyId],
+    references: [properties.id],
+  }),
+  document: one(documents, {
+    fields: [contracts.documentId],
+    references: [documents.id],
+  }),
+  parties: many(contractParties)
+}));
+
+export type Contract = typeof contracts.$inferSelect;
+export type InsertContract = typeof contracts.$inferInsert;
+
+// Parties des contrats
 export const contractParties = pgTable("contract_parties", {
   id: serial("id").primaryKey(),
   contractId: integer("contract_id").references(() => contracts.id).notNull(),
-  partyId: integer("party_id").notNull(), // ID de la partie (utilisateur, locataire, etc.)
+  partyId: integer("party_id").notNull(),
   partyType: text("party_type", {
     enum: ["tenant", "owner", "manager", "other"]
   }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  userId: integer("user_id").references(() => users.id),
 });
+
+// Relations pour les parties des contrats
+export const contractPartiesRelations = relations(contractParties, ({ one }) => ({
+  contract: one(contracts, {
+    fields: [contractParties.contractId],
+    references: [contracts.id],
+  }),
+  user: one(users, {
+    fields: [contractParties.userId],
+    references: [users.id],
+  })
+}));
+
+export type ContractParty = typeof contractParties.$inferSelect;
+export type InsertContractParty = typeof contractParties.$inferInsert;
 
 // userNotificationSettings
 export const userNotificationSettings = pgTable('user_notification_settings', {

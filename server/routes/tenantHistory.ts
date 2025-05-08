@@ -406,84 +406,94 @@ router.get('/stats', ensureAuth, asyncHandler(async (req, res) => {
 // GET une entrée spécifique de l'historique des locataires par son ID
 router.get('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = await getUserFromSession(req);
-
-  logger.info(`Fetching tenant history entry with id=${id}`);
-
-  const entry = await db.select({
-    id: tenantHistory.id,
-    rating: tenantHistory.rating,
-    feedback: tenantHistory.feedback,
-    category: tenantHistory.category,
-    tenantFullName: tenantHistory.tenantFullName,
-    eventType: tenantHistory.eventType,
-    eventSeverity: tenantHistory.eventSeverity,
-    eventDetails: tenantHistory.eventDetails,
-    documents: tenantHistory.documents,
-    bailStatus: tenantHistory.bailStatus,
-    bailId: tenantHistory.bailId,
-    propertyName: tenantHistory.propertyName,
-    createdAt: tenantHistory.createdAt,
-    createdBy: tenantHistory.createdBy,
-    tenantUserFullName: users.fullName,
-    tenantUserEmail: users.email,
-    tenantUserPhone: users.phoneNumber,
-    propertyId: properties.id,
-    propertyName2: properties.name,
-    propertyAddress: properties.address,
-  })
-  .from(tenantHistory)
-  .leftJoin(users, ilike(tenantHistory.tenantFullName, users.fullName))
-  .leftJoin(properties, eq(tenantHistory.propertyName, properties.name))
-  .where(eq(tenantHistory.id, Number(id)))
-  .limit(1);
-
-  if (entry.length === 0) {
-    return res.status(404).json({ error: 'Entrée d\'historique non trouvée' });
-  }
   
-  // Restructurer les données pour inclure tenant et property comme objets imbriqués
-  const result: Record<string, any> = { ...entry[0] };
-  
-  // Ajouter l'objet tenant si les données sont disponibles
-  if (result.tenantUserFullName || result.tenantUserEmail || result.tenantUserPhone) {
-    result.tenantInfo = {
-      id: null,
-      user: {
-        fullName: result.tenantUserFullName || null,
-        email: result.tenantUserEmail || null,
-        phoneNumber: result.tenantUserPhone || null
-      }
-    };
-  }
-  
-  // Ajouter l'objet property si les données sont disponibles
-  if (result.propertyId) {
-    result.propertyInfo = {
-      id: result.propertyId,
-      name: result.propertyName2 || null,
-      address: result.propertyAddress || null
-    };
-  }
-  
-  // Supprimer les champs temporaires utilisés pour la construction
-  const fieldsToDelete = [
-    'tenantUserFullName',
-    'tenantUserEmail',
-    'tenantUserPhone',
-    'propertyId2',
-    'propertyName2',
-    'propertyAddress'
-  ];
-  
-  // Supprimer les champs de manière sécurisée
-  fieldsToDelete.forEach(field => {
-    if (field in result) {
-      delete result[field];
+  try {
+    const authenticatedUserId = getUserId(req);
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Non autorisé' });
     }
-  });
-
-  res.json(result);
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
+    
+    logger.info(`Fetching tenant history entry with id=${id} in schema ${schema}`);
+    
+    // Utilisation d'une requête SQL directe au lieu de Drizzle
+    const query = `
+      SELECT 
+        th.id, 
+        th.rating, 
+        th.feedback, 
+        th.category, 
+        th.tenant_full_name AS "tenantFullName", 
+        th.event_type AS "eventType", 
+        th.event_severity AS "eventSeverity", 
+        th.event_details AS "eventDetails", 
+        th.documents, 
+        th.bail_status AS "bailStatus", 
+        th.bail_id AS "bailId", 
+        th.property_name AS "propertyName", 
+        th.created_at AS "createdAt", 
+        th.created_by AS "createdBy",
+        th.is_orphaned AS "isOrphaned",
+        u.full_name AS "tenantUserFullName",
+        u.email AS "tenantUserEmail",
+        u.phone_number AS "tenantUserPhone",
+        p.id AS "propertyId",
+        p.name AS "propertyName2",
+        p.address AS "propertyAddress"
+      FROM ${schema}.tenant_history th
+      LEFT JOIN public.users u ON LOWER(th.tenant_full_name) LIKE LOWER(u.full_name) 
+      LEFT JOIN ${schema}.properties p ON th.property_name = p.name
+      WHERE th.id = $1
+      LIMIT 1
+    `;
+    
+    const result = await pool.query(query, [Number(id)]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Entrée d\'historique non trouvée' });
+    }
+    
+    const entry = result.rows[0];
+    
+    // Restructurer les données pour inclure tenant et property comme objets imbriqués
+    const restructured: Record<string, any> = { ...entry };
+    
+    // Ajouter l'objet tenant si les données sont disponibles
+    if (restructured.tenantUserFullName || restructured.tenantUserEmail || restructured.tenantUserPhone) {
+      restructured.tenantInfo = {
+        id: null,
+        user: {
+          fullName: restructured.tenantUserFullName || null,
+          email: restructured.tenantUserEmail || null,
+          phoneNumber: restructured.tenantUserPhone || null
+        }
+      };
+    }
+    
+    // Ajouter l'objet property si les données sont disponibles
+    if (restructured.propertyId) {
+      restructured.propertyInfo = {
+        id: restructured.propertyId,
+        name: restructured.propertyName2 || restructured.propertyName || null,
+        address: restructured.propertyAddress || null
+      };
+    }
+    
+    // Supprimer les champs temporaires utilisés pour la construction
+    delete restructured.tenantUserFullName;
+    delete restructured.tenantUserEmail;
+    delete restructured.tenantUserPhone;
+    delete restructured.propertyName2;
+    delete restructured.propertyAddress;
+    
+    res.json(restructured);
+    
+  } catch (error) {
+    logger.error('Error fetching tenant history entry:', error);
+    res.status(500).json({ error: 'Impossible de récupérer les détails de l\'entrée d\'historique' });
+  }
 }));
 
 // Configuration pour l'upload de fichiers
@@ -766,196 +776,272 @@ router.post('/', uploadMiddleware, asyncHandler(async (req, res) => {
 // PUT mettre à jour une entrée existante
 router.put('/:id', uploadMiddleware, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = await getUserFromSession(req);
   
-  // Récupération des données du formulaire
-  const {
-    tenantId,
-    propertyId,
-    rating,
-    feedback,
-    category,
-    tenantFullName,
-    eventType,
-    eventSeverity,
-    eventDetails,
-    bailStatus,
-    bailId,
-    propertyName,
-    selectedFolderId,
-    documentTypes,
-    documentNames
-  } = req.body;
-
-  // Vérifier si l'entrée existe
-  const existingEntry = await db.select()
-    .from(tenantHistory)
-    .where(eq(tenantHistory.id, Number(id)))
-    .limit(1);
-
-  if (existingEntry.length === 0) {
-    return res.status(404).json({ error: 'Entrée d\'historique non trouvée' });
-  }
-
-  // Traitement des documents uploadés
-  const files = req.files as Express.Multer.File[];
-  const newDocumentPaths = files.map(file => file.path);
-  
-  // Tableau pour stocker les IDs des documents créés
-  const newDocumentIds: number[] = [];
-
-  // Créer des entrées dans la table documents pour chaque nouveau fichier
-  if (files.length > 0) {
-    for (const file of files) {
+  try {
+    const authenticatedUserId = getUserId(req);
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
+    
+    // Récupération des données du formulaire
+    const {
+      tenantId,
+      propertyId,
+      rating,
+      feedback,
+      category,
+      tenantFullName,
+      eventType,
+      eventSeverity,
+      eventDetails,
+      bailStatus,
+      bailId,
+      propertyName,
+      selectedFolderId,
+      documentTypes,
+      documentNames
+    } = req.body;
+    
+    logger.info(`Updating tenant history entry id=${id} in schema ${schema}`);
+    
+    // Vérifier si l'entrée existe
+    const checkQuery = `SELECT * FROM ${schema}.tenant_history WHERE id = $1 LIMIT 1`;
+    const checkResult = await pool.query(checkQuery, [Number(id)]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Entrée d\'historique non trouvée' });
+    }
+    
+    const existingEntry = checkResult.rows[0];
+    
+    // Traitement des documents uploadés
+    const files = req.files as Express.Multer.File[];
+    const newDocumentPaths = files.map(file => file.path);
+    
+    // Tableau pour stocker les IDs des documents créés
+    const newDocumentIds: number[] = [];
+    
+    // Créer des entrées dans la table documents pour chaque nouveau fichier
+    if (files.length > 0) {
+      for (const file of files) {
+        try {
+          // Récupérer le type du document s'il existe
+          let docType = 'avis'; // Type par défaut
+          let customTitle = `${tenantFullName ? tenantFullName + ' - ' : ''}Document justificatif (${category || 'historique'})`;
+          
+          // Si des types personnalisés sont fournis, les utiliser
+          if (documentTypes) {
+            try {
+              const docTypesObj = JSON.parse(documentTypes);
+              if (docTypesObj[file.originalname]) {
+                docType = docTypesObj[file.originalname];
+              }
+            } catch (error) {
+              logger.error('Erreur lors du parsing des types de documents:', error);
+            }
+          }
+          
+          // Si des noms personnalisés sont fournis, les utiliser
+          if (documentNames) {
+            try {
+              const docNamesObj = JSON.parse(documentNames);
+              if (docNamesObj[file.originalname]) {
+                customTitle = docNamesObj[file.originalname];
+              }
+            } catch (error) {
+              logger.error('Erreur lors du parsing des noms de documents:', error);
+            }
+          }
+          
+          // Créer une entrée dans la table documents
+          const [insertedDoc] = await db.insert(documentsTable).values({
+            title: customTitle,
+            type: docType as any,
+            filePath: file.filename,
+            originalName: file.originalname,
+            template: false,
+            userId: authenticatedUserId,
+            folderId: selectedFolderId ? Number(selectedFolderId) : null,
+            formData: {
+              source: 'tenant_history',
+              category: category || 'general',
+              eventType: eventType || 'evaluation',
+              rating: rating ? Number(rating) : undefined,
+              historyEntryId: Number(id)
+            },
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }).returning();
+          
+          logger.info(`Document créé dans la table documents: ${insertedDoc.id}`);
+          newDocumentIds.push(insertedDoc.id);
+          
+          // Si un tenantId est fourni, associer le document au locataire
+          if (tenantId) {
+            await db.insert(tenantDocuments).values({
+              tenantId: Number(tenantId),
+              documentId: insertedDoc.id,
+              documentType: 'other'
+            });
+            logger.info(`Document ${insertedDoc.id} associé au locataire (update) ${tenantId}`);
+          }
+        } catch (error) {
+          logger.error(`Erreur lors de la création du document dans la table documents:`, error);
+        }
+      }
+    }
+    
+    // Combinaison des anciens documents et des nouveaux
+    const documents = [
+      ...(existingEntry.documents || []),
+      ...newDocumentPaths
+    ];
+    
+    // Récupérer le nom de la propriété si propertyId est fourni mais pas propertyName
+    let finalPropertyName = propertyName;
+    if (propertyId && !propertyName) {
       try {
-        // Récupérer le type du document s'il existe
-        let docType = 'avis'; // Type par défaut
-        let customTitle = `${tenantFullName ? tenantFullName + ' - ' : ''}Document justificatif (${category || 'historique'})`;
+        const propertyQuery = `SELECT name FROM ${schema}.properties WHERE id = $1 LIMIT 1`;
+        const propertyResult = await pool.query(propertyQuery, [Number(propertyId)]);
         
-        // Si des types personnalisés sont fournis, les utiliser
-        if (documentTypes) {
-          try {
-            const docTypesObj = JSON.parse(documentTypes);
-            if (docTypesObj[file.originalname]) {
-              docType = docTypesObj[file.originalname];
-            }
-          } catch (error) {
-            logger.error('Erreur lors du parsing des types de documents:', error);
-          }
-        }
-        
-        // Si des noms personnalisés sont fournis, les utiliser
-        if (documentNames) {
-          try {
-            const docNamesObj = JSON.parse(documentNames);
-            if (docNamesObj[file.originalname]) {
-              customTitle = docNamesObj[file.originalname];
-            }
-          } catch (error) {
-            logger.error('Erreur lors du parsing des noms de documents:', error);
-          }
-        }
-        
-        // Créer une entrée dans la table documents
-        const [insertedDoc] = await db.insert(documentsTable).values({
-          title: customTitle,
-          type: docType as any,
-          filePath: file.filename,
-          originalName: file.originalname,
-          template: false,
-          userId: userId,
-          folderId: selectedFolderId ? Number(selectedFolderId) : null,
-          formData: {
-            source: 'tenant_history',
-            category: category || 'general',
-            eventType: eventType || 'evaluation',
-            rating: rating ? Number(rating) : undefined,
-            historyEntryId: Number(id)
-          },
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }).returning();
-
-        logger.info(`Document créé dans la table documents: ${insertedDoc.id}`);
-        newDocumentIds.push(insertedDoc.id);
-
-        // Si un tenantId est fourni, associer le document au locataire
-        if (tenantId) {
-          await db.insert(tenantDocuments).values({
-            tenantId: Number(tenantId),
-            documentId: insertedDoc.id,
-            documentType: 'other'
-          });
-          logger.info(`Document ${insertedDoc.id} associé au locataire (update) ${tenantId}`);
+        if (propertyResult.rows.length > 0) {
+          finalPropertyName = propertyResult.rows[0].name;
         }
       } catch (error) {
-        logger.error(`Erreur lors de la création du document dans la table documents:`, error);
+        logger.error('Error fetching property name:', error);
       }
     }
-  }
-  
-  // Combinaison des anciens documents et des nouveaux
-  const documents = [
-    ...(existingEntry[0].documents || []),
-    ...newDocumentPaths
-  ];
-
-  logger.info(`Updating tenant history entry id=${id}`);
-
-  // Récupérer le nom de la propriété si propertyId est fourni mais pas propertyName
-  let finalPropertyName = propertyName;
-  if (propertyId && !propertyName) {
-    try {
-      const propertyData = await db.select({
-        name: properties.name
-      })
-      .from(properties)
-      .where(eq(properties.id, Number(propertyId)))
-      .limit(1);
-
-      if (propertyData.length > 0) {
-        finalPropertyName = propertyData[0].name;
-      }
-    } catch (error) {
-      logger.error('Error fetching property name:', error);
+    
+    // Préparer les champs à mettre à jour (uniquement ceux qui ont été fournis)
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+    
+    if (rating) {
+      updateFields.push(`rating = $${paramIndex++}`);
+      updateValues.push(Number(rating));
     }
+    
+    if (feedback !== undefined) {
+      updateFields.push(`feedback = $${paramIndex++}`);
+      updateValues.push(feedback);
+    }
+    
+    if (category) {
+      updateFields.push(`category = $${paramIndex++}`);
+      updateValues.push(category);
+    }
+    
+    if (tenantFullName) {
+      updateFields.push(`tenant_full_name = $${paramIndex++}`);
+      updateValues.push(tenantFullName);
+    }
+    
+    if (eventType) {
+      updateFields.push(`event_type = $${paramIndex++}`);
+      updateValues.push(eventType);
+    }
+    
+    if (eventSeverity) {
+      updateFields.push(`event_severity = $${paramIndex++}`);
+      updateValues.push(Number(eventSeverity));
+    }
+    
+    if (eventDetails) {
+      updateFields.push(`event_details = $${paramIndex++}`);
+      updateValues.push(JSON.parse(eventDetails));
+    }
+    
+    // Toujours mettre à jour les documents avec la nouvelle liste combinée
+    updateFields.push(`documents = $${paramIndex++}`);
+    updateValues.push(documents);
+    
+    if (bailStatus) {
+      updateFields.push(`bail_status = $${paramIndex++}`);
+      updateValues.push(bailStatus);
+    }
+    
+    if (bailId) {
+      updateFields.push(`bail_id = $${paramIndex++}`);
+      updateValues.push(Number(bailId));
+    }
+    
+    if (finalPropertyName) {
+      updateFields.push(`property_name = $${paramIndex++}`);
+      updateValues.push(finalPropertyName);
+    }
+    
+    // Mise à jour de l'entrée dans la base de données avec SQL direct
+    if (updateFields.length > 0) {
+      const updateQuery = `
+        UPDATE ${schema}.tenant_history 
+        SET ${updateFields.join(', ')} 
+        WHERE id = $${paramIndex} 
+        RETURNING *
+      `;
+      updateValues.push(Number(id));
+      
+      const updateResult = await pool.query(updateQuery, updateValues);
+      
+      res.json(updateResult.rows[0]);
+    } else {
+      // Si aucun champ n'a été mis à jour, simplement retourner l'entrée existante
+      res.json(existingEntry);
+    }
+  } catch (error) {
+    logger.error('Error updating tenant history entry:', error);
+    res.status(500).json({ error: 'Impossible de mettre à jour l\'entrée d\'historique' });
   }
-
-  // Mise à jour de l'entrée dans la base de données avec les nouveaux documents
-  const [updatedEntry] = await db.update(tenantHistory)
-    .set({
-      rating: rating ? Number(rating) : undefined,
-      feedback: feedback || undefined,
-      category: category || undefined,
-      tenantFullName: tenantFullName || undefined,
-      eventType: eventType || undefined,
-      eventSeverity: eventSeverity ? Number(eventSeverity) : undefined,
-      eventDetails: eventDetails ? JSON.parse(eventDetails) : undefined,
-      documents: documents,
-      bailStatus: bailStatus || undefined,
-      bailId: bailId ? Number(bailId) : undefined,
-      propertyName: finalPropertyName || undefined,
-      updatedAt: new Date()
-    })
-    .where(eq(tenantHistory.id, Number(id)))
-    .returning();
-
-  res.json(updatedEntry);
 }));
 
 // DELETE supprimer une entrée
 router.delete('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = await getUserFromSession(req);
-
-  logger.info(`Deleting tenant history entry id=${id}`);
-
-  // Vérifier si l'entrée existe
-  const existingEntry = await db.select()
-    .from(tenantHistory)
-    .where(eq(tenantHistory.id, Number(id)))
-    .limit(1);
-
-  if (existingEntry.length === 0) {
-    return res.status(404).json({ error: 'Entrée d\'historique non trouvée' });
-  }
-
-  // Supprimer les fichiers associés
-  if (existingEntry[0].documents && existingEntry[0].documents.length > 0) {
-    for (const docPath of existingEntry[0].documents) {
-      try {
-        await fs.unlink(docPath);
-      } catch (error) {
-        logger.error(`Error deleting document file ${docPath}:`, error);
+  
+  try {
+    const authenticatedUserId = getUserId(req);
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
+    
+    logger.info(`Deleting tenant history entry id=${id} in schema ${schema}`);
+    
+    // Vérifier si l'entrée existe
+    const query = `SELECT * FROM ${schema}.tenant_history WHERE id = $1 LIMIT 1`;
+    const result = await pool.query(query, [Number(id)]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Entrée d\'historique non trouvée' });
+    }
+    
+    const existingEntry = result.rows[0];
+    
+    // Supprimer les fichiers associés
+    if (existingEntry.documents && existingEntry.documents.length > 0) {
+      for (const docPath of existingEntry.documents) {
+        try {
+          await fs.unlink(docPath);
+        } catch (error) {
+          logger.error(`Error deleting document file ${docPath}:`, error);
+        }
       }
     }
+    
+    // Supprimer l'entrée avec SQL direct
+    const deleteQuery = `DELETE FROM ${schema}.tenant_history WHERE id = $1`;
+    await pool.query(deleteQuery, [Number(id)]);
+    
+    res.status(204).send();
+  } catch (error) {
+    logger.error('Error deleting tenant history entry:', error);
+    res.status(500).json({ error: 'Impossible de supprimer l\'entrée d\'historique' });
   }
-
-  // Supprimer l'entrée
-  await db.delete(tenantHistory)
-    .where(eq(tenantHistory.id, Number(id)));
-
-  res.status(204).send();
 }));
 
 // POST réassigner une entrée orpheline à un locataire

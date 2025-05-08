@@ -92,6 +92,7 @@ export const properties = pgTable("properties", {
   hasCellar: boolean("has_cellar").default(false),
   hasGarden: boolean("has_garden").default(false),
   isNewConstruction: boolean("is_new_construction").default(false),
+  isnewconstruction: boolean("isnewconstruction").default(false),
   purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }).default("0"),
   monthlyRent: decimal("monthly_rent", { precision: 10, scale: 2 }).default("0"),
   monthlyExpenses: decimal("monthly_expenses", { precision: 10, scale: 2 }),
@@ -104,6 +105,7 @@ export const properties = pgTable("properties", {
   constructionYear: integer("construction_year"),
   purchaseDate: timestamp("purchase_date"),
   area: integer("area"),
+  userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   images: jsonb("images").$type<PropertyImage[]>().default([]),
@@ -459,7 +461,51 @@ export const insertUserSchema = createInsertSchema(users)
   });
 
 
-// Historique des locataires
+// Update the tenants table definition to include all fields
+export const tenants = pgTable("tenants", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  leaseStart: timestamp("lease_start").notNull(),
+  leaseEnd: timestamp("lease_end").notNull(),
+  rentAmount: decimal("rent_amount", { precision: 10, scale: 2 }).notNull(),
+  active: boolean("active").default(true).notNull(),
+  leaseStatus: text("lease_status", { enum: ["actif", "fini"] }).default("actif").notNull(),
+  leaseType: text("lease_type", {
+    enum: [
+      "bail_meuble",
+      "bail_vide",
+      "bail_commercial",
+      "bail_professionnel",
+      "bail_mobilite",
+      "bail_etudiant",
+      "bail_saisonnier",
+      "bail_terrain",
+      "bail_garage",
+      "bail_social",
+      "bail_mixte",
+      "bail_derogatoire",
+      "bail_rehabilitation"
+    ]
+  }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  tenantId: integer("tenant_id"),
+  tenant_info_id: integer("tenant_info_id")
+});
+
+// Définition de la table tenants_info
+export const tenantsInfo = pgTable("tenants_info", {
+  id: serial("id").primaryKey(),
+  fullName: text("full_name").notNull(),
+  email: text("email"),
+  phoneNumber: text("phone_number"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Historique des locataires mis à jour avec tous les champs de la base de données
 export const tenantHistory = pgTable("tenant_history", {
   id: serial("id").primaryKey(),
   rating: integer("rating").notNull(),
@@ -498,18 +544,20 @@ export const tenantHistory = pgTable("tenant_history", {
   }).default("general"),
   tenantFullName: text("tenant_full_name"),
   originalUserId: integer("original_user_id"),
-  eventType: text("event_type"),
-  eventSeverity: integer("event_severity"),
+  eventType: text("event_type").default("evaluation"),
+  eventSeverity: integer("event_severity").default(0),
   eventDetails: jsonb("event_details").$type<Record<string, any>>(),
   documents: text("documents").array(),
   bailStatus: text("bail_status"),
   bailId: integer("bail_id"),
   propertyName: text("property_name"),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   createdBy: integer("created_by"),
   tenantId: integer("tenant_id"),
   isOrphaned: boolean("is_orphaned").default(false),
-  tenant_info_id: integer("tenant_info_id")
+  tenant_info_id: integer("tenant_info_id"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedBy: integer("updated_by")
 });
 
 // Pour assurer la rétrocompatibilité pendant la migration
@@ -606,36 +654,6 @@ export type TenantHistory = typeof tenantHistory.$inferSelect;
 export type InsertTenantHistory = z.infer<typeof insertTenantHistorySchema>;
 export type FeedbackHistory = typeof feedbackHistory.$inferSelect; // Alias pour rétrocompatibilité
 export type InsertFeedbackHistory = z.infer<typeof insertFeedbackHistorySchema>;
-
-// Update the tenants table definition to include feedback fields
-export const tenants = pgTable("tenants", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
-  leaseStart: timestamp("lease_start").notNull(),
-  leaseEnd: timestamp("lease_end").notNull(),
-  rentAmount: decimal("rent_amount", { precision: 10, scale: 2 }).notNull(),
-  active: boolean("active").default(true).notNull(),
-  leaseStatus: text("lease_status", { enum: ["actif", "fini"] }).default("actif").notNull(),
-  leaseType: text("lease_type", {
-    enum: [
-      "bail_meuble",
-      "bail_vide",
-      "bail_commercial",
-      "bail_professionnel",
-      "bail_mobilite",
-      "bail_etudiant",
-      "bail_saisonnier",
-      "bail_terrain",
-      "bail_garage",
-      "bail_social",
-      "bail_mixte",
-      "bail_derogatoire",
-      "bail_rehabilitation"
-    ]
-  }).notNull(),
-
-});
 
 // Relations for tenants
 export const tenantsRelations = relations(tenants, ({ one, many }) => ({
@@ -1348,3 +1366,64 @@ export const insertStorageTransactionSchema = createInsertSchema(storageTransact
 // Export types
 export type StorageTransaction = typeof storageTransactions.$inferSelect;
 export type InsertStorageTransaction = z.infer<typeof insertStorageTransactionSchema>;
+
+// Table des feedbacks
+export const feedbacks = pgTable("feedbacks", {
+  id: serial("id").primaryKey(),
+  tenant_id: integer("tenant_id"),
+  property_id: integer("property_id"),
+  rating: integer("rating"),
+  comment: text("comment"),
+  user_id: integer("user_id").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  tenant_info_id: integer("tenant_info_id")
+});
+
+// Relations pour feedbacks
+export const feedbacksRelations = relations(feedbacks, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [feedbacks.tenant_id],
+    references: [tenants.id]
+  }),
+  property: one(properties, {
+    fields: [feedbacks.property_id],
+    references: [properties.id]
+  }),
+  user: one(users, {
+    fields: [feedbacks.user_id],
+    references: [users.id]
+  })
+}));
+
+// Table de maintenance
+export const maintenance = pgTable("maintenance", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  propertyId: integer("propertyId").notNull(),
+  status: text("status").default("pending"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+  user_id: integer("user_id"),
+  total_cost: decimal("total_cost", { precision: 10, scale: 2 }),
+  document_id: integer("document_id"),
+  document_ids: jsonb("document_ids").$type<number[]>().default([]),
+  reported_by: text("reported_by")
+});
+
+// Relations pour maintenance
+export const maintenanceRelations = relations(maintenance, ({ one }) => ({
+  property: one(properties, {
+    fields: [maintenance.propertyId],
+    references: [properties.id]
+  }),
+  user: one(users, {
+    fields: [maintenance.user_id],
+    references: [users.id]
+  }),
+  document: one(documents, {
+    fields: [maintenance.document_id],
+    references: [documents.id]
+  })
+}));

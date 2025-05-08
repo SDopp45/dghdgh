@@ -50,7 +50,7 @@ router.get("/", ensureAuth, async (req, res, next) => {
     const user = req.user as any;
     const schema = user.role === 'admin' ? 'public' : `client_${user.id}`;
     
-    // Exécuter la requête dans le schéma client approprié
+    // Exécuter la requête dans le schéma client approprié avec join sur tenants_info
     const tenantsResult = await pool.query(`
       SELECT 
         t.id, 
@@ -62,15 +62,21 @@ router.get("/", ensureAuth, async (req, res, next) => {
         t.lease_type, 
         t.active, 
         t.lease_status,
+        t.tenant_info_id,
         p.name as property_name,
         p.address as property_address,
         u.username,
-        u.email,
-        u.full_name,
-        u.phone_number
+        u.email as user_email,
+        u.full_name as user_full_name,
+        u.phone_number as user_phone_number,
+        ti.full_name as tenant_full_name,
+        ti.email as tenant_email,
+        ti.phone_number as tenant_phone_number,
+        ti.notes
       FROM ${schema}.tenants t
       LEFT JOIN ${schema}.properties p ON t.property_id = p.id
       LEFT JOIN public.users u ON t.user_id = u.id
+      LEFT JOIN ${schema}.tenants_info ti ON t.tenant_info_id = ti.id
       ORDER BY t.created_at DESC
     `);
     
@@ -86,12 +92,15 @@ router.get("/", ensureAuth, async (req, res, next) => {
       leaseType: row.lease_type,
       active: row.active,
       leaseStatus: row.lease_status,
+      tenant_info_id: row.tenant_info_id,
+      // Préférer les informations de tenants_info si disponibles
       user: {
         id: row.user_id,
         username: row.username,
-        email: row.email,
-        fullName: row.full_name,
-        phoneNumber: row.phone_number
+        email: row.tenant_email || row.user_email,
+        fullName: row.tenant_full_name || row.user_full_name || "Locataire sans nom",
+        phoneNumber: row.tenant_phone_number || row.user_phone_number,
+        notes: row.notes
       }
     }));
     
@@ -128,7 +137,7 @@ router.get("/:id", ensureAuth, async (req, res, next) => {
     const user = req.user as any;
     const schema = user.role === 'admin' ? 'public' : `client_${user.id}`;
     
-    // Exécuter la requête dans le schéma client approprié
+    // Exécuter la requête dans le schéma client approprié avec join sur tenants_info
     const tenantResult = await pool.query(`
       SELECT 
         t.id, 
@@ -140,15 +149,21 @@ router.get("/:id", ensureAuth, async (req, res, next) => {
         t.lease_type, 
         t.active, 
         t.lease_status,
+        t.tenant_info_id,
         p.name as property_name,
         p.address as property_address,
         u.username,
-        u.email,
-        u.full_name,
-        u.phone_number
+        u.email as user_email,
+        u.full_name as user_full_name,
+        u.phone_number as user_phone_number,
+        ti.full_name as tenant_full_name,
+        ti.email as tenant_email,
+        ti.phone_number as tenant_phone_number,
+        ti.notes
       FROM ${schema}.tenants t
       LEFT JOIN ${schema}.properties p ON t.property_id = p.id
       LEFT JOIN public.users u ON t.user_id = u.id
+      LEFT JOIN ${schema}.tenants_info ti ON t.tenant_info_id = ti.id
       WHERE t.id = $1
     `, [id]);
     
@@ -169,12 +184,15 @@ router.get("/:id", ensureAuth, async (req, res, next) => {
       leaseType: row.lease_type,
       active: row.active,
       leaseStatus: row.lease_status,
+      tenant_info_id: row.tenant_info_id,
+      // Préférer les informations de tenants_info si disponibles
       user: {
         id: row.user_id,
         username: row.username,
-        email: row.email,
-        fullName: row.full_name,
-        phoneNumber: row.phone_number
+        email: row.tenant_email || row.user_email,
+        fullName: row.tenant_full_name || row.user_full_name || "Locataire sans nom",
+        phoneNumber: row.tenant_phone_number || row.user_phone_number,
+        notes: row.notes
       }
     };
     
@@ -190,10 +208,10 @@ router.get("/:id", ensureAuth, async (req, res, next) => {
   }
 });
 
-// Update tenant creation route to handle automatic transaction creation
+// POST: Créer un nouveau locataire
 router.post("/", ensureAuth, async (req, res, next) => {
-  let clientDbConnection = null;
   let client = null;
+  let clientDbConnection = null;
   
   try {
     const authenticatedUserId = getUserId(req);
@@ -224,74 +242,94 @@ router.post("/", ensureAuth, async (req, res, next) => {
       leaseType,
       createTransactions,
       documentIds,
-      password,
-      username: providedUsername,
+      notes
     } = req.body;
 
-    const existingUser = existingUserId
-      ? await client.query('SELECT * FROM public.users WHERE id = $1', [existingUserId])
-          .then(res => res.rows[0])
-      : null;
+    // Vérifier si on utilise un ID d'utilisateur existant ou si on crée une nouvelle entrée dans tenants_info
+    let tenantInfoId = null;
+    let userId = null;
 
-    let user;
-    let tenant = null;
-    let insertedTenantDocs = [];
-    let username;
-    
-    if (existingUser) {
-      // Réutiliser l'utilisateur existant
-      user = existingUser;
-      username = user.username;
-      logger.info(`Found existing user with matching name, generating unique username`);
+    if (existingUserId) {
+      // Si un utilisateur existant est fourni, on l'utilise
+      userId = existingUserId;
+      
+      // Vérifier si l'utilisateur existe
+      const userResult = await client.query('SELECT * FROM public.users WHERE id = $1', [existingUserId]);
+      if (userResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      }
+      
+      // Vérifier si une entrée tenants_info existe déjà pour cet utilisateur
+      const tenantInfoResult = await client.query(`
+        SELECT id FROM ${schema}.tenants_info 
+        WHERE full_name = $1 OR email = $2
+        LIMIT 1
+      `, [userResult.rows[0].full_name, userResult.rows[0].email]);
+      
+      if (tenantInfoResult.rows.length > 0) {
+        // Utiliser l'entrée existante
+        tenantInfoId = tenantInfoResult.rows[0].id;
+        logger.info(`Réutilisation de l'entrée tenants_info existante: ${tenantInfoId}`);
+      } else {
+        // Créer une nouvelle entrée dans tenants_info
+        const tenantInfoInsertResult = await client.query(`
+          INSERT INTO ${schema}.tenants_info (
+            full_name, email, phone_number, notes, created_at, updated_at
+          ) VALUES (
+            $1, $2, $3, $4, NOW(), NOW()
+          ) RETURNING *
+        `, [
+          userResult.rows[0].full_name,
+          userResult.rows[0].email,
+          userResult.rows[0].phone_number,
+          notes || null
+        ]);
+        
+        tenantInfoId = tenantInfoInsertResult.rows[0].id;
+        logger.info(`Création d'une nouvelle entrée tenants_info: ${tenantInfoId}`);
+      }
     } else {
-      // Generate unique username
-      username = await generateUniqueUsername(fullName);
-      logger.info(`Generated unique username ${username} for new user ${fullName}`);
-
-      // Create password hash
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash(password, salt);
-
-      // Create user record
-      const userInsertResult = await client.query(`
-        INSERT INTO public.users (
-          username, password, email, phone_number, full_name, role, registration_date
+      // Créer une nouvelle entrée dans tenants_info
+      const tenantInfoInsertResult = await client.query(`
+        INSERT INTO ${schema}.tenants_info (
+          full_name, email, phone_number, notes, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, 'tenant', NOW()
+          $1, $2, $3, $4, NOW(), NOW()
         ) RETURNING *
       `, [
-        providedUsername || username,
-        hash,
+        fullName,
         email,
         phoneNumber,
-        fullName
+        notes || null
       ]);
       
-      user = userInsertResult.rows[0];
-      logger.info(`Created new user with ID ${user.id}`);
+      tenantInfoId = tenantInfoInsertResult.rows[0].id;
+      logger.info(`Création d'une nouvelle entrée tenants_info: ${tenantInfoId}`);
     }
 
     try {
       // Create tenant record
       const tenantInsertResult = await client.query(`
         INSERT INTO ${schema}.tenants (
-          user_id, property_id, lease_start, lease_end, rent_amount, lease_type, active, lease_status
+          user_id, property_id, lease_start, lease_end, rent_amount, lease_type, active, lease_status, tenant_info_id
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8
+          $1, $2, $3, $4, $5, $6, $7, $8, $9
         ) RETURNING *
       `, [
-        user.id,
+        userId, // peut être null si on utilise seulement tenants_info
         Number(propertyId),
         new Date(leaseStart),
         new Date(leaseEnd),
         rentAmount.toString(),
         leaseType,
         true,
-        'actif'
+        'actif',
+        tenantInfoId
       ]);
       
-      tenant = tenantInsertResult.rows[0];
-      logger.info(`Created tenant ID ${tenant.id} for user ${user.id}`);
+      const tenant = tenantInsertResult.rows[0];
+      logger.info(`Created tenant ID ${tenant.id} with tenant_info_id ${tenantInfoId}`);
 
       // Update property status and rent amount
       await client.query(`
@@ -388,15 +426,23 @@ router.post("/", ensureAuth, async (req, res, next) => {
       // Commit the transaction
       await client.query('COMMIT');
 
+      // Récupérer les infos du locataire pour la réponse
+      const tenantInfoResult = await pool.query(`
+        SELECT * FROM ${schema}.tenants_info WHERE id = $1
+      `, [tenantInfoId]);
+      
+      const tenantInfo = tenantInfoResult.rows[0];
+
       res.status(201).json({
         id: tenant.id,
         userId: tenant.user_id,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          fullName: user.full_name,
-          phoneNumber: user.phone_number,
+        tenant_info_id: tenant.tenant_info_id,
+        tenantInfo: {
+          id: tenantInfo.id,
+          fullName: tenantInfo.full_name,
+          email: tenantInfo.email,
+          phoneNumber: tenantInfo.phone_number,
+          notes: tenantInfo.notes
         },
         propertyId: tenant.property_id,
         leaseStart: tenant.lease_start,

@@ -692,44 +692,74 @@ router.post('/', uploadMiddleware, asyncHandler(async (req, res) => {
     }
   }
 
-  // Obtenir une référence au schéma client
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId)
-  });
-  
-  const schema = user?.role === 'admin' ? 'public' : `client_${userId}`;
-  
   try {
-    // Création de l'entrée dans la base de données en utilisant une requête SQL directe
-    const result = await pool.query(`
-      INSERT INTO ${schema}.tenant_history 
-      (rating, feedback, category, tenant_full_name, event_type, event_severity, 
-       event_details, documents, bail_status, bail_id, property_name, 
-       created_by, tenant_id, tenant_info_id, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
-      RETURNING *
-    `, [
-      rating ? Number(rating) : 0,
-      feedback || null,
-      category || 'general',
-      tenantFullName || null,
-      eventType || 'evaluation',
-      eventSeverity ? Number(eventSeverity) : 0,
-      eventDetails ? JSON.parse(eventDetails) : {},
-      documentPaths.length > 0 ? documentPaths : [],
-      bailStatus || null,
-      bailId ? Number(bailId) : null,
-      finalPropertyName || null,
-      userId,
-      tenantId ? Number(tenantId) : null,
-      tenant_info_id ? Number(tenant_info_id) : null
-    ]);
+    // Création de l'entrée dans la base de données avec Drizzle ORM
+    const newEntry = await db.insert(tenantHistory).values({
+      rating: rating ? Number(rating) : 0,
+      feedback: feedback || null,
+      category: category || "general",
+      tenantFullName: tenantFullName || null,
+      eventType: eventType || "evaluation",
+      eventSeverity: eventSeverity ? Number(eventSeverity) : 0,
+      eventDetails: eventDetails ? JSON.parse(eventDetails) : {},
+      documents: documentPaths.length > 0 ? documentPaths : [],
+      bailStatus: bailStatus || null,
+      bailId: bailId ? Number(bailId) : null,
+      propertyName: finalPropertyName || null,
+      createdBy: userId,
+      tenantId: tenantId ? Number(tenantId) : null,
+      tenant_info_id: tenant_info_id ? Number(tenant_info_id) : null
+    }).returning();
 
-    logger.info(`Successfully created tenant history entry with ID: ${result.rows[0].id}`);
-    res.status(201).json(result.rows[0]);
+    logger.info(`Successfully created tenant history entry with ID: ${newEntry[0].id}`);
+    res.status(201).json(newEntry[0]);
   } catch (error) {
-    logger.error('Error creating tenant history entry:', error);
-    res.status(500).json({ error: 'Erreur lors de la création de l\'entrée d\'historique', details: error.message });
+    // Si Drizzle échoue, essayer avec une requête SQL directe
+    logger.warn('Erreur avec Drizzle ORM, tentative avec SQL direct:', error);
+
+    try {
+      // Obtenir une référence au schéma client
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId)
+      });
+      
+      const schema = user?.role === 'admin' ? 'public' : `client_${userId}`;
+      
+      // Création de l'entrée dans la base de données en utilisant une requête SQL directe
+      const result = await pool.query(`
+        INSERT INTO ${schema}.tenant_history 
+        (rating, feedback, category, tenant_full_name, event_type, event_severity, 
+         event_details, documents, bail_status, bail_id, property_name, 
+         created_by, tenant_id, tenant_info_id, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+        RETURNING *
+      `, [
+        rating ? Number(rating) : 0,
+        feedback || null,
+        category || 'general',
+        tenantFullName || null,
+        eventType || 'evaluation',
+        eventSeverity ? Number(eventSeverity) : 0,
+        eventDetails ? JSON.parse(eventDetails) : {},
+        documentPaths.length > 0 ? documentPaths : [],
+        bailStatus || null,
+        bailId ? Number(bailId) : null,
+        finalPropertyName || null,
+        userId,
+        tenantId ? Number(tenantId) : null,
+        tenant_info_id ? Number(tenant_info_id) : null
+      ]);
+
+      logger.info(`Successfully created tenant history entry with SQL direct: ${result.rows[0].id}`);
+      res.status(201).json(result.rows[0]);
+    } catch (sqlError) {
+      logger.error('Erreur avec SQL direct aussi:', sqlError);
+      res.status(500).json({ 
+        error: 'Erreur lors de la création de l\'entrée d\'historique', 
+        details: error.message,
+        sqlError: sqlError.message 
+      });
+    }
   }
 }));
 

@@ -162,6 +162,7 @@ interface Tenant {
   propertyId: number | null;
   propertyName: string | null;
   isHistoryOnly: boolean;
+  tenant_info_id?: number;
 }
 
 interface Property {

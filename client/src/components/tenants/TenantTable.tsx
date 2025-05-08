@@ -168,21 +168,33 @@ export function TenantTable({ tenants, showArchived = false, onDelete, onEdit, o
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">
-                        {tenant.user?.fullName || tenant.user?.username || "Locataire sans nom"}
-                        {!tenant.user?.fullName && tenant.user?.username && (
+                        {tenant.tenantInfo?.fullName || tenant.user?.fullName || tenant.user?.username || "Locataire sans nom"}
+                        {!tenant.tenantInfo?.fullName && !tenant.user?.fullName && tenant.user?.username && (
                           <span className="text-xs text-gray-500 ml-2">(Nom complet manquant)</span>
                         )}
-                        {!tenant.user && (
+                        {!tenant.tenantInfo && !tenant.user && (
                           <span className="text-xs text-red-500 ml-2">(Utilisateur non associé)</span>
                         )}
                       </span>
-                      {tenant.user?.email && (
+                      {tenant.tenantInfo?.email && (
+                        <span className="text-sm text-gray-600 flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {tenant.tenantInfo.email}
+                        </span>
+                      )}
+                      {!tenant.tenantInfo?.email && tenant.user?.email && (
                         <span className="text-sm text-gray-600 flex items-center gap-1">
                           <Mail className="h-3 w-3" />
                           {tenant.user.email}
                         </span>
                       )}
-                      {tenant.user?.phoneNumber && (
+                      {tenant.tenantInfo?.phoneNumber && (
+                        <span className="text-sm text-gray-600 flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {tenant.tenantInfo.phoneNumber}
+                        </span>
+                      )}
+                      {!tenant.tenantInfo?.phoneNumber && tenant.user?.phoneNumber && (
                         <span className="text-sm text-gray-600 flex items-center gap-1">
                           <Phone className="h-3 w-3" />
                           {tenant.user.phoneNumber}

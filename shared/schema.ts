@@ -496,7 +496,8 @@ export const tenantHistory = pgTable("tenant_history", {
       "general"            // Catégorie par défaut
     ]
   }).default("general"),
-  tenantFullName: text("tenant_full_name").notNull(),
+  tenantFullName: text("tenant_full_name"),
+  originalUserId: integer("original_user_id"),
   eventType: text("event_type"),
   eventSeverity: integer("event_severity"),
   eventDetails: jsonb("event_details").$type<Record<string, any>>(),
@@ -505,7 +506,10 @@ export const tenantHistory = pgTable("tenant_history", {
   bailId: integer("bail_id"),
   propertyName: text("property_name"),
   createdAt: timestamp("created_at").defaultNow(),
-  createdBy: integer("created_by")
+  createdBy: integer("created_by"),
+  tenantId: integer("tenant_id"),
+  isOrphaned: boolean("is_orphaned").default(false),
+  tenant_info_id: integer("tenant_info_id")
 });
 
 // Pour assurer la rétrocompatibilité pendant la migration
@@ -1156,7 +1160,14 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export interface TenantWithDetails {
   id: number;
   propertyId: number;
-  userId: number;
+  userId?: number; // Maintenant optionnel car nous utilisons tenant_info_id
+  tenant_info_id?: number; // ID de référence vers tenants_info
+  tenantInfo?: {
+    id: number;
+    fullName: string;
+    email: string | null;
+    phoneNumber: string | null;
+  };
   leaseStart: string;
   leaseEnd: string;
   rentAmount: number;

@@ -83,7 +83,7 @@ export async function loginUser(username: string, password: string): Promise<Log
   try {
     // Rechercher l'utilisateur dans la base de données
     const userResult = await pool.query(
-      'SELECT id, username, password, role FROM users WHERE username = $1',
+      'SELECT id, username, password, role FROM public.users WHERE username = $1',
       [username]
     );
 
@@ -198,7 +198,7 @@ export const configureAuth = (app: Express) => {
         
         // Récupérer l'utilisateur en utilisant l'ID de session
         const userResult = await pool.query(
-          'SELECT * FROM users WHERE id = $1',
+          'SELECT * FROM public.users WHERE id = $1',
           [req.session.userId]
         );
         

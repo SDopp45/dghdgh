@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { db } from "../db";
+import { Pool } from 'pg';
 import { transactions, insertTransactionSchema, properties, documents, tenants, users } from "@db/schema";
 import { eq, and, desc, gte, asc, or, like, count, sql } from "drizzle-orm";
 import logger from "../utils/logger";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ensureAuth, getUserId } from "../middleware/auth";
+import { getClientDb } from "../db/index";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -51,13 +53,26 @@ const upload = multer({
 
 const router = Router();
 
+// Accès à la base de données
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
 // Create a new transaction
 router.post("/", ensureAuth, async (req, res) => {
+  let clientDbConnection = null;
+  
   try {
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Non authentifié" });
     }
+
+    // Obtenir un client DB configuré pour ce schéma client
+    clientDbConnection = await getClientDb(userId);
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
 
     logger.info('Creating new transaction with data:', req.body);
 
@@ -76,64 +91,97 @@ router.post("/", ensureAuth, async (req, res) => {
         } else {
           documentIds = [];
         }
-      } catch (e) {
-        logger.warn(`Failed to parse documentIds, setting to empty array: ${e.message}`);
+      } catch (error) {
+        logger.warn(`Failed to parse documentIds, setting to empty array: ${error instanceof Error ? error.message : 'Unknown error'}`);
         documentIds = [];
       }
     }
 
-    // Créer un nouvel objet avec les données modifiées
-    const transactionData = {
-      ...req.body,
-      userId,
-      date: new Date(req.body.date),
-      documentIds: documentIds // Toujours envoyer le tableau, même s'il est vide
-    };
+    // Préparer les données de la transaction
+    const amount = parseFloat(req.body.amount.toString());
+    const date = new Date(req.body.date);
+    const description = req.body.description || '';
+    const category = req.body.category || 'other';
+    const type = req.body.type || 'expense';
+    const status = req.body.status || 'pending';
+    const propertyId = req.body.propertyId ? parseInt(req.body.propertyId.toString()) : null;
+    const tenantId = req.body.tenantId ? parseInt(req.body.tenantId.toString()) : null;
+    const paymentMethod = req.body.paymentMethod || 'cash';
+    const notes = req.body.notes || '';
+    const recurring = req.body.recurring === true;
+    const frequency = req.body.frequency || null;
+    const reminderSent = false;
 
-    logger.info(`Transaction data après préparation: ${JSON.stringify(transactionData)}`);
-    logger.info(`documentIds après préparation: ${JSON.stringify(transactionData.documentIds)}`);
+    // Insérer la transaction avec une requête SQL directe
+    const insertResult = await pool.query(`
+      INSERT INTO ${schema}.transactions (
+        amount, date, description, category, type, status, property_id, 
+        tenant_id, user_id, payment_method, notes, recurring, frequency, 
+        reminder_sent, document_ids
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+      ) RETURNING *
+    `, [
+      amount, 
+      date, 
+      description, 
+      category, 
+      type, 
+      status, 
+      propertyId, 
+      tenantId, 
+      userId, 
+      paymentMethod, 
+      notes, 
+      recurring, 
+      frequency, 
+      reminderSent,
+      documentIds
+    ]);
 
-    // Parse and validate the transaction data
-    const validatedData = insertTransactionSchema.parse(transactionData);
-    
-    // Vérifier si documentIds est présent après validation
-    logger.info(`documentIds après validation: ${JSON.stringify(validatedData.documentIds)}`);
-
-    // Insert the transaction
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values(validatedData)
-      .returning();
-
+    const newTransaction = insertResult.rows[0];
     if (!newTransaction) {
       throw new Error("Failed to create transaction");
     }
     
-    // Vérifier si documentIds est présent dans la transaction créée
-    logger.info(`Transaction créée avec documentIds: ${JSON.stringify(newTransaction.documentIds)}`);
-
-    // Si newTransaction.documentIds est null ou undefined mais qu'on avait des documentIds,
-    // essayer une mise à jour explicite
-    if ((!newTransaction.documentIds || newTransaction.documentIds.length === 0) && documentIds.length > 0) {
-      logger.info(`Mise à jour explicite des documentIds: ${JSON.stringify(documentIds)}`);
-      await db
-        .update(transactions)
-        .set({ documentIds })
-        .where(eq(transactions.id, newTransaction.id));
+    // Récupérer les informations complètes avec les relations
+    let propertyInfo = null;
+    if (newTransaction.property_id) {
+      const propertyResult = await pool.query(`
+        SELECT * FROM ${schema}.properties WHERE id = $1
+      `, [newTransaction.property_id]);
+      propertyInfo = propertyResult.rows[0];
     }
-
-    // Get the complete transaction data with relations
-    const completeTransaction = await db.query.transactions.findFirst({
-      where: eq(transactions.id, newTransaction.id),
-      with: {
-        property: true,
-        tenant: {
-          with: {
-            user: true
+    
+    let tenantInfo = null;
+    let userInfo = null;
+    if (newTransaction.tenant_id) {
+      const tenantResult = await pool.query(`
+        SELECT * FROM ${schema}.tenants WHERE id = $1
+      `, [newTransaction.tenant_id]);
+      
+      if (tenantResult.rows.length > 0) {
+        tenantInfo = tenantResult.rows[0];
+        
+        // Récupérer les informations de l'utilisateur si disponibles
+        if (tenantInfo.user_id) {
+          const userResult = await pool.query(`
+            SELECT * FROM public.users WHERE id = $1
+          `, [tenantInfo.user_id]);
+          
+          if (userResult.rows.length > 0) {
+            userInfo = userResult.rows[0];
           }
         }
       }
-    });
+    }
+    
+    // Construire l'objet de transaction complet
+    const completeTransaction = {
+      ...newTransaction,
+      property: propertyInfo,
+      tenant: tenantInfo ? { ...tenantInfo, user: userInfo } : null
+    };
 
     const formattedTransaction = formatTransaction(completeTransaction);
 
@@ -144,16 +192,29 @@ router.post("/", ensureAuth, async (req, res) => {
       error: "Erreur lors de la création de la transaction",
       details: error.message
     });
+  } finally {
+    // Libérer la connexion client si elle a été créée
+    if (clientDbConnection) {
+      clientDbConnection.release();
+    }
   }
 });
 
 // Update transaction status
 router.put("/:id/status", ensureAuth, async (req, res) => {
+  let clientDbConnection = null;
+  
   try {
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Non authentifié" });
     }
+
+    // Obtenir un client DB configuré pour ce schéma client
+    clientDbConnection = await getClientDb(userId);
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
 
     const { id } = req.params;
     const { status } = req.body;
@@ -165,30 +226,58 @@ router.put("/:id/status", ensureAuth, async (req, res) => {
 
     logger.info(`Updating transaction ${id} status to ${status}`);
 
-    const [updatedTransaction] = await db
-      .update(transactions)
-      .set({ status })
-      .where(and(
-        eq(transactions.id, parseInt(id)),
-        eq(transactions.userId, userId)
-      ))
-      .returning();
+    // Mettre à jour le statut de la transaction
+    const updateResult = await pool.query(`
+      UPDATE ${schema}.transactions
+      SET status = $1
+      WHERE id = $2 AND user_id = $3
+      RETURNING *
+    `, [status, parseInt(id), userId]);
 
-    if (!updatedTransaction) {
+    if (updateResult.rows.length === 0) {
       return res.status(404).json({ error: "Transaction non trouvée" });
     }
 
-    const completeTransaction = await db.query.transactions.findFirst({
-      where: eq(transactions.id, updatedTransaction.id),
-      with: {
-        property: true,
-        tenant: {
-          with: {
-            user: true
+    const updatedTransaction = updateResult.rows[0];
+
+    // Récupérer les informations complètes avec les relations
+    let propertyInfo = null;
+    if (updatedTransaction.property_id) {
+      const propertyResult = await pool.query(`
+        SELECT * FROM ${schema}.properties WHERE id = $1
+      `, [updatedTransaction.property_id]);
+      propertyInfo = propertyResult.rows[0];
+    }
+    
+    let tenantInfo = null;
+    let userInfo = null;
+    if (updatedTransaction.tenant_id) {
+      const tenantResult = await pool.query(`
+        SELECT * FROM ${schema}.tenants WHERE id = $1
+      `, [updatedTransaction.tenant_id]);
+      
+      if (tenantResult.rows.length > 0) {
+        tenantInfo = tenantResult.rows[0];
+        
+        // Récupérer les informations de l'utilisateur si disponibles
+        if (tenantInfo.user_id) {
+          const userResult = await pool.query(`
+            SELECT * FROM public.users WHERE id = $1
+          `, [tenantInfo.user_id]);
+          
+          if (userResult.rows.length > 0) {
+            userInfo = userResult.rows[0];
           }
         }
       }
-    });
+    }
+    
+    // Construire l'objet de transaction complet
+    const completeTransaction = {
+      ...updatedTransaction,
+      property: propertyInfo,
+      tenant: tenantInfo ? { ...tenantInfo, user: userInfo } : null
+    };
 
     const formattedTransaction = formatTransaction(completeTransaction);
     if (!formattedTransaction) {
@@ -202,16 +291,29 @@ router.put("/:id/status", ensureAuth, async (req, res) => {
       error: "Erreur lors de la mise à jour du statut",
       details: error.message
     });
+  } finally {
+    // Libérer la connexion client si elle a été créée
+    if (clientDbConnection) {
+      clientDbConnection.release();
+    }
   }
 });
 
 // Get all transactions with pagination and filtering
 router.get("/", ensureAuth, async (req, res) => {
+  let clientDbConnection = null;
+  
   try {
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Non authentifié" });
     }
+
+    // Obtenir un client DB configuré pour ce schéma client
+    clientDbConnection = await getClientDb(userId);
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
 
     const { 
       page = "1", 
@@ -233,82 +335,143 @@ router.get("/", ensureAuth, async (req, res) => {
     const pageSizeNum = req.query.pageSize === "all" ? 99999 : parseInt(pageSize as string, 10);
     const skip = (pageNum - 1) * pageSizeNum;
     
-    // Build base conditions
-    const conditions = [eq(transactions.userId, userId)];
+    // Build SQL WHERE conditions
+    const conditions = [];
+    const params = [userId];
+    let paramIndex = 1;
+
+    conditions.push(`t.user_id = $${paramIndex++}`);
 
     if (propertyId && propertyId !== "null") {
-      conditions.push(eq(transactions.propertyId, parseInt(propertyId as string, 10)));
+      conditions.push(`t.property_id = $${paramIndex++}`);
+      params.push(parseInt(propertyId as string, 10));
     }
     
     if (tenantId && tenantId !== "null") {
-      conditions.push(eq(transactions.tenantId, parseInt(tenantId as string, 10)));
+      conditions.push(`t.tenant_id = $${paramIndex++}`);
+      params.push(parseInt(tenantId as string, 10));
     }
     
     if (category && category !== "all") {
-      conditions.push(eq(transactions.category, category as string));
+      conditions.push(`t.category = $${paramIndex++}`);
+      params.push(category as string);
     }
     
     if (type && type !== "all") {
-      conditions.push(eq(transactions.type, type as "income" | "expense" | "credit"));
+      conditions.push(`t.type = $${paramIndex++}`);
+      params.push(type as string);
     }
     
     if (status && status !== "all") {
-      conditions.push(eq(transactions.status, status as string));
+      conditions.push(`t.status = $${paramIndex++}`);
+      params.push(status as string);
     }
     
     if (startDate) {
-      conditions.push(gte(transactions.date, new Date(startDate as string)));
+      conditions.push(`t.date >= $${paramIndex++}`);
+      params.push(new Date(startDate as string));
     }
     
     if (endDate) {
-      conditions.push(lte(transactions.date, new Date(endDate as string)));
+      conditions.push(`t.date <= $${paramIndex++}`);
+      params.push(new Date(endDate as string));
     }
     
     if (search) {
       const searchTerm = `%${search}%`;
-      conditions.push(
-        or(
-        like(transactions.description, searchTerm),
-        like(transactions.notes, searchTerm)
-        )
-      );
+      conditions.push(`(t.description ILIKE $${paramIndex} OR t.notes ILIKE $${paramIndex})`);
+      params.push(searchTerm);
+      paramIndex++;
     }
 
-    // Get total count in parallel with data fetch
-    const [countResult, transactionData] = await Promise.all([
-      db.select({ count: count() })
-        .from(transactions)
-        .where(and(...conditions)),
-      db.select({
-        transaction: transactions,
-        property: properties,
-        tenant: tenants,
-        user: users
-      })
-      .from(transactions)
-      .leftJoin(properties, eq(transactions.propertyId, properties.id))
-      .leftJoin(tenants, eq(transactions.tenantId, tenants.id))
-      .leftJoin(users, eq(tenants.userId, users.id))
-      .where(and(...conditions))
-      .orderBy(sortOrder === 'asc' ? asc(transactions[sortBy as keyof typeof transactions]) : desc(transactions[sortBy as keyof typeof transactions]))
-      .limit(pageSizeNum)
-      .offset(skip)
-    ]);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const total = countResult?.[0]?.count || 0;
+    // Get total count with the same WHERE conditions
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM ${schema}.transactions t
+      ${whereClause}
+    `;
+    
+    const countResult = await pool.query(countQuery, params);
+    const total = parseInt(countResult.rows[0].count);
+
+    // Order by clause
+    const orderByColumn = sortBy === 'date' ? 'date' : 
+                         sortBy === 'amount' ? 'amount' :
+                         sortBy === 'type' ? 'type' : 'date';
+    
+    const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const orderByClause = `ORDER BY t.${orderByColumn} ${sortDirection}`;
+
+    // Get data with pagination, filtering, and joins
+    const dataQuery = `
+      SELECT 
+        t.*,
+        p.id as property_id, p.name as property_name, p.address as property_address,
+        tenant.id as tenant_id, tenant.lease_start, tenant.lease_end, tenant.lease_type,
+        u.id as user_id, u.username, u.email, u.full_name, u.phone_number
+      FROM ${schema}.transactions t
+      LEFT JOIN ${schema}.properties p ON t.property_id = p.id
+      LEFT JOIN ${schema}.tenants tenant ON t.tenant_id = tenant.id
+      LEFT JOIN public.users u ON tenant.user_id = u.id
+      ${whereClause}
+      ${orderByClause}
+      LIMIT ${pageSizeNum} OFFSET ${skip}
+    `;
+    
+    const dataResult = await pool.query(dataQuery, params);
 
     // Format transactions
-    const formattedTransactions = transactionData.map(({ transaction, property, tenant, user }) => ({
-      ...transaction,
-      property: property || null,
-      tenant: tenant ? { ...tenant, user } : null,
-      formattedDate: format(new Date(transaction.date), 'dd/MM/yyyy'),
-      formattedAmount: new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR'
-      }).format(parseFloat(transaction.amount)),
-      documentIds: Array.isArray(transaction.documentIds) ? transaction.documentIds : []
-    }));
+    const formattedTransactions = dataResult.rows.map(row => {
+      // Restructurer les données pour correspondre au format attendu
+      const property = row.property_id ? {
+        id: row.property_id,
+        name: row.property_name,
+        address: row.property_address
+      } : null;
+      
+      // Construire l'objet tenant avec user imbriqué
+      const tenant = row.tenant_id ? {
+        id: row.tenant_id,
+        leaseStart: row.lease_start,
+        leaseEnd: row.lease_end,
+        leaseType: row.lease_type,
+        user: row.user_id ? {
+          id: row.user_id,
+          username: row.username,
+          email: row.email,
+          fullName: row.full_name,
+          phoneNumber: row.phone_number
+        } : null
+      } : null;
+      
+      return {
+        id: row.id,
+        amount: row.amount,
+        date: row.date,
+        description: row.description,
+        category: row.category,
+        type: row.type,
+        status: row.status,
+        propertyId: row.property_id,
+        tenantId: row.tenant_id,
+        userId: row.user_id,
+        paymentMethod: row.payment_method,
+        notes: row.notes,
+        recurring: row.recurring,
+        frequency: row.frequency,
+        reminderSent: row.reminder_sent,
+        documentIds: Array.isArray(row.document_ids) ? row.document_ids : [],
+        property,
+        tenant,
+        formattedDate: format(new Date(row.date), 'dd/MM/yyyy'),
+        formattedAmount: new Intl.NumberFormat('fr-FR', {
+          style: 'currency',
+          currency: 'EUR'
+        }).format(parseFloat(row.amount))
+      };
+    });
 
     res.json({
       data: formattedTransactions,
@@ -325,6 +488,11 @@ router.get("/", ensureAuth, async (req, res) => {
       error: "Erreur lors de la récupération des transactions", 
       details: error.message 
     });
+  } finally {
+    // Libérer la connexion client si elle a été créée
+    if (clientDbConnection) {
+      clientDbConnection.release();
+    }
   }
 });
 
@@ -1247,7 +1415,7 @@ router.get("/group/:key", ensureAuth, async (req, res) => {
       FROM transactions t
       LEFT JOIN properties p ON t.property_id = p.id
       LEFT JOIN tenants te ON t.tenant_id = te.id
-      LEFT JOIN users u ON te.user_id = u.id
+      LEFT JOIN public.users u ON te.user_id = u.id
       WHERE t.user_id = $1 ${groupCondition}
       ORDER BY t.date DESC
       LIMIT $3

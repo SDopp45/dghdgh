@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { and, eq, isNull, ilike, like, or, ne, desc, sql, not } from 'drizzle-orm';
 import { db } from '../db';
+import { Pool } from 'pg';
 import { tenantHistory, tenants, properties, users, documents as documentsTable, tenantDocuments } from '@shared/schema';
 import logger from '../utils/logger';
 import { asyncHandler } from '../utils/asyncHandler';
@@ -8,6 +9,14 @@ import { getUserFromSession } from '../utils/session';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
+import { AppError } from '../middleware/errorHandler';
+import { ensureAuth, getUserId } from '../middleware/auth';
+import { getClientDb } from '../db/index';
+
+// Accès à la base de données
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
 
 // Configuration pour multer
 const storage = multer.diskStorage({
@@ -29,28 +38,62 @@ const upload = multer({ storage: storage });
 const router = Router();
 
 // Nouvel endpoint pour récupérer les locataires pour tenant-history
-router.get('/tenants', asyncHandler(async (req, res) => {
-  const userId = await getUserFromSession(req);
-
-  logger.info(`Fetching ONLY tenantFullName from tenant_history for tenant-history view`);
-
+router.get('/tenants', ensureAuth, asyncHandler(async (req, res) => {
+  let clientDbConnection = null;
+  
   try {
+    const authenticatedUserId = getUserId(req);
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+
+    // Obtenir un client DB configuré pour ce schéma client
+    clientDbConnection = await getClientDb(authenticatedUserId);
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
+    
+    logger.info(`Fetching tenants and tenant_info for tenant-history view`);
+
+    // Récupérer les locataires actifs avec leurs informations depuis tenants_info
+    const activeTenants = await pool.query(`
+      SELECT 
+        t.id, 
+        t.property_id AS "propertyId",
+        ti.full_name AS "fullName",
+        ti.email,
+        ti.phone_number AS "phoneNumber",
+        p.name AS "propertyName"
+      FROM ${schema}.tenants t
+      JOIN ${schema}.tenants_info ti ON t.tenant_info_id = ti.id
+      LEFT JOIN ${schema}.properties p ON t.property_id = p.id
+      ORDER BY ti.full_name
+    `);
+
     // Récupérer les locataires qui existent uniquement dans l'historique (noms manuels)
-    const historyOnlyTenants = await db.selectDistinct({
-      tenantFullName: tenantHistory.tenantFullName
-    })
-    .from(tenantHistory)
-    .where(
-      not(isNull(tenantHistory.tenantFullName))
-    )
-    .orderBy(tenantHistory.tenantFullName); // Trier directement ici
+    const historyOnlyTenants = await pool.query(`
+      SELECT DISTINCT tenant_full_name AS "tenantFullName"
+      FROM ${schema}.tenant_history
+      WHERE tenant_full_name IS NOT NULL
+      ORDER BY tenant_full_name
+    `);
+
+    // Transformer les résultats actifs en format compatible
+    const activeTenantsList = activeTenants.rows.map(t => ({
+      id: t.id,
+      fullName: t.fullName,
+      propertyId: t.propertyId,
+      propertyName: t.propertyName,
+      email: t.email,
+      phoneNumber: t.phoneNumber,
+      active: true,
+      isHistoryOnly: false
+    }));
 
     // Transformer les résultats de l'historique en format compatible
-    const historyTenantsList = historyOnlyTenants
+    const historyTenantsList = historyOnlyTenants.rows
       .filter(t => t.tenantFullName && t.tenantFullName.trim() !== '') // Filtrer les noms vides ou juste des espaces
       .map((t, index) => ({
-        // Utiliser un ID négatif basé sur l'index pour stabilité?
-        // Ou continuer avec aléatoire si pas de problème
         id: -Math.floor(Math.random() * 1000000) - 1, // ID négatif aléatoire
         fullName: t.tenantFullName,
         propertyId: 0, 
@@ -60,259 +103,304 @@ router.get('/tenants', asyncHandler(async (req, res) => {
       }));
 
     // Combiner les deux listes et enlever les doublons
-    const combinedTenants = [...historyTenantsList]; // Utiliser seulement la liste de l'historique
+    // On vérifie si un tenant de l'historique existe déjà dans la liste active par son nom
+    const activeNames = new Set(activeTenantsList.map(t => t.fullName.toLowerCase().trim()));
+    const filteredHistoryTenants = historyTenantsList.filter(t => 
+      !activeNames.has(t.fullName.toLowerCase().trim())
+    );
     
-    // La déduplication n'est plus nécessaire car on ne source que de l'historique
-
-    // Trier par nom (déjà fait dans la requête SQL, mais on peut re-trier si besoin)
-
+    const combinedTenants = [...activeTenantsList, ...filteredHistoryTenants];
+    
     res.json(combinedTenants);
   } catch (error) {
     logger.error('Error fetching tenants for history:', error);
     res.status(500).json({ error: 'Impossible de récupérer la liste des locataires pour l\'historique' });
+  } finally {
+    // Libérer la connexion client si elle a été créée
+    if (clientDbConnection) {
+      clientDbConnection.release();
+    }
   }
 }));
 
 // Nouvel endpoint pour récupérer les propriétés pour tenant-history
-router.get('/properties', asyncHandler(async (req, res) => {
-  const userId = await getUserFromSession(req);
+router.get('/properties', ensureAuth, asyncHandler(async (req, res) => {
+  let clientDbConnection = null;
+  
+  try {
+    const authenticatedUserId = getUserId(req);
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
 
-  logger.info(`Fetching properties for tenant-history view`);
+    // Obtenir un client DB configuré pour ce schéma client
+    clientDbConnection = await getClientDb(authenticatedUserId);
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
+    
+    logger.info(`Fetching properties for tenant-history view`);
 
-  // Récupérer uniquement les données nécessaires des propriétés
-  const propertiesData = await db.select({
-    id: properties.id,
-    name: properties.name,
-    address: properties.address,
-  })
-  .from(properties)
-  .orderBy(properties.name);
+    // Récupérer uniquement les données nécessaires des propriétés
+    const propertiesData = await pool.query(`
+      SELECT id, name, address
+      FROM ${schema}.properties
+      ORDER BY name
+    `);
 
-  res.json(propertiesData);
+    res.json(propertiesData.rows);
+  } catch (error) {
+    logger.error('Error handling request:', error);
+    res.status(500).json({ error: 'Impossible de récupérer la liste des propriétés' });
+  } finally {
+    // Libérer la connexion client si elle a été créée
+    if (clientDbConnection) {
+      clientDbConnection.release();
+    }
+  }
 }));
 
 // GET toutes les entrées de l'historique des locataires (avec filtre optionnel)
-router.get('/', asyncHandler(async (req, res) => {
-  const { filter, tenantId, propertyId, search } = req.query;
-  const userId = await getUserFromSession(req);
-
-  logger.info(`Fetching tenant history with filter=${filter}, tenantId=${tenantId}, search=${search}`);
-
-  let queryBuilder = db.select({
-    id: tenantHistory.id,
-    rating: tenantHistory.rating,
-    feedback: tenantHistory.feedback,
-    category: tenantHistory.category,
-    tenantFullName: tenantHistory.tenantFullName,
-    eventType: tenantHistory.eventType,
-    eventSeverity: tenantHistory.eventSeverity,
-    eventDetails: tenantHistory.eventDetails,
-    documents: tenantHistory.documents,
-    bailStatus: tenantHistory.bailStatus,
-    bailId: tenantHistory.bailId,
-    propertyName: tenantHistory.propertyName,
-    createdAt: tenantHistory.createdAt,
-    createdBy: tenantHistory.createdBy,
-    tenantUserFullName: users.fullName,
-    tenantUserEmail: users.email,
-    tenantUserPhone: users.phoneNumber,
-    propertyId: properties.id,
-    propertyName2: properties.name,
-    propertyAddress: properties.address
-  })
-  .from(tenantHistory)
-  .leftJoin(users, ilike(tenantHistory.tenantFullName, users.fullName))
-  .leftJoin(properties, eq(tenantHistory.propertyName, properties.name));
+router.get('/', ensureAuth, asyncHandler(async (req, res) => {
+  let clientDbConnection = null;
   
-  // Préparation de la requête avec filtres
-  let whereCondition = undefined;
-  
-  if (filter && filter !== 'all') {
-    whereCondition = sql`${tenantHistory.category} = ${String(filter)}`;
-  }
-  
-  if (tenantId) {
-    logger.warn("Filtrage par tenantId numérique non supporté car tenantHistory.tenantId n'existe pas.");
-  }
-  
-  if (propertyId) {
-    const propertyCondition = ilike(tenantHistory.propertyName, `%${propertyId}%`);
-    whereCondition = whereCondition ? and(whereCondition, propertyCondition) : propertyCondition;
-  }
-  
-  if (search) {
-    const searchCondition = or(
-      ilike(tenantHistory.tenantFullName, `%${search}%`),
-      ilike(tenantHistory.feedback, `%${search}%`),
-      ilike(tenantHistory.propertyName, `%${search}%`),
-      ilike(users.fullName, `%${search}%`),
-      ilike(users.email, `%${search}%`)
-    );
-    whereCondition = whereCondition ? and(whereCondition, searchCondition) : searchCondition;
-  }
-  
-  // Exécuter la requête avec les conditions et le tri
-  const resultRows = whereCondition 
-    ? await queryBuilder.where(whereCondition).orderBy(desc(tenantHistory.createdAt))
-    : await queryBuilder.orderBy(desc(tenantHistory.createdAt));
-  
-  // Restructurer les données pour inclure tenant et property comme objets imbriqués
-  const results = resultRows.map(row => {
-    // Créer une copie pour la manipulation
-    const restructured: Record<string, any> = { ...row };
-    
-    // Ajouter l'objet tenant si les données sont disponibles
-    if (restructured.tenantUserFullName || restructured.tenantUserEmail || restructured.tenantUserPhone) {
-      restructured.tenantInfo = {
-        id: null,
-        user: {
-          fullName: restructured.tenantUserFullName || null,
-          email: restructured.tenantUserEmail || null, 
-          phoneNumber: restructured.tenantUserPhone || null
-        }
-      };
+  try {
+    const authenticatedUserId = getUserId(req);
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Non autorisé' });
     }
+
+    // Obtenir un client DB configuré pour ce schéma client
+    clientDbConnection = await getClientDb(authenticatedUserId);
     
-    // Ajouter l'objet property si les données sont disponibles
-    if (restructured.propertyId) {
-      restructured.propertyInfo = {
-        id: restructured.propertyId,
-        name: restructured.propertyName2 || null,
-        address: restructured.propertyAddress || null
-      };
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
+    
+    const { filter, tenantId, propertyId, search } = req.query;
+    logger.info(`Fetching tenant history with filter=${filter}, tenantId=${tenantId}, search=${search}`);
+
+    // Construire la requête SQL de base
+    let sql = `
+      SELECT 
+        th.id, 
+        th.rating, 
+        th.feedback, 
+        th.category, 
+        th.tenant_full_name AS "tenantFullName", 
+        th.event_type AS "eventType", 
+        th.event_severity AS "eventSeverity", 
+        th.event_details AS "eventDetails", 
+        th.documents, 
+        th.bail_status AS "bailStatus", 
+        th.bail_id AS "bailId", 
+        th.property_name AS "propertyName", 
+        th.created_at AS "createdAt", 
+        th.created_by AS "createdBy",
+        u.full_name AS "tenantUserFullName",
+        u.email AS "tenantUserEmail",
+        u.phone_number AS "tenantUserPhone",
+        p.id AS "propertyId",
+        p.name AS "propertyName2",
+        p.address AS "propertyAddress"
+      FROM ${schema}.tenant_history th
+      LEFT JOIN public.users u ON LOWER(th.tenant_full_name) LIKE LOWER(u.full_name) 
+      LEFT JOIN ${schema}.properties p ON th.property_name = p.name
+    `;
+
+    // Ajouter les conditions de filtrage
+    const whereConditions = [];
+    const queryParams = [];
+    let paramIndex = 1;
+
+    if (filter && filter !== 'all') {
+      whereConditions.push(`th.category = $${paramIndex++}`);
+      queryParams.push(String(filter));
     }
-    
-    // Supprimer les champs temporaires utilisés pour la construction
-    const fieldsToDelete = [
-      'tenantUserFullName',
-      'tenantUserEmail',
-      'tenantUserPhone',
-      'propertyId2',
-      'propertyName2',
-      'propertyAddress'
-    ];
-    
-    // Supprimer les champs de manière sécurisée
-    fieldsToDelete.forEach(field => {
-      if (field in restructured) {
-        delete restructured[field];
+
+    if (propertyId) {
+      whereConditions.push(`th.property_name ILIKE $${paramIndex++}`);
+      queryParams.push(`%${propertyId}%`);
+    }
+
+    if (search) {
+      whereConditions.push(`(
+        th.tenant_full_name ILIKE $${paramIndex} OR
+        th.feedback ILIKE $${paramIndex} OR
+        th.property_name ILIKE $${paramIndex} OR
+        u.full_name ILIKE $${paramIndex} OR
+        u.email ILIKE $${paramIndex}
+      )`);
+      queryParams.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    if (whereConditions.length > 0) {
+      sql += ` WHERE ${whereConditions.join(' AND ')}`;
+    }
+
+    // Ajouter l'ordre
+    sql += ` ORDER BY th.created_at DESC`;
+
+    // Exécuter la requête
+    const { rows: resultRows } = await pool.query(sql, queryParams);
+
+    // Restructurer les données pour inclure tenant et property comme objets imbriqués
+    const results = resultRows.map(row => {
+      // Créer une copie pour la manipulation
+      const restructured = { ...row };
+      
+      // Ajouter l'objet tenant si les données sont disponibles
+      if (restructured.tenantUserFullName || restructured.tenantUserEmail || restructured.tenantUserPhone) {
+        restructured.tenantInfo = {
+          id: null,
+          user: {
+            fullName: restructured.tenantUserFullName || null,
+            email: restructured.tenantUserEmail || null, 
+            phoneNumber: restructured.tenantUserPhone || null
+          }
+        };
       }
+      
+      // Ajouter l'objet property si les données sont disponibles
+      if (restructured.propertyId) {
+        restructured.propertyInfo = {
+          id: restructured.propertyId,
+          name: restructured.propertyName2 || restructured.propertyName || null,
+          address: restructured.propertyAddress || null
+        };
+      }
+      
+      // Nettoyer les propriétés qui sont maintenant dans les objets
+      delete restructured.tenantUserFullName;
+      delete restructured.tenantUserEmail;
+      delete restructured.tenantUserPhone;
+      delete restructured.propertyId;
+      delete restructured.propertyName2;
+      delete restructured.propertyAddress;
+      
+      return restructured;
     });
     
-    return restructured;
-  });
-  
-  res.json(results);
+    res.json(results);
+  } catch (error) {
+    logger.error('Error handling request:', error);
+    res.status(500).json({ error: 'Impossible de récupérer l\'historique des locataires' });
+  } finally {
+    // Libérer la connexion client si elle a été créée
+    if (clientDbConnection) {
+      clientDbConnection.release();
+    }
+  }
 }));
 
 // GET les statistiques de l'historique des locataires
-router.get('/stats', asyncHandler(async (req, res) => {
-  const userId = await getUserFromSession(req);
-
-  // Calculer la date d'il y a 30 jours pour compter les incidents récents
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
-
-  // Récupérer le compte total d'entrées
-  const totalEntriesResult = await db.select({
-    count: sql<number>`count(*)`,
-  }).from(tenantHistory);
-  const totalEntries = totalEntriesResult[0]?.count || 0;
-
-  // Compter le nombre de locataires distincts avec un historique
-  const tenantsWithHistoryResult = await db.select({
-    count: sql<number>`count(distinct ${tenantHistory.tenantFullName})`,
-  }).from(tenantHistory)
-  .where(sql`${tenantHistory.tenantFullName} IS NOT NULL`);
-  const tenantsWithHistory = tenantsWithHistoryResult[0]?.count || 0;
-
-  // Récupérer les incidents récents (derniers 30 jours)
-  const recentIncidentsResult = await db.select({
-    count: sql<number>`count(*)`,
-  }).from(tenantHistory)
-  .where(and(
-    or(
-      eq(tenantHistory.eventType, 'incident'),
-      eq(tenantHistory.eventType, 'litige')
-    ),
-    sql`${tenantHistory.createdAt} >= ${thirtyDaysAgoISO}`
-  ));
-  const recentIncidents = recentIncidentsResult[0]?.count || 0;
-
-  // Récupérer les problèmes de paiement
-  const paymentIssuesResult = await db.select({
-    count: sql<number>`count(*)`,
-  }).from(tenantHistory)
-  .where(and(
-    eq(tenantHistory.eventType, 'paiement'),
-    eq(tenantHistory.eventSeverity, -2)
-  ));
-  const paymentIssuesCount = paymentIssuesResult[0]?.count || 0;
-
-  // Calculer le pourcentage d'évaluations positives (≥ 4)
-  const ratingsResult = await db.select({
-    positiveCount: sql<number>`count(*) filter (where ${tenantHistory.rating} >= 4)`,
-    totalRatingsCount: sql<number>`count(*) filter (where ${tenantHistory.rating} is not null)`,
-  }).from(tenantHistory);
+router.get('/stats', ensureAuth, asyncHandler(async (req, res) => {
+  let clientDbConnection = null;
   
-  const positiveCount = ratingsResult[0]?.positiveCount || 0;
-  const totalRatingsCount = ratingsResult[0]?.totalRatingsCount || 0;
-  const positiveRatingsPercentage = totalRatingsCount > 0 
-    ? Math.round((positiveCount / totalRatingsCount) * 100) 
-    : 0;
-
-  // Compter les entrées par type d'événement
-  const entriesByTypeResult = await db.select({
-    eventType: tenantHistory.eventType,
-    count: sql<number>`count(*)`,
-  }).from(tenantHistory)
-  .groupBy(tenantHistory.eventType);
-
-  const entriesByTypeCount: Record<string, number> = {};
-  entriesByTypeResult.forEach(entry => {
-    if (entry.eventType) {
-      entriesByTypeCount[entry.eventType] = entry.count;
+  try {
+    const authenticatedUserId = getUserId(req);
+    if (!authenticatedUserId) {
+      return res.status(401).json({ error: 'Non autorisé' });
     }
-  });
 
-  // Compter les entrées par catégorie
-  const entriesByCategoryResult = await db.select({
-    category: tenantHistory.category,
-    count: sql<number>`count(*)`,
-  }).from(tenantHistory)
-  .groupBy(tenantHistory.category);
+    // Obtenir un client DB configuré pour ce schéma client
+    clientDbConnection = await getClientDb(authenticatedUserId);
+    
+    const currentUser = req.user as any;
+    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
+    
+    // Count par catégorie
+    const categoriesStats = await pool.query(`
+      SELECT category, COUNT(*) as count
+      FROM ${schema}.tenant_history
+      GROUP BY category
+      ORDER BY count DESC
+    `);
 
-  const entriesByCategoryCount: Record<string, number> = {};
-  entriesByCategoryResult.forEach(entry => {
-    if (entry.category) {
-      entriesByCategoryCount[entry.category] = entry.count;
+    // Count par type d'évènement
+    const eventTypeStats = await pool.query(`
+      SELECT event_type as "eventType", COUNT(*) as count
+      FROM ${schema}.tenant_history
+      WHERE event_type IS NOT NULL
+      GROUP BY event_type
+      ORDER BY count DESC
+    `);
+
+    // Distribution des notes
+    const ratingsDistribution = await pool.query(`
+      SELECT rating, COUNT(*) as count
+      FROM ${schema}.tenant_history
+      WHERE rating IS NOT NULL
+      GROUP BY rating
+      ORDER BY rating
+    `);
+
+    // Moyenne globale des notes
+    const averageRating = await pool.query(`
+      SELECT AVG(rating) as average
+      FROM ${schema}.tenant_history
+      WHERE rating IS NOT NULL
+    `);
+
+    // Locataires les plus fréquents dans l'historique
+    const topTenants = await pool.query(`
+      SELECT tenant_full_name as "tenantFullName", COUNT(*) as count
+      FROM ${schema}.tenant_history
+      WHERE tenant_full_name IS NOT NULL
+      GROUP BY tenant_full_name
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+
+    // Propriétés les plus fréquentes dans l'historique
+    const topProperties = await pool.query(`
+      SELECT property_name as "propertyName", COUNT(*) as count
+      FROM ${schema}.tenant_history
+      WHERE property_name IS NOT NULL
+      GROUP BY property_name
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+
+    // Evolution mensuelle des entrées d'historique
+    const monthlyTrend = await pool.query(`
+      SELECT 
+        TO_CHAR(created_at, 'YYYY-MM') as month,
+        COUNT(*) as count
+      FROM ${schema}.tenant_history
+      GROUP BY month
+      ORDER BY month
+    `);
+
+    // Compter les locataires uniques
+    const uniqueTenantsCount = await pool.query(`
+      SELECT COUNT(DISTINCT tenant_full_name) as count
+      FROM ${schema}.tenant_history
+      WHERE tenant_full_name IS NOT NULL
+    `);
+
+    // Structurer la réponse
+    const stats = {
+      categoriesStats: categoriesStats.rows,
+      eventTypeStats: eventTypeStats.rows,
+      ratingsDistribution: ratingsDistribution.rows,
+      averageRating: averageRating.rows[0]?.average || 0,
+      topTenants: topTenants.rows,
+      topProperties: topProperties.rows,
+      monthlyTrend: monthlyTrend.rows,
+      uniqueTenantsCount: uniqueTenantsCount.rows[0]?.count || 0
+    };
+
+    res.json(stats);
+  } catch (error) {
+    logger.error('Error getting tenant history stats:', error);
+    res.status(500).json({ error: 'Impossible de récupérer les statistiques' });
+  } finally {
+    // Libérer la connexion client si elle a été créée
+    if (clientDbConnection) {
+      clientDbConnection.release();
     }
-  });
-
-  // Récupérer les statistiques de base
-  const stats = await db.select({
-    total: sql`COUNT(*)`,
-    movein: sql`SUM(CASE WHEN ${tenantHistory.category} = 'movein' THEN 1 ELSE 0 END)`,
-    moveout: sql`SUM(CASE WHEN ${tenantHistory.category} = 'moveout' THEN 1 ELSE 0 END)`,
-    evaluation: sql`SUM(CASE WHEN ${tenantHistory.category} = 'evaluation' THEN 1 ELSE 0 END)`,
-    incident: sql`SUM(CASE WHEN ${tenantHistory.category} = 'incident' THEN 1 ELSE 0 END)`,
-    communication: sql`SUM(CASE WHEN ${tenantHistory.category} = 'communication' THEN 1 ELSE 0 END)`,
-    withoutTenantId: sql`SUM(CASE WHEN ${tenantHistory.tenantFullName} IS NOT NULL THEN 1 ELSE 0 END)`
-  })
-  .from(tenantHistory)
-  .limit(1);
-
-  res.json({
-    ...stats[0],
-    totalEntries: totalEntries,
-    tenantsWithHistory: tenantsWithHistory,
-    recentIncidents: recentIncidents,
-    paymentIssuesCount: paymentIssuesCount,
-    positiveRatingsPercentage,
-    entriesByTypeCount,
-    entriesByCategoryCount
-  });
+  }
 }));
 
 // GET une entrée spécifique de l'historique des locataires par son ID
@@ -428,7 +516,8 @@ router.post('/', uploadMiddleware, asyncHandler(async (req, res) => {
     propertyName,
     selectedFolderId,
     documentTypes,
-    documentNames
+    documentNames,
+    tenant_info_id
   } = req.body;
 
   // Si un dossier est sélectionné, le logger
@@ -580,6 +669,7 @@ router.post('/', uploadMiddleware, asyncHandler(async (req, res) => {
     feedback,
     category,
     eventType,
+    tenant_info_id,
     documentIds: documentIds.length > 0 ? documentIds : undefined
   })}`);
 
@@ -602,24 +692,45 @@ router.post('/', uploadMiddleware, asyncHandler(async (req, res) => {
     }
   }
 
-  // Création de l'entrée dans la base de données
-  const newEntry = await db.insert(tenantHistory).values({
-    rating: rating ? Number(rating) : 0,
-    feedback: feedback || undefined,
-    category: category || "general",
-    tenantFullName: tenantFullName || undefined,
-    eventType: eventType || "evaluation",
-    eventSeverity: eventSeverity ? Number(eventSeverity) : 0,
-    eventDetails: eventDetails ? JSON.parse(eventDetails) : {},
-    documents: documentPaths.length > 0 ? documentPaths : [],
-    bailStatus: bailStatus || undefined,
-    bailId: bailId ? Number(bailId) : undefined,
-    propertyName: finalPropertyName || undefined,
-    createdBy: userId,
-    createdAt: new Date()
-  }).returning();
+  // Obtenir une référence au schéma client
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId)
+  });
+  
+  const schema = user?.role === 'admin' ? 'public' : `client_${userId}`;
+  
+  try {
+    // Création de l'entrée dans la base de données en utilisant une requête SQL directe
+    const result = await pool.query(`
+      INSERT INTO ${schema}.tenant_history 
+      (rating, feedback, category, tenant_full_name, event_type, event_severity, 
+       event_details, documents, bail_status, bail_id, property_name, 
+       created_by, tenant_id, tenant_info_id, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+      RETURNING *
+    `, [
+      rating ? Number(rating) : 0,
+      feedback || null,
+      category || 'general',
+      tenantFullName || null,
+      eventType || 'evaluation',
+      eventSeverity ? Number(eventSeverity) : 0,
+      eventDetails ? JSON.parse(eventDetails) : {},
+      documentPaths.length > 0 ? documentPaths : [],
+      bailStatus || null,
+      bailId ? Number(bailId) : null,
+      finalPropertyName || null,
+      userId,
+      tenantId ? Number(tenantId) : null,
+      tenant_info_id ? Number(tenant_info_id) : null
+    ]);
 
-  res.status(201).json(newEntry[0]);
+    logger.info(`Successfully created tenant history entry with ID: ${result.rows[0].id}`);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    logger.error('Error creating tenant history entry:', error);
+    res.status(500).json({ error: 'Erreur lors de la création de l\'entrée d\'historique', details: error.message });
+  }
 }));
 
 // PUT mettre à jour une entrée existante
@@ -1111,4 +1222,5 @@ router.post('/detect-orphaned', asyncHandler(async (req, res) => {
   });
 }));
 
+// Export du routeur
 export default router;

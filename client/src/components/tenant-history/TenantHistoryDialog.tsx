@@ -75,6 +75,7 @@ interface Tenant {
   propertyId: number | null;
   propertyName: string | null;
   isHistoryOnly: boolean;
+  tenant_info_id?: number;
 }
 
 interface Property {
@@ -825,6 +826,10 @@ const TenantHistoryDialog: React.FC<TenantHistoryDialogProps> = ({
                               field.onChange(Number(value));
                               // Utiliser le nom exact du locataire sélectionné
                               form.setValue('tenantFullName', tenant.fullName);
+                              // Ajouter tenant_info_id si disponible
+                              if (tenant.tenant_info_id) {
+                                form.setValue('tenant_info_id', tenant.tenant_info_id);
+                              }
                               // Si c'est un locataire historique, on ne veut pas d'ID
                               if (tenant.isHistoryOnly) {
                                 field.onChange(null);

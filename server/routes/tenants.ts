@@ -543,7 +543,7 @@ router.delete("/:id", ensureAuth, async (req, res, next) => {
         // S'il n'y a plus de locataires actifs, marquer la propriété comme disponible
         await client.query(`
           UPDATE ${schema}.properties 
-          SET status = 'available'
+          SET status = 'available', monthlyRent = 0
           WHERE id = $1
         `, [tenant.property_id]);
       }
@@ -643,7 +643,7 @@ router.post("/:id/archive", ensureAuth, async (req, res, next) => {
     if (otherTenantsCount === 0) {
       await pool.query(`
         UPDATE ${schema}.properties 
-        SET status = 'available'
+        SET status = 'available', monthlyRent = 0
         WHERE id = $1
       `, [tenant.property_id]);
     }

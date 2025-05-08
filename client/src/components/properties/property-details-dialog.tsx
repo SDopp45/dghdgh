@@ -468,7 +468,7 @@ export function PropertyDetailsDialog({ property, open, onOpenChange }: Property
                   </div>
                   )}
                   
-                  {property.monthlyRent && Number(property.monthlyRent) > 0 && (
+                  {property.monthlyRent && Number(property.monthlyRent) > 0 && property.status === 'rented' && (
                     <div className="p-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 transition-all duration-300 group/item flex items-center justify-between">
                       <span className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
                         <Banknote className="h-4 w-4 text-emerald-500 group-hover/item:text-emerald-600" />

@@ -842,12 +842,11 @@ export default function Properties() {
 
                 {/* Colonne 2 - Finances */}
                 {((property.purchasePrice !== undefined && property.purchasePrice !== null && Number(property.purchasePrice) > 0) ||
-                  (property.monthlyRent !== undefined && property.monthlyRent !== null && Number(property.monthlyRent) > 0) ||
+                  (property.monthlyRent !== undefined && property.monthlyRent !== null && Number(property.monthlyRent) > 0 && property.status === 'rented') ||
                   (property.loanAmount !== undefined && property.loanAmount !== null && Number(property.loanAmount) > 0) ||
                   (property.monthlyLoanPayment !== undefined && property.monthlyLoanPayment !== null && Number(property.monthlyLoanPayment) > 0) ||
                   (property.loanDuration !== undefined && property.loanDuration !== null && Number(property.loanDuration) > 0) ||
-                  (property.monthlyExpenses !== undefined && property.monthlyExpenses !== null && Number(property.monthlyExpenses) > 0)
-                ) && (
+                  (property.monthlyExpenses !== undefined && property.monthlyExpenses !== null && Number(property.monthlyExpenses) > 0)) && (
                 <div>
                   <h4 className="text-xs uppercase font-medium text-muted-foreground mb-2">Finances</h4>
                   <div className="grid grid-cols-2 gap-y-2 gap-x-4">
@@ -858,7 +857,7 @@ export default function Properties() {
                       </div>
                     )}
                     
-                    {property.monthlyRent !== undefined && property.monthlyRent !== null && Number(property.monthlyRent) > 0 && (
+                    {property.monthlyRent !== undefined && property.monthlyRent !== null && Number(property.monthlyRent) > 0 && property.status === 'rented' && (
                       <div className="flex items-center gap-1.5">
                         <CircleDollarSign className="h-4 w-4 text-green-500 dark:text-green-400" />
                         <span className="text-sm">{property.monthlyRent.toLocaleString()} € /mois</span>

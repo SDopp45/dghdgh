@@ -211,7 +211,7 @@ export function TenantTable({ tenants, showArchived = false, onDelete, onEdit, o
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Home className="h-4 w-4 text-orange-500" />
-                      <span>{tenant.property?.name || "Propriété non associée"}</span>
+                      <span>{tenant.propertyName || tenant.property?.name || "Propriété non associée"}</span>
                     </div>
                   </TableCell>
                   <TableCell>

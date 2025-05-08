@@ -383,10 +383,13 @@ export default function Tenants() {
   const filteredTenants = tenants.filter(tenant => {
     const searchTerm = filters.search.toLowerCase();
     const matchesSearch =
+      ((tenant.tenantInfo?.fullName?.toLowerCase() || "").includes(searchTerm)) ||
       ((tenant.user?.fullName?.toLowerCase() || "").includes(searchTerm)) ||
       ((tenant.user?.username?.toLowerCase() || "").includes(searchTerm)) ||
       ((tenant.property?.name?.toLowerCase() || "").includes(searchTerm)) ||
+      ((tenant.propertyName?.toLowerCase() || "").includes(searchTerm)) ||
       ((tenant.user?.phoneNumber?.toLowerCase() || "").includes(searchTerm)) ||
+      ((tenant.tenantInfo?.phoneNumber?.toLowerCase() || "").includes(searchTerm)) ||
       tenant.leaseType.toLowerCase().includes(searchTerm) ||
       tenant.rentAmount.toString().includes(searchTerm);
 
@@ -405,8 +408,8 @@ export default function Tenants() {
     return matchesSearch && matchesLeaseType && matchesRentRange && matchesDateRange;
   });
 
-  const activeTenants = filteredTenants.filter(t => t.leaseStatus === "actif");
-  const archivedTenants = filteredTenants.filter(t => t.leaseStatus === "fini");
+  const activeTenants = filteredTenants.filter(t => t.active === true || t.leaseStatus === "actif");
+  const archivedTenants = filteredTenants.filter(t => t.active === false || t.leaseStatus === "terminé" || t.leaseStatus === "fini");
 
   const onFilterChange = useCallback((newFilters: {
     leaseType?: string[];

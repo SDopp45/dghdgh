@@ -1086,7 +1086,7 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
                 )}
 
                 {/* Loyer mensuel */}
-                {property.monthlyRent && Number(property.monthlyRent) > 0 && (
+                {property.monthlyRent !== undefined && property.monthlyRent !== null && Number(property.monthlyRent) > 0 && property.status === 'rented' && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>

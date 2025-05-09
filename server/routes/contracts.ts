@@ -1,7 +1,7 @@
 import express from 'express';
 import { db } from '../db';
 import { contracts, contractParties, users, properties } from '../../shared/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import logger from '../utils/logger';
 
 const router = express.Router();
@@ -9,6 +9,19 @@ const router = express.Router();
 // Récupérer tous les contrats
 router.get('/', async (req, res) => {
   try {
+    // Récupérer l'ID de l'utilisateur depuis la requête
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const { tenantId } = req.query;
     let result;
 
@@ -27,6 +40,8 @@ router.get('/', async (req, res) => {
       const contractIds = contractPartiesResult.map(item => item.contractId);
 
       if (contractIds.length === 0) {
+        // Réinitialiser le search_path avant de quitter
+        await db.execute(sql`SET search_path TO public`);
         // Aucun contrat trouvé pour ce locataire
         return res.json({
           data: [],
@@ -95,12 +110,18 @@ router.get('/', async (req, res) => {
         };
       })
     );
+    
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
 
     return res.json({
       data: contractsWithParties,
       meta: { total: contractsWithParties.length }
     });
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     logger.error('Error fetching contracts:', error);
     res.status(500).json({ 
       error: "Erreur lors de la récupération des contrats",
@@ -112,6 +133,19 @@ router.get('/', async (req, res) => {
 // Récupérer un contrat spécifique
 router.get('/:id', async (req, res) => {
   try {
+    // Récupérer l'ID de l'utilisateur depuis la requête
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const { id } = req.params;
     
     const contract = await db
@@ -121,6 +155,8 @@ router.get('/:id', async (req, res) => {
       .limit(1);
 
     if (!contract || contract.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(404).json({ error: 'Contrat non trouvé' });
     }
 
@@ -165,6 +201,9 @@ router.get('/:id', async (req, res) => {
         propertyName = propertyRecord[0].name;
       }
     }
+    
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
 
     return res.json({
       data: {
@@ -174,6 +213,9 @@ router.get('/:id', async (req, res) => {
       }
     });
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     logger.error('Error fetching contract details:', error);
     res.status(500).json({ 
       error: "Erreur lors de la récupération des détails du contrat",
@@ -185,6 +227,19 @@ router.get('/:id', async (req, res) => {
 // Créer un nouveau contrat
 router.post('/', async (req, res) => {
   try {
+    // Récupérer l'ID de l'utilisateur depuis la requête
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const { 
       name, 
       type, 
@@ -202,6 +257,8 @@ router.post('/', async (req, res) => {
 
     // Validation de base
     if (!name || !type || !startDate || !parties || !Array.isArray(parties) || parties.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'Données invalides. Veuillez vérifier les champs obligatoires.' });
     }
 
@@ -260,6 +317,9 @@ router.post('/', async (req, res) => {
         return partyDetails;
       })
     );
+    
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
 
     return res.status(201).json({
       data: {
@@ -268,6 +328,9 @@ router.post('/', async (req, res) => {
       }
     });
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     logger.error('Error creating contract:', error);
     res.status(500).json({ 
       error: "Erreur lors de la création du contrat",
@@ -279,6 +342,19 @@ router.post('/', async (req, res) => {
 // Mettre à jour un contrat
 router.put('/:id', async (req, res) => {
   try {
+    // Récupérer l'ID de l'utilisateur depuis la requête
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const { id } = req.params;
     const { 
       name, 
@@ -303,11 +379,26 @@ router.put('/:id', async (req, res) => {
       .limit(1);
 
     if (!existingContract || existingContract.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(404).json({ error: 'Contrat non trouvé' });
     }
 
     // Construire l'objet de mise à jour
-    const updateData = {};
+    const updateData: {
+      name?: string;
+      type?: string;
+      status?: string;
+      startDate?: Date;
+      endDate?: Date | null;
+      propertyId?: number;
+      documentId?: number;
+      signatureRequired?: boolean;
+      automatedRenewal?: boolean;
+      renewalDate?: Date | null;
+      notificationDate?: Date | null;
+      updatedAt: Date;
+    } = { updatedAt: new Date() };
     
     if (name !== undefined) updateData.name = name;
     if (type !== undefined) updateData.type = type;
@@ -320,8 +411,7 @@ router.put('/:id', async (req, res) => {
     if (automatedRenewal !== undefined) updateData.automatedRenewal = automatedRenewal;
     if (renewalDate !== undefined) updateData.renewalDate = renewalDate ? new Date(renewalDate) : null;
     if (notificationDate !== undefined) updateData.notificationDate = notificationDate ? new Date(notificationDate) : null;
-    updateData.updatedAt = new Date();
-
+    
     // Mettre à jour le contrat
     const [updatedContract] = await db
       .update(contracts)
@@ -377,6 +467,9 @@ router.put('/:id', async (req, res) => {
         return partyDetails;
       })
     );
+    
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
 
     return res.json({
       data: {
@@ -385,6 +478,9 @@ router.put('/:id', async (req, res) => {
       }
     });
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     logger.error('Error updating contract:', error);
     res.status(500).json({ 
       error: "Erreur lors de la mise à jour du contrat",
@@ -396,6 +492,19 @@ router.put('/:id', async (req, res) => {
 // Supprimer un contrat
 router.delete('/:id', async (req, res) => {
   try {
+    // Récupérer l'ID de l'utilisateur depuis la requête
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const { id } = req.params;
 
     // Vérifier si le contrat existe
@@ -406,6 +515,8 @@ router.delete('/:id', async (req, res) => {
       .limit(1);
 
     if (!existingContract || existingContract.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(404).json({ error: 'Contrat non trouvé' });
     }
 
@@ -418,12 +529,18 @@ router.delete('/:id', async (req, res) => {
     await db
       .delete(contracts)
       .where(eq(contracts.id, parseInt(id)));
+      
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
 
     return res.json({
       success: true,
       message: 'Contrat supprimé avec succès'
     });
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     logger.error('Error deleting contract:', error);
     res.status(500).json({ 
       error: "Erreur lors de la suppression du contrat",

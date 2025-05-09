@@ -1,7 +1,9 @@
 import { Router } from "express";
+import { db } from "@db";
 import logger from "../utils/logger";
 import { repairClientSchemas } from "../utils/db-repair";
 import { requireAdmin } from "../middleware/auth";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 

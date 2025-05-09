@@ -1,11 +1,4 @@
 --
--- PostgreSQL database dump - Converti de public à template
---
-
--- Création du schéma template s'il n'existe pas
-CREATE SCHEMA IF NOT EXISTS template;
-
---
 -- PostgreSQL database dump
 --
 
@@ -49,10 +42,10 @@ SET default_table_access_method = heap;
 
 --
 -- TOC entry 219 (class 1259 OID 16870)
--- Name: properties; Type: TABLE; Schema: template; Owner: postgres
+-- Name: properties; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.properties (
+CREATE TABLE public.properties (
     id integer NOT NULL,
     name text NOT NULL,
     address text NOT NULL,
@@ -109,17 +102,17 @@ CREATE TABLE template.properties (
     CONSTRAINT properties_type_check CHECK ((type = ANY (ARRAY['apartment'::text, 'house'::text, 'commercial'::text, 'parking'::text, 'garage'::text, 'land'::text, 'office'::text, 'building'::text, 'storage'::text])))
 );
 
-ALTER TABLE ONLY template.properties 
+ALTER TABLE ONLY public.properties FORCE ROW LEVEL SECURITY;
 
 
-ALTER TABLE template.properties OWNER TO postgres;
+ALTER TABLE public.properties OWNER TO postgres;
 
 --
 -- TOC entry 327 (class 1255 OID 18754)
--- Name: admin_get_all_properties(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: admin_get_all_properties(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.admin_get_all_properties() RETURNS SETOF template.properties
+CREATE FUNCTION public.admin_get_all_properties() RETURNS SETOF public.properties
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -132,14 +125,14 @@ END;
 $$;
 
 
-ALTER FUNCTION template.admin_get_all_properties() OWNER TO postgres;
+ALTER FUNCTION public.admin_get_all_properties() OWNER TO postgres;
 
 --
 -- TOC entry 380 (class 1255 OID 19907)
--- Name: check_auth(text, text); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: check_auth(text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.check_auth(p_username text, p_password text) RETURNS TABLE(id integer, username text, role text, full_name text, email text, authenticated boolean)
+CREATE FUNCTION public.check_auth(p_username text, p_password text) RETURNS TABLE(id integer, username text, role text, full_name text, email text, authenticated boolean)
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
       DECLARE
@@ -186,14 +179,14 @@ CREATE FUNCTION template.check_auth(p_username text, p_password text) RETURNS TA
       $$;
 
 
-ALTER FUNCTION template.check_auth(p_username text, p_password text) OWNER TO postgres;
+ALTER FUNCTION public.check_auth(p_username text, p_password text) OWNER TO postgres;
 
 --
 -- TOC entry 382 (class 1255 OID 18689)
--- Name: current_user_id(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: current_user_id(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.current_user_id() RETURNS integer
+CREATE FUNCTION public.current_user_id() RETURNS integer
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -212,23 +205,23 @@ END;
 $$;
 
 
-ALTER FUNCTION template.current_user_id() OWNER TO postgres;
+ALTER FUNCTION public.current_user_id() OWNER TO postgres;
 
 --
 -- TOC entry 5767 (class 0 OID 0)
 -- Dependencies: 382
--- Name: FUNCTION current_user_id(); Type: COMMENT; Schema: template; Owner: postgres
+-- Name: FUNCTION current_user_id(); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION template.current_user_id() IS 'Retourne l''ID de l''utilisateur actuel à partir du contexte d''application';
+COMMENT ON FUNCTION public.current_user_id() IS 'Retourne l''ID de l''utilisateur actuel à partir du contexte d''application';
 
 
 --
 -- TOC entry 384 (class 1255 OID 19950)
--- Name: enable_rls_on_table(text); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: enable_rls_on_table(text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.enable_rls_on_table(table_name text) RETURNS void
+CREATE FUNCTION public.enable_rls_on_table(table_name text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -247,14 +240,14 @@ END;
 $$;
 
 
-ALTER FUNCTION template.enable_rls_on_table(table_name text) OWNER TO postgres;
+ALTER FUNCTION public.enable_rls_on_table(table_name text) OWNER TO postgres;
 
 --
 -- TOC entry 326 (class 1255 OID 18690)
--- Name: is_admin(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: is_admin(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.is_admin() RETURNS boolean
+CREATE FUNCTION public.is_admin() RETURNS boolean
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -266,14 +259,14 @@ END;
 $$;
 
 
-ALTER FUNCTION template.is_admin() OWNER TO postgres;
+ALTER FUNCTION public.is_admin() OWNER TO postgres;
 
 --
 -- TOC entry 381 (class 1255 OID 19948)
--- Name: log_table_changes(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: log_table_changes(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.log_table_changes() RETURNS trigger
+CREATE FUNCTION public.log_table_changes() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -306,23 +299,23 @@ END;
 $$;
 
 
-ALTER FUNCTION template.log_table_changes() OWNER TO postgres;
+ALTER FUNCTION public.log_table_changes() OWNER TO postgres;
 
 --
 -- TOC entry 5768 (class 0 OID 0)
 -- Dependencies: 381
--- Name: FUNCTION log_table_changes(); Type: COMMENT; Schema: template; Owner: postgres
+-- Name: FUNCTION log_table_changes(); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION template.log_table_changes() IS 'Fonction pour journaliser les modifications des tables principales';
+COMMENT ON FUNCTION public.log_table_changes() IS 'Fonction pour journaliser les modifications des tables principales';
 
 
 --
 -- TOC entry 346 (class 1255 OID 19450)
--- Name: recalculate_user_storage(integer); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: recalculate_user_storage(integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.recalculate_user_storage(user_id_param integer) RETURNS numeric
+CREATE FUNCTION public.recalculate_user_storage(user_id_param integer) RETURNS numeric
     LANGUAGE plpgsql
     AS $$
       DECLARE
@@ -345,14 +338,14 @@ CREATE FUNCTION template.recalculate_user_storage(user_id_param integer) RETURNS
       $$;
 
 
-ALTER FUNCTION template.recalculate_user_storage(user_id_param integer) OWNER TO postgres;
+ALTER FUNCTION public.recalculate_user_storage(user_id_param integer) OWNER TO postgres;
 
 --
 -- TOC entry 383 (class 1255 OID 19941)
--- Name: safe_create_policy(text, text, text); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: safe_create_policy(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.safe_create_policy(p_policy_name text, p_table_name text, p_using_expr text) RETURNS void
+CREATE FUNCTION public.safe_create_policy(p_policy_name text, p_table_name text, p_using_expr text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -368,7 +361,8 @@ BEGIN
   
   -- Créer la nouvelle politique
   BEGIN
-    EXECUTE format('
+    EXECUTE format('CREATE POLICY %I ON %I USING (%s)', 
+      p_policy_name, p_table_name, p_using_expr);
     RAISE NOTICE 'Politique % sur la table % créée avec succès', p_policy_name, p_table_name;
   EXCEPTION
     WHEN undefined_table THEN
@@ -384,23 +378,23 @@ END;
 $$;
 
 
-ALTER FUNCTION template.safe_create_policy(p_policy_name text, p_table_name text, p_using_expr text) OWNER TO postgres;
+ALTER FUNCTION public.safe_create_policy(p_policy_name text, p_table_name text, p_using_expr text) OWNER TO postgres;
 
 --
 -- TOC entry 5769 (class 0 OID 0)
 -- Dependencies: 383
--- Name: FUNCTION safe_create_policy(p_policy_name text, p_table_name text, p_using_expr text); Type: COMMENT; Schema: template; Owner: postgres
+-- Name: FUNCTION safe_create_policy(p_policy_name text, p_table_name text, p_using_expr text); Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON FUNCTION template.safe_create_policy(p_policy_name text, p_table_name text, p_using_expr text) IS 'Crée ou remplace une politique RLS de manière sécurisée';
+COMMENT ON FUNCTION public.safe_create_policy(p_policy_name text, p_table_name text, p_using_expr text) IS 'Crée ou remplace une politique RLS de manière sécurisée';
 
 
 --
 -- TOC entry 379 (class 1255 OID 19940)
--- Name: set_app_variables(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: set_app_variables(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.set_app_variables() RETURNS void
+CREATE FUNCTION public.set_app_variables() RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -412,14 +406,14 @@ END;
 $$;
 
 
-ALTER FUNCTION template.set_app_variables() OWNER TO postgres;
+ALTER FUNCTION public.set_app_variables() OWNER TO postgres;
 
 --
 -- TOC entry 348 (class 1255 OID 19374)
--- Name: set_user_id(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: set_user_id(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.set_user_id() RETURNS void
+CREATE FUNCTION public.set_user_id() RETURNS void
     LANGUAGE plpgsql
     AS $$
       BEGIN
@@ -430,14 +424,14 @@ CREATE FUNCTION template.set_user_id() RETURNS void
       $$;
 
 
-ALTER FUNCTION template.set_user_id() OWNER TO postgres;
+ALTER FUNCTION public.set_user_id() OWNER TO postgres;
 
 --
 -- TOC entry 345 (class 1255 OID 19210)
--- Name: sync_theme_colors(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: sync_theme_colors(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.sync_theme_colors() RETURNS trigger
+CREATE FUNCTION public.sync_theme_colors() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -447,14 +441,14 @@ END;
 $$;
 
 
-ALTER FUNCTION template.sync_theme_colors() OWNER TO postgres;
+ALTER FUNCTION public.sync_theme_colors() OWNER TO postgres;
 
 --
 -- TOC entry 385 (class 1255 OID 19957)
--- Name: test_rls_config(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: test_rls_config(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.test_rls_config() RETURNS void
+CREATE FUNCTION public.test_rls_config() RETURNS void
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -480,14 +474,14 @@ END;
 $$;
 
 
-ALTER FUNCTION template.test_rls_config() OWNER TO postgres;
+ALTER FUNCTION public.test_rls_config() OWNER TO postgres;
 
 --
 -- TOC entry 344 (class 1255 OID 18935)
--- Name: update_modified_column(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: update_modified_column(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.update_modified_column() RETURNS trigger
+CREATE FUNCTION public.update_modified_column() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -497,14 +491,14 @@ END;
 $$;
 
 
-ALTER FUNCTION template.update_modified_column() OWNER TO postgres;
+ALTER FUNCTION public.update_modified_column() OWNER TO postgres;
 
 --
 -- TOC entry 347 (class 1255 OID 19451)
--- Name: update_storage_on_document_change(); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: update_storage_on_document_change(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.update_storage_on_document_change() RETURNS trigger
+CREATE FUNCTION public.update_storage_on_document_change() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
       BEGIN
@@ -551,14 +545,14 @@ CREATE FUNCTION template.update_storage_on_document_change() RETURNS trigger
       $$;
 
 
-ALTER FUNCTION template.update_storage_on_document_change() OWNER TO postgres;
+ALTER FUNCTION public.update_storage_on_document_change() OWNER TO postgres;
 
 --
 -- TOC entry 325 (class 1255 OID 18464)
--- Name: update_user_storage_quota(integer, integer); Type: FUNCTION; Schema: template; Owner: postgres
+-- Name: update_user_storage_quota(integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION template.update_user_storage_quota(p_user_id integer, p_extension_id integer) RETURNS void
+CREATE FUNCTION public.update_user_storage_quota(p_user_id integer, p_extension_id integer) RETURNS void
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -583,14 +577,14 @@ END;
 $$;
 
 
-ALTER FUNCTION template.update_user_storage_quota(p_user_id integer, p_extension_id integer) OWNER TO postgres;
+ALTER FUNCTION public.update_user_storage_quota(p_user_id integer, p_extension_id integer) OWNER TO postgres;
 
 --
 -- TOC entry 317 (class 1259 OID 19261)
--- Name: ai_conversations; Type: TABLE; Schema: template; Owner: postgres
+-- Name: ai_conversations; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.ai_conversations (
+CREATE TABLE public.ai_conversations (
     id integer NOT NULL,
     user_id integer NOT NULL,
     title text NOT NULL,
@@ -604,14 +598,14 @@ CREATE TABLE template.ai_conversations (
 );
 
 
-ALTER TABLE template.ai_conversations OWNER TO postgres;
+ALTER TABLE public.ai_conversations OWNER TO postgres;
 
 --
 -- TOC entry 316 (class 1259 OID 19260)
--- Name: ai_conversations_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: ai_conversations_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.ai_conversations_id_seq
+CREATE SEQUENCE public.ai_conversations_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -620,23 +614,23 @@ CREATE SEQUENCE template.ai_conversations_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.ai_conversations_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.ai_conversations_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5771 (class 0 OID 0)
 -- Dependencies: 316
--- Name: ai_conversations_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: ai_conversations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.ai_conversations_id_seq OWNED BY template.ai_conversations.id;
+ALTER SEQUENCE public.ai_conversations_id_seq OWNED BY public.ai_conversations.id;
 
 
 --
 -- TOC entry 319 (class 1259 OID 19283)
--- Name: ai_messages; Type: TABLE; Schema: template; Owner: postgres
+-- Name: ai_messages; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.ai_messages (
+CREATE TABLE public.ai_messages (
     id integer NOT NULL,
     user_id integer NOT NULL,
     role text DEFAULT 'user'::text NOT NULL,
@@ -651,14 +645,14 @@ CREATE TABLE template.ai_messages (
 );
 
 
-ALTER TABLE template.ai_messages OWNER TO postgres;
+ALTER TABLE public.ai_messages OWNER TO postgres;
 
 --
 -- TOC entry 318 (class 1259 OID 19282)
--- Name: ai_messages_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: ai_messages_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.ai_messages_id_seq
+CREATE SEQUENCE public.ai_messages_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -667,23 +661,23 @@ CREATE SEQUENCE template.ai_messages_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.ai_messages_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.ai_messages_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5774 (class 0 OID 0)
 -- Dependencies: 318
--- Name: ai_messages_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: ai_messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.ai_messages_id_seq OWNED BY template.ai_messages.id;
+ALTER SEQUENCE public.ai_messages_id_seq OWNED BY public.ai_messages.id;
 
 
 --
 -- TOC entry 321 (class 1259 OID 19312)
--- Name: ai_suggestions; Type: TABLE; Schema: template; Owner: postgres
+-- Name: ai_suggestions; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.ai_suggestions (
+CREATE TABLE public.ai_suggestions (
     id integer NOT NULL,
     user_id integer NOT NULL,
     property_id integer,
@@ -697,14 +691,14 @@ CREATE TABLE template.ai_suggestions (
 );
 
 
-ALTER TABLE template.ai_suggestions OWNER TO postgres;
+ALTER TABLE public.ai_suggestions OWNER TO postgres;
 
 --
 -- TOC entry 320 (class 1259 OID 19311)
--- Name: ai_suggestions_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: ai_suggestions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.ai_suggestions_id_seq
+CREATE SEQUENCE public.ai_suggestions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -713,23 +707,23 @@ CREATE SEQUENCE template.ai_suggestions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.ai_suggestions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.ai_suggestions_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5777 (class 0 OID 0)
 -- Dependencies: 320
--- Name: ai_suggestions_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: ai_suggestions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.ai_suggestions_id_seq OWNED BY template.ai_suggestions.id;
+ALTER SEQUENCE public.ai_suggestions_id_seq OWNED BY public.ai_suggestions.id;
 
 
 --
 -- TOC entry 224 (class 1259 OID 17090)
--- Name: alerts; Type: TABLE; Schema: template; Owner: postgres
+-- Name: alerts; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.alerts (
+CREATE TABLE public.alerts (
     id integer NOT NULL,
     title text NOT NULL,
     description text,
@@ -741,14 +735,14 @@ CREATE TABLE template.alerts (
 );
 
 
-ALTER TABLE template.alerts OWNER TO postgres;
+ALTER TABLE public.alerts OWNER TO postgres;
 
 --
 -- TOC entry 223 (class 1259 OID 17089)
--- Name: alerts_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: alerts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.alerts_id_seq
+CREATE SEQUENCE public.alerts_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -757,23 +751,23 @@ CREATE SEQUENCE template.alerts_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.alerts_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.alerts_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5780 (class 0 OID 0)
 -- Dependencies: 223
--- Name: alerts_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: alerts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.alerts_id_seq OWNED BY template.alerts.id;
+ALTER SEQUENCE public.alerts_id_seq OWNED BY public.alerts.id;
 
 
 --
 -- TOC entry 275 (class 1259 OID 17776)
--- Name: analysis_configs; Type: TABLE; Schema: template; Owner: postgres
+-- Name: analysis_configs; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.analysis_configs (
+CREATE TABLE public.analysis_configs (
     id integer NOT NULL,
     property_id integer,
     user_id integer,
@@ -785,14 +779,14 @@ CREATE TABLE template.analysis_configs (
 );
 
 
-ALTER TABLE template.analysis_configs OWNER TO postgres;
+ALTER TABLE public.analysis_configs OWNER TO postgres;
 
 --
 -- TOC entry 274 (class 1259 OID 17775)
--- Name: analysis_configs_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: analysis_configs_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.analysis_configs_id_seq
+CREATE SEQUENCE public.analysis_configs_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -801,23 +795,23 @@ CREATE SEQUENCE template.analysis_configs_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.analysis_configs_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.analysis_configs_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5783 (class 0 OID 0)
 -- Dependencies: 274
--- Name: analysis_configs_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: analysis_configs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.analysis_configs_id_seq OWNED BY template.analysis_configs.id;
+ALTER SEQUENCE public.analysis_configs_id_seq OWNED BY public.analysis_configs.id;
 
 
 --
 -- TOC entry 267 (class 1259 OID 17609)
--- Name: automatic_reminders; Type: TABLE; Schema: template; Owner: postgres
+-- Name: automatic_reminders; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.automatic_reminders (
+CREATE TABLE public.automatic_reminders (
     id integer NOT NULL,
     user_id integer NOT NULL,
     type text NOT NULL,
@@ -834,14 +828,14 @@ CREATE TABLE template.automatic_reminders (
 );
 
 
-ALTER TABLE template.automatic_reminders OWNER TO postgres;
+ALTER TABLE public.automatic_reminders OWNER TO postgres;
 
 --
 -- TOC entry 266 (class 1259 OID 17608)
--- Name: automatic_reminders_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: automatic_reminders_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.automatic_reminders_id_seq
+CREATE SEQUENCE public.automatic_reminders_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -850,23 +844,23 @@ CREATE SEQUENCE template.automatic_reminders_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.automatic_reminders_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.automatic_reminders_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5786 (class 0 OID 0)
 -- Dependencies: 266
--- Name: automatic_reminders_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: automatic_reminders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.automatic_reminders_id_seq OWNED BY template.automatic_reminders.id;
+ALTER SEQUENCE public.automatic_reminders_id_seq OWNED BY public.automatic_reminders.id;
 
 
 --
 -- TOC entry 301 (class 1259 OID 18448)
--- Name: billing_transactions; Type: TABLE; Schema: template; Owner: postgres
+-- Name: billing_transactions; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.billing_transactions (
+CREATE TABLE public.billing_transactions (
     id integer NOT NULL,
     user_id integer NOT NULL,
     amount numeric NOT NULL,
@@ -879,14 +873,14 @@ CREATE TABLE template.billing_transactions (
 );
 
 
-ALTER TABLE template.billing_transactions OWNER TO postgres;
+ALTER TABLE public.billing_transactions OWNER TO postgres;
 
 --
 -- TOC entry 300 (class 1259 OID 18447)
--- Name: billing_transactions_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: billing_transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.billing_transactions_id_seq
+CREATE SEQUENCE public.billing_transactions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -895,23 +889,23 @@ CREATE SEQUENCE template.billing_transactions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.billing_transactions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.billing_transactions_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5789 (class 0 OID 0)
 -- Dependencies: 300
--- Name: billing_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: billing_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.billing_transactions_id_seq OWNED BY template.billing_transactions.id;
+ALTER SEQUENCE public.billing_transactions_id_seq OWNED BY public.billing_transactions.id;
 
 
 --
 -- TOC entry 313 (class 1259 OID 19148)
--- Name: company_info; Type: TABLE; Schema: template; Owner: postgres
+-- Name: company_info; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.company_info (
+CREATE TABLE public.company_info (
     id integer NOT NULL,
     user_id integer NOT NULL,
     company_name character varying(200),
@@ -925,14 +919,14 @@ CREATE TABLE template.company_info (
 );
 
 
-ALTER TABLE template.company_info OWNER TO postgres;
+ALTER TABLE public.company_info OWNER TO postgres;
 
 --
 -- TOC entry 312 (class 1259 OID 19147)
--- Name: company_info_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: company_info_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.company_info_id_seq
+CREATE SEQUENCE public.company_info_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -941,23 +935,23 @@ CREATE SEQUENCE template.company_info_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.company_info_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.company_info_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5792 (class 0 OID 0)
 -- Dependencies: 312
--- Name: company_info_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: company_info_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.company_info_id_seq OWNED BY template.company_info.id;
+ALTER SEQUENCE public.company_info_id_seq OWNED BY public.company_info.id;
 
 
 --
 -- TOC entry 271 (class 1259 OID 17727)
--- Name: contract_parties; Type: TABLE; Schema: template; Owner: postgres
+-- Name: contract_parties; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.contract_parties (
+CREATE TABLE public.contract_parties (
     id integer NOT NULL,
     contract_id integer NOT NULL,
     party_id integer NOT NULL,
@@ -967,14 +961,14 @@ CREATE TABLE template.contract_parties (
 );
 
 
-ALTER TABLE template.contract_parties OWNER TO postgres;
+ALTER TABLE public.contract_parties OWNER TO postgres;
 
 --
 -- TOC entry 270 (class 1259 OID 17726)
--- Name: contract_parties_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: contract_parties_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.contract_parties_id_seq
+CREATE SEQUENCE public.contract_parties_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -983,23 +977,23 @@ CREATE SEQUENCE template.contract_parties_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.contract_parties_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.contract_parties_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5795 (class 0 OID 0)
 -- Dependencies: 270
--- Name: contract_parties_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: contract_parties_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.contract_parties_id_seq OWNED BY template.contract_parties.id;
+ALTER SEQUENCE public.contract_parties_id_seq OWNED BY public.contract_parties.id;
 
 
 --
 -- TOC entry 269 (class 1259 OID 17701)
--- Name: contracts; Type: TABLE; Schema: template; Owner: postgres
+-- Name: contracts; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.contracts (
+CREATE TABLE public.contracts (
     id integer NOT NULL,
     name text NOT NULL,
     type text NOT NULL,
@@ -1019,14 +1013,14 @@ CREATE TABLE template.contracts (
 );
 
 
-ALTER TABLE template.contracts OWNER TO postgres;
+ALTER TABLE public.contracts OWNER TO postgres;
 
 --
 -- TOC entry 268 (class 1259 OID 17700)
--- Name: contracts_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: contracts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.contracts_id_seq
+CREATE SEQUENCE public.contracts_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1035,23 +1029,23 @@ CREATE SEQUENCE template.contracts_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.contracts_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.contracts_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5798 (class 0 OID 0)
 -- Dependencies: 268
--- Name: contracts_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: contracts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.contracts_id_seq OWNED BY template.contracts.id;
+ALTER SEQUENCE public.contracts_id_seq OWNED BY public.contracts.id;
 
 
 --
 -- TOC entry 229 (class 1259 OID 17231)
--- Name: document_templates; Type: TABLE; Schema: template; Owner: postgres
+-- Name: document_templates; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.document_templates (
+CREATE TABLE public.document_templates (
     id integer NOT NULL,
     name text NOT NULL,
     document_type text NOT NULL,
@@ -1062,14 +1056,14 @@ CREATE TABLE template.document_templates (
 );
 
 
-ALTER TABLE template.document_templates OWNER TO postgres;
+ALTER TABLE public.document_templates OWNER TO postgres;
 
 --
 -- TOC entry 230 (class 1259 OID 17238)
--- Name: document_templates_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: document_templates_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.document_templates_id_seq
+CREATE SEQUENCE public.document_templates_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1078,23 +1072,23 @@ CREATE SEQUENCE template.document_templates_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.document_templates_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.document_templates_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5801 (class 0 OID 0)
 -- Dependencies: 230
--- Name: document_templates_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: document_templates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.document_templates_id_seq OWNED BY template.document_templates.id;
+ALTER SEQUENCE public.document_templates_id_seq OWNED BY public.document_templates.id;
 
 
 --
 -- TOC entry 231 (class 1259 OID 17239)
--- Name: documents; Type: TABLE; Schema: template; Owner: postgres
+-- Name: documents; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.documents (
+CREATE TABLE public.documents (
     id integer NOT NULL,
     title text NOT NULL,
     type text DEFAULT 'lease'::text NOT NULL,
@@ -1113,17 +1107,17 @@ CREATE TABLE template.documents (
     file_size numeric DEFAULT 0
 );
 
-ALTER TABLE ONLY template.documents 
+ALTER TABLE ONLY public.documents FORCE ROW LEVEL SECURITY;
 
 
-ALTER TABLE template.documents OWNER TO postgres;
+ALTER TABLE public.documents OWNER TO postgres;
 
 --
 -- TOC entry 232 (class 1259 OID 17251)
--- Name: documents_access_log; Type: TABLE; Schema: template; Owner: postgres
+-- Name: documents_access_log; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.documents_access_log (
+CREATE TABLE public.documents_access_log (
     id integer NOT NULL,
     document_id integer NOT NULL,
     user_id integer NOT NULL,
@@ -1134,14 +1128,14 @@ CREATE TABLE template.documents_access_log (
 );
 
 
-ALTER TABLE template.documents_access_log OWNER TO postgres;
+ALTER TABLE public.documents_access_log OWNER TO postgres;
 
 --
 -- TOC entry 233 (class 1259 OID 17257)
--- Name: documents_access_log_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: documents_access_log_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.documents_access_log_id_seq
+CREATE SEQUENCE public.documents_access_log_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1150,23 +1144,23 @@ CREATE SEQUENCE template.documents_access_log_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.documents_access_log_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.documents_access_log_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5805 (class 0 OID 0)
 -- Dependencies: 233
--- Name: documents_access_log_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: documents_access_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.documents_access_log_id_seq OWNED BY template.documents_access_log.id;
+ALTER SEQUENCE public.documents_access_log_id_seq OWNED BY public.documents_access_log.id;
 
 
 --
 -- TOC entry 234 (class 1259 OID 17258)
--- Name: documents_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: documents_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.documents_id_seq
+CREATE SEQUENCE public.documents_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1175,23 +1169,23 @@ CREATE SEQUENCE template.documents_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.documents_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.documents_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5807 (class 0 OID 0)
 -- Dependencies: 234
--- Name: documents_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: documents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.documents_id_seq OWNED BY template.documents.id;
+ALTER SEQUENCE public.documents_id_seq OWNED BY public.documents.id;
 
 
 --
 -- TOC entry 228 (class 1259 OID 17113)
--- Name: feedbacks; Type: TABLE; Schema: template; Owner: postgres
+-- Name: feedbacks; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.feedbacks (
+CREATE TABLE public.feedbacks (
     id integer NOT NULL,
     "userId" integer,
     content text NOT NULL,
@@ -1201,14 +1195,14 @@ CREATE TABLE template.feedbacks (
 );
 
 
-ALTER TABLE template.feedbacks OWNER TO postgres;
+ALTER TABLE public.feedbacks OWNER TO postgres;
 
 --
 -- TOC entry 227 (class 1259 OID 17112)
--- Name: feedbacks_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: feedbacks_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.feedbacks_id_seq
+CREATE SEQUENCE public.feedbacks_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1217,23 +1211,23 @@ CREATE SEQUENCE template.feedbacks_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.feedbacks_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.feedbacks_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5810 (class 0 OID 0)
 -- Dependencies: 227
--- Name: feedbacks_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: feedbacks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.feedbacks_id_seq OWNED BY template.feedbacks.id;
+ALTER SEQUENCE public.feedbacks_id_seq OWNED BY public.feedbacks.id;
 
 
 --
 -- TOC entry 235 (class 1259 OID 17259)
--- Name: financial_entries; Type: TABLE; Schema: template; Owner: postgres
+-- Name: financial_entries; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.financial_entries (
+CREATE TABLE public.financial_entries (
     id integer NOT NULL,
     property_id integer NOT NULL,
     date date NOT NULL,
@@ -1251,14 +1245,14 @@ CREATE TABLE template.financial_entries (
 );
 
 
-ALTER TABLE template.financial_entries OWNER TO postgres;
+ALTER TABLE public.financial_entries OWNER TO postgres;
 
 --
 -- TOC entry 236 (class 1259 OID 17267)
--- Name: financial_entries_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: financial_entries_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.financial_entries_id_seq
+CREATE SEQUENCE public.financial_entries_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1267,23 +1261,23 @@ CREATE SEQUENCE template.financial_entries_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.financial_entries_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.financial_entries_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5813 (class 0 OID 0)
 -- Dependencies: 236
--- Name: financial_entries_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: financial_entries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.financial_entries_id_seq OWNED BY template.financial_entries.id;
+ALTER SEQUENCE public.financial_entries_id_seq OWNED BY public.financial_entries.id;
 
 
 --
 -- TOC entry 237 (class 1259 OID 17268)
--- Name: folders; Type: TABLE; Schema: template; Owner: postgres
+-- Name: folders; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.folders (
+CREATE TABLE public.folders (
     id integer NOT NULL,
     name text NOT NULL,
     parent_id integer,
@@ -1293,14 +1287,14 @@ CREATE TABLE template.folders (
 );
 
 
-ALTER TABLE template.folders OWNER TO postgres;
+ALTER TABLE public.folders OWNER TO postgres;
 
 --
 -- TOC entry 238 (class 1259 OID 17275)
--- Name: folders_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: folders_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.folders_id_seq
+CREATE SEQUENCE public.folders_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1309,23 +1303,23 @@ CREATE SEQUENCE template.folders_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.folders_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.folders_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5816 (class 0 OID 0)
 -- Dependencies: 238
--- Name: folders_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: folders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.folders_id_seq OWNED BY template.folders.id;
+ALTER SEQUENCE public.folders_id_seq OWNED BY public.folders.id;
 
 
 --
 -- TOC entry 291 (class 1259 OID 18206)
--- Name: form_field_options; Type: TABLE; Schema: template; Owner: postgres
+-- Name: form_field_options; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.form_field_options (
+CREATE TABLE public.form_field_options (
     id integer NOT NULL,
     form_field_id integer NOT NULL,
     value character varying(255) NOT NULL,
@@ -1334,14 +1328,14 @@ CREATE TABLE template.form_field_options (
 );
 
 
-ALTER TABLE template.form_field_options OWNER TO postgres;
+ALTER TABLE public.form_field_options OWNER TO postgres;
 
 --
 -- TOC entry 290 (class 1259 OID 18205)
--- Name: form_field_options_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: form_field_options_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.form_field_options_id_seq
+CREATE SEQUENCE public.form_field_options_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1350,23 +1344,23 @@ CREATE SEQUENCE template.form_field_options_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.form_field_options_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.form_field_options_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5819 (class 0 OID 0)
 -- Dependencies: 290
--- Name: form_field_options_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: form_field_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.form_field_options_id_seq OWNED BY template.form_field_options.id;
+ALTER SEQUENCE public.form_field_options_id_seq OWNED BY public.form_field_options.id;
 
 
 --
 -- TOC entry 289 (class 1259 OID 18187)
--- Name: form_fields; Type: TABLE; Schema: template; Owner: postgres
+-- Name: form_fields; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.form_fields (
+CREATE TABLE public.form_fields (
     id integer NOT NULL,
     link_id integer NOT NULL,
     field_id character varying(50) NOT NULL,
@@ -1380,14 +1374,14 @@ CREATE TABLE template.form_fields (
 );
 
 
-ALTER TABLE template.form_fields OWNER TO postgres;
+ALTER TABLE public.form_fields OWNER TO postgres;
 
 --
 -- TOC entry 288 (class 1259 OID 18186)
--- Name: form_fields_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: form_fields_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.form_fields_id_seq
+CREATE SEQUENCE public.form_fields_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1396,23 +1390,23 @@ CREATE SEQUENCE template.form_fields_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.form_fields_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.form_fields_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5822 (class 0 OID 0)
 -- Dependencies: 288
--- Name: form_fields_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: form_fields_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.form_fields_id_seq OWNED BY template.form_fields.id;
+ALTER SEQUENCE public.form_fields_id_seq OWNED BY public.form_fields.id;
 
 
 --
 -- TOC entry 281 (class 1259 OID 18025)
--- Name: form_responses; Type: TABLE; Schema: template; Owner: postgres
+-- Name: form_responses; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.form_responses (
+CREATE TABLE public.form_responses (
     id integer NOT NULL,
     form_id integer,
     data jsonb NOT NULL,
@@ -1421,23 +1415,23 @@ CREATE TABLE template.form_responses (
 );
 
 
-ALTER TABLE template.form_responses OWNER TO postgres;
+ALTER TABLE public.form_responses OWNER TO postgres;
 
 --
 -- TOC entry 5824 (class 0 OID 0)
 -- Dependencies: 281
--- Name: TABLE form_responses; Type: COMMENT; Schema: template; Owner: postgres
+-- Name: TABLE form_responses; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE template.form_responses IS 'Réponses soumises aux formulaires';
+COMMENT ON TABLE public.form_responses IS 'Réponses soumises aux formulaires';
 
 
 --
 -- TOC entry 280 (class 1259 OID 18024)
--- Name: form_responses_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: form_responses_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.form_responses_id_seq
+CREATE SEQUENCE public.form_responses_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1446,23 +1440,23 @@ CREATE SEQUENCE template.form_responses_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.form_responses_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.form_responses_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5826 (class 0 OID 0)
 -- Dependencies: 280
--- Name: form_responses_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: form_responses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.form_responses_id_seq OWNED BY template.form_responses.id;
+ALTER SEQUENCE public.form_responses_id_seq OWNED BY public.form_responses.id;
 
 
 --
 -- TOC entry 287 (class 1259 OID 18165)
--- Name: form_submissions; Type: TABLE; Schema: template; Owner: postgres
+-- Name: form_submissions; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.form_submissions (
+CREATE TABLE public.form_submissions (
     id integer NOT NULL,
     link_id integer NOT NULL,
     form_data jsonb NOT NULL,
@@ -1472,14 +1466,14 @@ CREATE TABLE template.form_submissions (
 );
 
 
-ALTER TABLE template.form_submissions OWNER TO postgres;
+ALTER TABLE public.form_submissions OWNER TO postgres;
 
 --
 -- TOC entry 286 (class 1259 OID 18164)
--- Name: form_submissions_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: form_submissions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.form_submissions_id_seq
+CREATE SEQUENCE public.form_submissions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1488,23 +1482,23 @@ CREATE SEQUENCE template.form_submissions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.form_submissions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.form_submissions_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5829 (class 0 OID 0)
 -- Dependencies: 286
--- Name: form_submissions_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: form_submissions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.form_submissions_id_seq OWNED BY template.form_submissions.id;
+ALTER SEQUENCE public.form_submissions_id_seq OWNED BY public.form_submissions.id;
 
 
 --
 -- TOC entry 279 (class 1259 OID 18013)
--- Name: forms; Type: TABLE; Schema: template; Owner: postgres
+-- Name: forms; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.forms (
+CREATE TABLE public.forms (
     id integer NOT NULL,
     user_id integer NOT NULL,
     title text NOT NULL,
@@ -1514,23 +1508,23 @@ CREATE TABLE template.forms (
 );
 
 
-ALTER TABLE template.forms OWNER TO postgres;
+ALTER TABLE public.forms OWNER TO postgres;
 
 --
 -- TOC entry 5831 (class 0 OID 0)
 -- Dependencies: 279
--- Name: TABLE forms; Type: COMMENT; Schema: template; Owner: postgres
+-- Name: TABLE forms; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE template.forms IS 'Formulaires créés par les utilisateurs';
+COMMENT ON TABLE public.forms IS 'Formulaires créés par les utilisateurs';
 
 
 --
 -- TOC entry 278 (class 1259 OID 18012)
--- Name: forms_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: forms_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.forms_id_seq
+CREATE SEQUENCE public.forms_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1539,23 +1533,23 @@ CREATE SEQUENCE template.forms_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.forms_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.forms_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5833 (class 0 OID 0)
 -- Dependencies: 278
--- Name: forms_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: forms_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.forms_id_seq OWNED BY template.forms.id;
+ALTER SEQUENCE public.forms_id_seq OWNED BY public.forms.id;
 
 
 --
 -- TOC entry 283 (class 1259 OID 18112)
--- Name: link_profiles; Type: TABLE; Schema: template; Owner: postgres
+-- Name: link_profiles; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.link_profiles (
+CREATE TABLE public.link_profiles (
     id integer NOT NULL,
     user_id integer NOT NULL,
     slug character varying(100) NOT NULL,
@@ -1586,14 +1580,14 @@ CREATE TABLE template.link_profiles (
 );
 
 
-ALTER TABLE template.link_profiles OWNER TO postgres;
+ALTER TABLE public.link_profiles OWNER TO postgres;
 
 --
 -- TOC entry 282 (class 1259 OID 18111)
--- Name: link_profiles_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: link_profiles_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.link_profiles_id_seq
+CREATE SEQUENCE public.link_profiles_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1602,23 +1596,23 @@ CREATE SEQUENCE template.link_profiles_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.link_profiles_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.link_profiles_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5836 (class 0 OID 0)
 -- Dependencies: 282
--- Name: link_profiles_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: link_profiles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.link_profiles_id_seq OWNED BY template.link_profiles.id;
+ALTER SEQUENCE public.link_profiles_id_seq OWNED BY public.link_profiles.id;
 
 
 --
 -- TOC entry 285 (class 1259 OID 18144)
--- Name: links; Type: TABLE; Schema: template; Owner: postgres
+-- Name: links; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.links (
+CREATE TABLE public.links (
     id integer NOT NULL,
     profile_id integer NOT NULL,
     title character varying(100) NOT NULL,
@@ -1639,14 +1633,14 @@ CREATE TABLE template.links (
 );
 
 
-ALTER TABLE template.links OWNER TO postgres;
+ALTER TABLE public.links OWNER TO postgres;
 
 --
 -- TOC entry 284 (class 1259 OID 18143)
--- Name: links_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: links_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.links_id_seq
+CREATE SEQUENCE public.links_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1655,23 +1649,23 @@ CREATE SEQUENCE template.links_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.links_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.links_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5839 (class 0 OID 0)
 -- Dependencies: 284
--- Name: links_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: links_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.links_id_seq OWNED BY template.links.id;
+ALTER SEQUENCE public.links_id_seq OWNED BY public.links.id;
 
 
 --
 -- TOC entry 222 (class 1259 OID 17055)
--- Name: maintenance; Type: TABLE; Schema: template; Owner: postgres
+-- Name: maintenance; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.maintenance (
+CREATE TABLE public.maintenance (
     id integer NOT NULL,
     title text NOT NULL,
     description text,
@@ -1682,14 +1676,14 @@ CREATE TABLE template.maintenance (
 );
 
 
-ALTER TABLE template.maintenance OWNER TO postgres;
+ALTER TABLE public.maintenance OWNER TO postgres;
 
 --
 -- TOC entry 221 (class 1259 OID 17054)
--- Name: maintenance_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: maintenance_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.maintenance_id_seq
+CREATE SEQUENCE public.maintenance_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1698,23 +1692,23 @@ CREATE SEQUENCE template.maintenance_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.maintenance_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.maintenance_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5842 (class 0 OID 0)
 -- Dependencies: 221
--- Name: maintenance_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: maintenance_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.maintenance_id_seq OWNED BY template.maintenance.id;
+ALTER SEQUENCE public.maintenance_id_seq OWNED BY public.maintenance.id;
 
 
 --
 -- TOC entry 239 (class 1259 OID 17276)
--- Name: maintenance_requests; Type: TABLE; Schema: template; Owner: postgres
+-- Name: maintenance_requests; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.maintenance_requests (
+CREATE TABLE public.maintenance_requests (
     id integer NOT NULL,
     title text NOT NULL,
     description text NOT NULL,
@@ -1731,14 +1725,14 @@ CREATE TABLE template.maintenance_requests (
 );
 
 
-ALTER TABLE template.maintenance_requests OWNER TO postgres;
+ALTER TABLE public.maintenance_requests OWNER TO postgres;
 
 --
 -- TOC entry 240 (class 1259 OID 17286)
--- Name: maintenance_requests_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: maintenance_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.maintenance_requests_id_seq
+CREATE SEQUENCE public.maintenance_requests_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1747,23 +1741,23 @@ CREATE SEQUENCE template.maintenance_requests_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.maintenance_requests_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.maintenance_requests_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5845 (class 0 OID 0)
 -- Dependencies: 240
--- Name: maintenance_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: maintenance_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.maintenance_requests_id_seq OWNED BY template.maintenance_requests.id;
+ALTER SEQUENCE public.maintenance_requests_id_seq OWNED BY public.maintenance_requests.id;
 
 
 --
 -- TOC entry 241 (class 1259 OID 17287)
--- Name: notifications; Type: TABLE; Schema: template; Owner: postgres
+-- Name: notifications; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.notifications (
+CREATE TABLE public.notifications (
     id integer NOT NULL,
     user_id integer NOT NULL,
     title text NOT NULL,
@@ -1776,14 +1770,14 @@ CREATE TABLE template.notifications (
 );
 
 
-ALTER TABLE template.notifications OWNER TO postgres;
+ALTER TABLE public.notifications OWNER TO postgres;
 
 --
 -- TOC entry 242 (class 1259 OID 17294)
--- Name: notifications_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: notifications_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.notifications_id_seq
+CREATE SEQUENCE public.notifications_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1792,23 +1786,23 @@ CREATE SEQUENCE template.notifications_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.notifications_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.notifications_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5848 (class 0 OID 0)
 -- Dependencies: 242
--- Name: notifications_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: notifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.notifications_id_seq OWNED BY template.notifications.id;
+ALTER SEQUENCE public.notifications_id_seq OWNED BY public.notifications.id;
 
 
 --
 -- TOC entry 307 (class 1259 OID 19102)
--- Name: pdf_configuration; Type: TABLE; Schema: template; Owner: postgres
+-- Name: pdf_configuration; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.pdf_configuration (
+CREATE TABLE public.pdf_configuration (
     id integer NOT NULL,
     user_id integer NOT NULL,
     name character varying(100) NOT NULL,
@@ -1845,14 +1839,14 @@ CREATE TABLE template.pdf_configuration (
 );
 
 
-ALTER TABLE template.pdf_configuration OWNER TO postgres;
+ALTER TABLE public.pdf_configuration OWNER TO postgres;
 
 --
 -- TOC entry 306 (class 1259 OID 19101)
--- Name: pdf_configuration_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: pdf_configuration_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.pdf_configuration_id_seq
+CREATE SEQUENCE public.pdf_configuration_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1861,23 +1855,23 @@ CREATE SEQUENCE template.pdf_configuration_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.pdf_configuration_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.pdf_configuration_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5851 (class 0 OID 0)
 -- Dependencies: 306
--- Name: pdf_configuration_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: pdf_configuration_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.pdf_configuration_id_seq OWNED BY template.pdf_configuration.id;
+ALTER SEQUENCE public.pdf_configuration_id_seq OWNED BY public.pdf_configuration.id;
 
 
 --
 -- TOC entry 305 (class 1259 OID 19002)
--- Name: pdf_document_preferences; Type: TABLE; Schema: template; Owner: postgres
+-- Name: pdf_document_preferences; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.pdf_document_preferences (
+CREATE TABLE public.pdf_document_preferences (
     id integer NOT NULL,
     configuration_id integer NOT NULL,
     document_type character varying(20) NOT NULL,
@@ -1895,14 +1889,14 @@ CREATE TABLE template.pdf_document_preferences (
 );
 
 
-ALTER TABLE template.pdf_document_preferences OWNER TO postgres;
+ALTER TABLE public.pdf_document_preferences OWNER TO postgres;
 
 --
 -- TOC entry 304 (class 1259 OID 19001)
--- Name: pdf_document_preferences_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: pdf_document_preferences_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.pdf_document_preferences_id_seq
+CREATE SEQUENCE public.pdf_document_preferences_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1911,23 +1905,23 @@ CREATE SEQUENCE template.pdf_document_preferences_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.pdf_document_preferences_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.pdf_document_preferences_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5854 (class 0 OID 0)
 -- Dependencies: 304
--- Name: pdf_document_preferences_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: pdf_document_preferences_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.pdf_document_preferences_id_seq OWNED BY template.pdf_document_preferences.id;
+ALTER SEQUENCE public.pdf_document_preferences_id_seq OWNED BY public.pdf_document_preferences.id;
 
 
 --
 -- TOC entry 309 (class 1259 OID 19122)
--- Name: pdf_logos; Type: TABLE; Schema: template; Owner: postgres
+-- Name: pdf_logos; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.pdf_logos (
+CREATE TABLE public.pdf_logos (
     id integer NOT NULL,
     user_id integer NOT NULL,
     name character varying(100) NOT NULL,
@@ -1940,14 +1934,14 @@ CREATE TABLE template.pdf_logos (
 );
 
 
-ALTER TABLE template.pdf_logos OWNER TO postgres;
+ALTER TABLE public.pdf_logos OWNER TO postgres;
 
 --
 -- TOC entry 308 (class 1259 OID 19121)
--- Name: pdf_logos_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: pdf_logos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.pdf_logos_id_seq
+CREATE SEQUENCE public.pdf_logos_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1956,23 +1950,23 @@ CREATE SEQUENCE template.pdf_logos_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.pdf_logos_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.pdf_logos_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5857 (class 0 OID 0)
 -- Dependencies: 308
--- Name: pdf_logos_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: pdf_logos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.pdf_logos_id_seq OWNED BY template.pdf_logos.id;
+ALTER SEQUENCE public.pdf_logos_id_seq OWNED BY public.pdf_logos.id;
 
 
 --
 -- TOC entry 311 (class 1259 OID 19136)
--- Name: pdf_templates; Type: TABLE; Schema: template; Owner: postgres
+-- Name: pdf_templates; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.pdf_templates (
+CREATE TABLE public.pdf_templates (
     id integer NOT NULL,
     name character varying(100) NOT NULL,
     type character varying(50) NOT NULL,
@@ -1993,14 +1987,14 @@ CREATE TABLE template.pdf_templates (
 );
 
 
-ALTER TABLE template.pdf_templates OWNER TO postgres;
+ALTER TABLE public.pdf_templates OWNER TO postgres;
 
 --
 -- TOC entry 310 (class 1259 OID 19135)
--- Name: pdf_templates_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: pdf_templates_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.pdf_templates_id_seq
+CREATE SEQUENCE public.pdf_templates_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2009,23 +2003,23 @@ CREATE SEQUENCE template.pdf_templates_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.pdf_templates_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.pdf_templates_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5860 (class 0 OID 0)
 -- Dependencies: 310
--- Name: pdf_templates_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: pdf_templates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.pdf_templates_id_seq OWNED BY template.pdf_templates.id;
+ALTER SEQUENCE public.pdf_templates_id_seq OWNED BY public.pdf_templates.id;
 
 
 --
 -- TOC entry 315 (class 1259 OID 19190)
--- Name: pdf_themes; Type: TABLE; Schema: template; Owner: postgres
+-- Name: pdf_themes; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.pdf_themes (
+CREATE TABLE public.pdf_themes (
     id integer NOT NULL,
     name character varying(100) NOT NULL,
     header_color character varying(20) NOT NULL,
@@ -2041,14 +2035,14 @@ CREATE TABLE template.pdf_themes (
 );
 
 
-ALTER TABLE template.pdf_themes OWNER TO postgres;
+ALTER TABLE public.pdf_themes OWNER TO postgres;
 
 --
 -- TOC entry 314 (class 1259 OID 19189)
--- Name: pdf_themes_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: pdf_themes_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.pdf_themes_id_seq
+CREATE SEQUENCE public.pdf_themes_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2057,23 +2051,23 @@ CREATE SEQUENCE template.pdf_themes_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.pdf_themes_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.pdf_themes_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5863 (class 0 OID 0)
 -- Dependencies: 314
--- Name: pdf_themes_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: pdf_themes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.pdf_themes_id_seq OWNED BY template.pdf_themes.id;
+ALTER SEQUENCE public.pdf_themes_id_seq OWNED BY public.pdf_themes.id;
 
 
 --
 -- TOC entry 243 (class 1259 OID 17295)
--- Name: properties_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: properties_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.properties_id_seq
+CREATE SEQUENCE public.properties_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2082,23 +2076,23 @@ CREATE SEQUENCE template.properties_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.properties_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.properties_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5865 (class 0 OID 0)
 -- Dependencies: 243
--- Name: properties_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: properties_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.properties_id_seq OWNED BY template.properties.id;
+ALTER SEQUENCE public.properties_id_seq OWNED BY public.properties.id;
 
 
 --
 -- TOC entry 273 (class 1259 OID 17754)
--- Name: property_analyses; Type: TABLE; Schema: template; Owner: postgres
+-- Name: property_analyses; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.property_analyses (
+CREATE TABLE public.property_analyses (
     id integer NOT NULL,
     property_id integer,
     user_id integer,
@@ -2109,14 +2103,14 @@ CREATE TABLE template.property_analyses (
 );
 
 
-ALTER TABLE template.property_analyses OWNER TO postgres;
+ALTER TABLE public.property_analyses OWNER TO postgres;
 
 --
 -- TOC entry 272 (class 1259 OID 17753)
--- Name: property_analyses_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: property_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.property_analyses_id_seq
+CREATE SEQUENCE public.property_analyses_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2125,23 +2119,23 @@ CREATE SEQUENCE template.property_analyses_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.property_analyses_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.property_analyses_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5868 (class 0 OID 0)
 -- Dependencies: 272
--- Name: property_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: property_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.property_analyses_id_seq OWNED BY template.property_analyses.id;
+ALTER SEQUENCE public.property_analyses_id_seq OWNED BY public.property_analyses.id;
 
 
 --
 -- TOC entry 244 (class 1259 OID 17296)
--- Name: property_coordinates; Type: TABLE; Schema: template; Owner: postgres
+-- Name: property_coordinates; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.property_coordinates (
+CREATE TABLE public.property_coordinates (
     id integer NOT NULL,
     property_id integer NOT NULL,
     latitude numeric(10,8) NOT NULL,
@@ -2150,14 +2144,14 @@ CREATE TABLE template.property_coordinates (
 );
 
 
-ALTER TABLE template.property_coordinates OWNER TO postgres;
+ALTER TABLE public.property_coordinates OWNER TO postgres;
 
 --
 -- TOC entry 245 (class 1259 OID 17300)
--- Name: property_coordinates_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: property_coordinates_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.property_coordinates_id_seq
+CREATE SEQUENCE public.property_coordinates_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2166,23 +2160,23 @@ CREATE SEQUENCE template.property_coordinates_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.property_coordinates_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.property_coordinates_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5871 (class 0 OID 0)
 -- Dependencies: 245
--- Name: property_coordinates_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: property_coordinates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.property_coordinates_id_seq OWNED BY template.property_coordinates.id;
+ALTER SEQUENCE public.property_coordinates_id_seq OWNED BY public.property_coordinates.id;
 
 
 --
 -- TOC entry 246 (class 1259 OID 17301)
--- Name: property_financial_goals; Type: TABLE; Schema: template; Owner: postgres
+-- Name: property_financial_goals; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.property_financial_goals (
+CREATE TABLE public.property_financial_goals (
     id integer NOT NULL,
     property_id integer NOT NULL,
     title text NOT NULL,
@@ -2197,14 +2191,14 @@ CREATE TABLE template.property_financial_goals (
 );
 
 
-ALTER TABLE template.property_financial_goals OWNER TO postgres;
+ALTER TABLE public.property_financial_goals OWNER TO postgres;
 
 --
 -- TOC entry 247 (class 1259 OID 17309)
--- Name: property_financial_goals_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: property_financial_goals_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.property_financial_goals_id_seq
+CREATE SEQUENCE public.property_financial_goals_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2213,23 +2207,23 @@ CREATE SEQUENCE template.property_financial_goals_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.property_financial_goals_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.property_financial_goals_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5874 (class 0 OID 0)
 -- Dependencies: 247
--- Name: property_financial_goals_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: property_financial_goals_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.property_financial_goals_id_seq OWNED BY template.property_financial_goals.id;
+ALTER SEQUENCE public.property_financial_goals_id_seq OWNED BY public.property_financial_goals.id;
 
 
 --
 -- TOC entry 248 (class 1259 OID 17310)
--- Name: property_financial_snapshots; Type: TABLE; Schema: template; Owner: postgres
+-- Name: property_financial_snapshots; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.property_financial_snapshots (
+CREATE TABLE public.property_financial_snapshots (
     id integer NOT NULL,
     property_id integer NOT NULL,
     snapshot_date date NOT NULL,
@@ -2246,14 +2240,14 @@ CREATE TABLE template.property_financial_snapshots (
 );
 
 
-ALTER TABLE template.property_financial_snapshots OWNER TO postgres;
+ALTER TABLE public.property_financial_snapshots OWNER TO postgres;
 
 --
 -- TOC entry 249 (class 1259 OID 17317)
--- Name: property_financial_snapshots_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: property_financial_snapshots_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.property_financial_snapshots_id_seq
+CREATE SEQUENCE public.property_financial_snapshots_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2262,23 +2256,23 @@ CREATE SEQUENCE template.property_financial_snapshots_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.property_financial_snapshots_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.property_financial_snapshots_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5877 (class 0 OID 0)
 -- Dependencies: 249
--- Name: property_financial_snapshots_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: property_financial_snapshots_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.property_financial_snapshots_id_seq OWNED BY template.property_financial_snapshots.id;
+ALTER SEQUENCE public.property_financial_snapshots_id_seq OWNED BY public.property_financial_snapshots.id;
 
 
 --
 -- TOC entry 250 (class 1259 OID 17318)
--- Name: property_history; Type: TABLE; Schema: template; Owner: postgres
+-- Name: property_history; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.property_history (
+CREATE TABLE public.property_history (
     id integer NOT NULL,
     property_id integer NOT NULL,
     field text NOT NULL,
@@ -2291,14 +2285,14 @@ CREATE TABLE template.property_history (
 );
 
 
-ALTER TABLE template.property_history OWNER TO postgres;
+ALTER TABLE public.property_history OWNER TO postgres;
 
 --
 -- TOC entry 251 (class 1259 OID 17325)
--- Name: property_history_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: property_history_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.property_history_id_seq
+CREATE SEQUENCE public.property_history_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2307,23 +2301,23 @@ CREATE SEQUENCE template.property_history_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.property_history_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.property_history_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5880 (class 0 OID 0)
 -- Dependencies: 251
--- Name: property_history_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: property_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.property_history_id_seq OWNED BY template.property_history.id;
+ALTER SEQUENCE public.property_history_id_seq OWNED BY public.property_history.id;
 
 
 --
 -- TOC entry 252 (class 1259 OID 17326)
--- Name: property_works; Type: TABLE; Schema: template; Owner: postgres
+-- Name: property_works; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.property_works (
+CREATE TABLE public.property_works (
     id integer NOT NULL,
     property_id integer NOT NULL,
     title text NOT NULL,
@@ -2342,14 +2336,14 @@ CREATE TABLE template.property_works (
 );
 
 
-ALTER TABLE template.property_works OWNER TO postgres;
+ALTER TABLE public.property_works OWNER TO postgres;
 
 --
 -- TOC entry 253 (class 1259 OID 17336)
--- Name: property_works_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: property_works_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.property_works_id_seq
+CREATE SEQUENCE public.property_works_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2358,23 +2352,23 @@ CREATE SEQUENCE template.property_works_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.property_works_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.property_works_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5883 (class 0 OID 0)
 -- Dependencies: 253
--- Name: property_works_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: property_works_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.property_works_id_seq OWNED BY template.property_works.id;
+ALTER SEQUENCE public.property_works_id_seq OWNED BY public.property_works.id;
 
 
 --
 -- TOC entry 265 (class 1259 OID 17597)
--- Name: rent_receipts; Type: TABLE; Schema: template; Owner: postgres
+-- Name: rent_receipts; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.rent_receipts (
+CREATE TABLE public.rent_receipts (
     id integer NOT NULL,
     tenant_id integer NOT NULL,
     property_id integer NOT NULL,
@@ -2390,14 +2384,14 @@ CREATE TABLE template.rent_receipts (
 );
 
 
-ALTER TABLE template.rent_receipts OWNER TO postgres;
+ALTER TABLE public.rent_receipts OWNER TO postgres;
 
 --
 -- TOC entry 264 (class 1259 OID 17596)
--- Name: rent_receipts_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: rent_receipts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.rent_receipts_id_seq
+CREATE SEQUENCE public.rent_receipts_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2406,23 +2400,23 @@ CREATE SEQUENCE template.rent_receipts_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.rent_receipts_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.rent_receipts_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5886 (class 0 OID 0)
 -- Dependencies: 264
--- Name: rent_receipts_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: rent_receipts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.rent_receipts_id_seq OWNED BY template.rent_receipts.id;
+ALTER SEQUENCE public.rent_receipts_id_seq OWNED BY public.rent_receipts.id;
 
 
 --
 -- TOC entry 226 (class 1259 OID 17102)
--- Name: reports; Type: TABLE; Schema: template; Owner: postgres
+-- Name: reports; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.reports (
+CREATE TABLE public.reports (
     id integer NOT NULL,
     title text NOT NULL,
     description text,
@@ -2434,14 +2428,14 @@ CREATE TABLE template.reports (
 );
 
 
-ALTER TABLE template.reports OWNER TO postgres;
+ALTER TABLE public.reports OWNER TO postgres;
 
 --
 -- TOC entry 225 (class 1259 OID 17101)
--- Name: reports_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: reports_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.reports_id_seq
+CREATE SEQUENCE public.reports_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2450,23 +2444,23 @@ CREATE SEQUENCE template.reports_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.reports_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.reports_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5889 (class 0 OID 0)
 -- Dependencies: 225
--- Name: reports_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: reports_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.reports_id_seq OWNED BY template.reports.id;
+ALTER SEQUENCE public.reports_id_seq OWNED BY public.reports.id;
 
 
 --
 -- TOC entry 303 (class 1259 OID 18577)
--- Name: sessions; Type: TABLE; Schema: template; Owner: postgres
+-- Name: sessions; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.sessions (
+CREATE TABLE public.sessions (
     id integer NOT NULL,
     user_id integer,
     session_id character varying(255) NOT NULL,
@@ -2479,23 +2473,23 @@ CREATE TABLE template.sessions (
 );
 
 
-ALTER TABLE template.sessions OWNER TO postgres;
+ALTER TABLE public.sessions OWNER TO postgres;
 
 --
 -- TOC entry 5891 (class 0 OID 0)
 -- Dependencies: 303
--- Name: TABLE sessions; Type: COMMENT; Schema: template; Owner: postgres
+-- Name: TABLE sessions; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE template.sessions IS 'Stocke les sessions d''authentification des utilisateurs';
+COMMENT ON TABLE public.sessions IS 'Stocke les sessions d''authentification des utilisateurs';
 
 
 --
 -- TOC entry 302 (class 1259 OID 18576)
--- Name: sessions_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.sessions_id_seq
+CREATE SEQUENCE public.sessions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2504,23 +2498,23 @@ CREATE SEQUENCE template.sessions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.sessions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.sessions_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5893 (class 0 OID 0)
 -- Dependencies: 302
--- Name: sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.sessions_id_seq OWNED BY template.sessions.id;
+ALTER SEQUENCE public.sessions_id_seq OWNED BY public.sessions.id;
 
 
 --
 -- TOC entry 299 (class 1259 OID 18432)
--- Name: storage_extensions; Type: TABLE; Schema: template; Owner: postgres
+-- Name: storage_extensions; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.storage_extensions (
+CREATE TABLE public.storage_extensions (
     id integer NOT NULL,
     name character varying(50) NOT NULL,
     quota_bytes numeric NOT NULL,
@@ -2529,14 +2523,14 @@ CREATE TABLE template.storage_extensions (
 );
 
 
-ALTER TABLE template.storage_extensions OWNER TO postgres;
+ALTER TABLE public.storage_extensions OWNER TO postgres;
 
 --
 -- TOC entry 298 (class 1259 OID 18431)
--- Name: storage_extensions_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: storage_extensions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.storage_extensions_id_seq
+CREATE SEQUENCE public.storage_extensions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2545,23 +2539,23 @@ CREATE SEQUENCE template.storage_extensions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.storage_extensions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.storage_extensions_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5896 (class 0 OID 0)
 -- Dependencies: 298
--- Name: storage_extensions_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: storage_extensions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.storage_extensions_id_seq OWNED BY template.storage_extensions.id;
+ALTER SEQUENCE public.storage_extensions_id_seq OWNED BY public.storage_extensions.id;
 
 
 --
 -- TOC entry 323 (class 1259 OID 19434)
--- Name: storage_transactions; Type: TABLE; Schema: template; Owner: postgres
+-- Name: storage_transactions; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.storage_transactions (
+CREATE TABLE public.storage_transactions (
     id integer NOT NULL,
     user_id integer NOT NULL,
     previous_tier character varying(10) NOT NULL,
@@ -2576,14 +2570,14 @@ CREATE TABLE template.storage_transactions (
 );
 
 
-ALTER TABLE template.storage_transactions OWNER TO postgres;
+ALTER TABLE public.storage_transactions OWNER TO postgres;
 
 --
 -- TOC entry 322 (class 1259 OID 19433)
--- Name: storage_transactions_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: storage_transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.storage_transactions_id_seq
+CREATE SEQUENCE public.storage_transactions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2592,23 +2586,23 @@ CREATE SEQUENCE template.storage_transactions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.storage_transactions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.storage_transactions_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5899 (class 0 OID 0)
 -- Dependencies: 322
--- Name: storage_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: storage_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.storage_transactions_id_seq OWNED BY template.storage_transactions.id;
+ALTER SEQUENCE public.storage_transactions_id_seq OWNED BY public.storage_transactions.id;
 
 
 --
 -- TOC entry 295 (class 1259 OID 18367)
--- Name: storage_usage_details; Type: TABLE; Schema: template; Owner: postgres
+-- Name: storage_usage_details; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.storage_usage_details (
+CREATE TABLE public.storage_usage_details (
     id integer NOT NULL,
     user_id integer NOT NULL,
     resource_type character varying(50) NOT NULL,
@@ -2618,14 +2612,14 @@ CREATE TABLE template.storage_usage_details (
 );
 
 
-ALTER TABLE template.storage_usage_details OWNER TO postgres;
+ALTER TABLE public.storage_usage_details OWNER TO postgres;
 
 --
 -- TOC entry 294 (class 1259 OID 18366)
--- Name: storage_usage_details_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: storage_usage_details_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.storage_usage_details_id_seq
+CREATE SEQUENCE public.storage_usage_details_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2634,23 +2628,23 @@ CREATE SEQUENCE template.storage_usage_details_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.storage_usage_details_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.storage_usage_details_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5902 (class 0 OID 0)
 -- Dependencies: 294
--- Name: storage_usage_details_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: storage_usage_details_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.storage_usage_details_id_seq OWNED BY template.storage_usage_details.id;
+ALTER SEQUENCE public.storage_usage_details_id_seq OWNED BY public.storage_usage_details.id;
 
 
 --
 -- TOC entry 254 (class 1259 OID 17337)
--- Name: tenant_documents; Type: TABLE; Schema: template; Owner: postgres
+-- Name: tenant_documents; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.tenant_documents (
+CREATE TABLE public.tenant_documents (
     id integer NOT NULL,
     tenant_id integer NOT NULL,
     document_id integer NOT NULL,
@@ -2659,14 +2653,14 @@ CREATE TABLE template.tenant_documents (
 );
 
 
-ALTER TABLE template.tenant_documents OWNER TO postgres;
+ALTER TABLE public.tenant_documents OWNER TO postgres;
 
 --
 -- TOC entry 255 (class 1259 OID 17344)
--- Name: tenant_documents_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: tenant_documents_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.tenant_documents_id_seq
+CREATE SEQUENCE public.tenant_documents_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2675,23 +2669,23 @@ CREATE SEQUENCE template.tenant_documents_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.tenant_documents_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.tenant_documents_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5905 (class 0 OID 0)
 -- Dependencies: 255
--- Name: tenant_documents_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: tenant_documents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.tenant_documents_id_seq OWNED BY template.tenant_documents.id;
+ALTER SEQUENCE public.tenant_documents_id_seq OWNED BY public.tenant_documents.id;
 
 
 --
 -- TOC entry 256 (class 1259 OID 17345)
--- Name: tenant_history; Type: TABLE; Schema: template; Owner: postgres
+-- Name: tenant_history; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.tenant_history (
+CREATE TABLE public.tenant_history (
     id integer NOT NULL,
     rating integer NOT NULL,
     feedback text,
@@ -2712,14 +2706,14 @@ CREATE TABLE template.tenant_history (
 );
 
 
-ALTER TABLE template.tenant_history OWNER TO postgres;
+ALTER TABLE public.tenant_history OWNER TO postgres;
 
 --
 -- TOC entry 257 (class 1259 OID 17355)
--- Name: tenant_history_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: tenant_history_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.tenant_history_id_seq
+CREATE SEQUENCE public.tenant_history_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2728,23 +2722,23 @@ CREATE SEQUENCE template.tenant_history_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.tenant_history_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.tenant_history_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5908 (class 0 OID 0)
 -- Dependencies: 257
--- Name: tenant_history_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: tenant_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.tenant_history_id_seq OWNED BY template.tenant_history.id;
+ALTER SEQUENCE public.tenant_history_id_seq OWNED BY public.tenant_history.id;
 
 
 --
 -- TOC entry 220 (class 1259 OID 16906)
--- Name: tenants; Type: TABLE; Schema: template; Owner: postgres
+-- Name: tenants; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.tenants (
+CREATE TABLE public.tenants (
     id integer NOT NULL,
     user_id integer NOT NULL,
     property_id integer NOT NULL,
@@ -2759,17 +2753,17 @@ CREATE TABLE template.tenants (
     tenant_id integer
 );
 
-ALTER TABLE ONLY template.tenants 
+ALTER TABLE ONLY public.tenants FORCE ROW LEVEL SECURITY;
 
 
-ALTER TABLE template.tenants OWNER TO postgres;
+ALTER TABLE public.tenants OWNER TO postgres;
 
 --
 -- TOC entry 258 (class 1259 OID 17356)
--- Name: tenants_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: tenants_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.tenants_id_seq
+CREATE SEQUENCE public.tenants_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2778,23 +2772,23 @@ CREATE SEQUENCE template.tenants_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.tenants_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.tenants_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5911 (class 0 OID 0)
 -- Dependencies: 258
--- Name: tenants_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: tenants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.tenants_id_seq OWNED BY template.tenants.id;
+ALTER SEQUENCE public.tenants_id_seq OWNED BY public.tenants.id;
 
 
 --
 -- TOC entry 293 (class 1259 OID 18224)
--- Name: transaction_attachments; Type: TABLE; Schema: template; Owner: postgres
+-- Name: transaction_attachments; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.transaction_attachments (
+CREATE TABLE public.transaction_attachments (
     id integer NOT NULL,
     transaction_id integer NOT NULL,
     file_name character varying(255) NOT NULL,
@@ -2805,14 +2799,14 @@ CREATE TABLE template.transaction_attachments (
 );
 
 
-ALTER TABLE template.transaction_attachments OWNER TO postgres;
+ALTER TABLE public.transaction_attachments OWNER TO postgres;
 
 --
 -- TOC entry 292 (class 1259 OID 18223)
--- Name: transaction_attachments_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: transaction_attachments_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.transaction_attachments_id_seq
+CREATE SEQUENCE public.transaction_attachments_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2821,23 +2815,23 @@ CREATE SEQUENCE template.transaction_attachments_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.transaction_attachments_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.transaction_attachments_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5914 (class 0 OID 0)
 -- Dependencies: 292
--- Name: transaction_attachments_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: transaction_attachments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.transaction_attachments_id_seq OWNED BY template.transaction_attachments.id;
+ALTER SEQUENCE public.transaction_attachments_id_seq OWNED BY public.transaction_attachments.id;
 
 
 --
 -- TOC entry 259 (class 1259 OID 17357)
--- Name: transactions; Type: TABLE; Schema: template; Owner: postgres
+-- Name: transactions; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.transactions (
+CREATE TABLE public.transactions (
     id integer NOT NULL,
     user_id integer NOT NULL,
     property_id integer,
@@ -2855,17 +2849,17 @@ CREATE TABLE template.transactions (
     updated_at timestamp without time zone DEFAULT now()
 );
 
-ALTER TABLE ONLY template.transactions 
+ALTER TABLE ONLY public.transactions FORCE ROW LEVEL SECURITY;
 
 
-ALTER TABLE template.transactions OWNER TO postgres;
+ALTER TABLE public.transactions OWNER TO postgres;
 
 --
 -- TOC entry 260 (class 1259 OID 17364)
--- Name: transactions_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.transactions_id_seq
+CREATE SEQUENCE public.transactions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2874,23 +2868,23 @@ CREATE SEQUENCE template.transactions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.transactions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.transactions_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5917 (class 0 OID 0)
 -- Dependencies: 260
--- Name: transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.transactions_id_seq OWNED BY template.transactions.id;
+ALTER SEQUENCE public.transactions_id_seq OWNED BY public.transactions.id;
 
 
 --
 -- TOC entry 277 (class 1259 OID 17811)
--- Name: user_notification_settings; Type: TABLE; Schema: template; Owner: postgres
+-- Name: user_notification_settings; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.user_notification_settings (
+CREATE TABLE public.user_notification_settings (
     id integer NOT NULL,
     user_id integer NOT NULL,
     type text NOT NULL,
@@ -2907,23 +2901,23 @@ CREATE TABLE template.user_notification_settings (
 );
 
 
-ALTER TABLE template.user_notification_settings OWNER TO postgres;
+ALTER TABLE public.user_notification_settings OWNER TO postgres;
 
 --
 -- TOC entry 5919 (class 0 OID 0)
 -- Dependencies: 277
--- Name: TABLE user_notification_settings; Type: COMMENT; Schema: template; Owner: postgres
+-- Name: TABLE user_notification_settings; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE template.user_notification_settings IS 'Stores user preferences for notification deliveries';
+COMMENT ON TABLE public.user_notification_settings IS 'Stores user preferences for notification deliveries';
 
 
 --
 -- TOC entry 276 (class 1259 OID 17810)
--- Name: user_notification_settings_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: user_notification_settings_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.user_notification_settings_id_seq
+CREATE SEQUENCE public.user_notification_settings_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2932,23 +2926,23 @@ CREATE SEQUENCE template.user_notification_settings_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.user_notification_settings_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.user_notification_settings_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5921 (class 0 OID 0)
 -- Dependencies: 276
--- Name: user_notification_settings_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: user_notification_settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.user_notification_settings_id_seq OWNED BY template.user_notification_settings.id;
+ALTER SEQUENCE public.user_notification_settings_id_seq OWNED BY public.user_notification_settings.id;
 
 
 --
 -- TOC entry 297 (class 1259 OID 18415)
--- Name: user_subscriptions; Type: TABLE; Schema: template; Owner: postgres
+-- Name: user_subscriptions; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.user_subscriptions (
+CREATE TABLE public.user_subscriptions (
     id integer NOT NULL,
     user_id integer NOT NULL,
     plan_id integer NOT NULL,
@@ -2963,14 +2957,14 @@ CREATE TABLE template.user_subscriptions (
 );
 
 
-ALTER TABLE template.user_subscriptions OWNER TO postgres;
+ALTER TABLE public.user_subscriptions OWNER TO postgres;
 
 --
 -- TOC entry 296 (class 1259 OID 18414)
--- Name: user_subscriptions_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: user_subscriptions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.user_subscriptions_id_seq
+CREATE SEQUENCE public.user_subscriptions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -2979,23 +2973,23 @@ CREATE SEQUENCE template.user_subscriptions_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.user_subscriptions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.user_subscriptions_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5924 (class 0 OID 0)
 -- Dependencies: 296
--- Name: user_subscriptions_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: user_subscriptions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.user_subscriptions_id_seq OWNED BY template.user_subscriptions.id;
+ALTER SEQUENCE public.user_subscriptions_id_seq OWNED BY public.user_subscriptions.id;
 
 
 --
 -- TOC entry 218 (class 1259 OID 16853)
--- Name: users; Type: TABLE; Schema: template; Owner: postgres
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.users (
+CREATE TABLE public.users (
     id integer NOT NULL,
     username text NOT NULL,
     password text NOT NULL,
@@ -3022,17 +3016,17 @@ CREATE TABLE template.users (
     CONSTRAINT users_role_check CHECK ((role = ANY (ARRAY['admin'::text, 'clients'::text, 'manager'::text, 'tenant'::text, 'client'::text])))
 );
 
-ALTER TABLE ONLY template.users 
+ALTER TABLE ONLY public.users FORCE ROW LEVEL SECURITY;
 
 
-ALTER TABLE template.users OWNER TO postgres;
+ALTER TABLE public.users OWNER TO postgres;
 
 --
 -- TOC entry 261 (class 1259 OID 17365)
--- Name: users_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.users_id_seq
+CREATE SEQUENCE public.users_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -3041,23 +3035,23 @@ CREATE SEQUENCE template.users_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.users_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.users_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5927 (class 0 OID 0)
 -- Dependencies: 261
--- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.users_id_seq OWNED BY template.users.id;
+ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
 -- TOC entry 262 (class 1259 OID 17366)
--- Name: visits; Type: TABLE; Schema: template; Owner: postgres
+-- Name: visits; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE template.visits (
+CREATE TABLE public.visits (
     id integer NOT NULL,
     first_name text NOT NULL,
     last_name text NOT NULL,
@@ -3081,14 +3075,14 @@ CREATE TABLE template.visits (
 );
 
 
-ALTER TABLE template.visits OWNER TO postgres;
+ALTER TABLE public.visits OWNER TO postgres;
 
 --
 -- TOC entry 263 (class 1259 OID 17378)
--- Name: visits_id_seq; Type: SEQUENCE; Schema: template; Owner: postgres
+-- Name: visits_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE template.visits_id_seq
+CREATE SEQUENCE public.visits_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -3097,448 +3091,448 @@ CREATE SEQUENCE template.visits_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE template.visits_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.visits_id_seq OWNER TO postgres;
 
 --
 -- TOC entry 5930 (class 0 OID 0)
 -- Dependencies: 263
--- Name: visits_id_seq; Type: SEQUENCE OWNED BY; Schema: template; Owner: postgres
+-- Name: visits_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE template.visits_id_seq OWNED BY template.visits.id;
+ALTER SEQUENCE public.visits_id_seq OWNED BY public.visits.id;
 
 
 --
 -- TOC entry 5207 (class 2604 OID 19264)
--- Name: ai_conversations id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: ai_conversations id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_conversations ALTER COLUMN id SET DEFAULT nextval('template.ai_conversations_id_seq'::regclass);
+ALTER TABLE ONLY public.ai_conversations ALTER COLUMN id SET DEFAULT nextval('public.ai_conversations_id_seq'::regclass);
 
 
 --
 -- TOC entry 5213 (class 2604 OID 19286)
--- Name: ai_messages id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: ai_messages id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_messages ALTER COLUMN id SET DEFAULT nextval('template.ai_messages_id_seq'::regclass);
+ALTER TABLE ONLY public.ai_messages ALTER COLUMN id SET DEFAULT nextval('public.ai_messages_id_seq'::regclass);
 
 
 --
 -- TOC entry 5220 (class 2604 OID 19315)
--- Name: ai_suggestions id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: ai_suggestions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_suggestions ALTER COLUMN id SET DEFAULT nextval('template.ai_suggestions_id_seq'::regclass);
+ALTER TABLE ONLY public.ai_suggestions ALTER COLUMN id SET DEFAULT nextval('public.ai_suggestions_id_seq'::regclass);
 
 
 --
 -- TOC entry 4980 (class 2604 OID 17093)
--- Name: alerts id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: alerts id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.alerts ALTER COLUMN id SET DEFAULT nextval('template.alerts_id_seq'::regclass);
+ALTER TABLE ONLY public.alerts ALTER COLUMN id SET DEFAULT nextval('public.alerts_id_seq'::regclass);
 
 
 --
 -- TOC entry 5079 (class 2604 OID 17779)
--- Name: analysis_configs id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: analysis_configs id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.analysis_configs ALTER COLUMN id SET DEFAULT nextval('template.analysis_configs_id_seq'::regclass);
+ALTER TABLE ONLY public.analysis_configs ALTER COLUMN id SET DEFAULT nextval('public.analysis_configs_id_seq'::regclass);
 
 
 --
 -- TOC entry 5062 (class 2604 OID 17612)
--- Name: automatic_reminders id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: automatic_reminders id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.automatic_reminders ALTER COLUMN id SET DEFAULT nextval('template.automatic_reminders_id_seq'::regclass);
+ALTER TABLE ONLY public.automatic_reminders ALTER COLUMN id SET DEFAULT nextval('public.automatic_reminders_id_seq'::regclass);
 
 
 --
 -- TOC entry 5141 (class 2604 OID 18451)
--- Name: billing_transactions id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: billing_transactions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.billing_transactions ALTER COLUMN id SET DEFAULT nextval('template.billing_transactions_id_seq'::regclass);
+ALTER TABLE ONLY public.billing_transactions ALTER COLUMN id SET DEFAULT nextval('public.billing_transactions_id_seq'::regclass);
 
 
 --
 -- TOC entry 5195 (class 2604 OID 19151)
--- Name: company_info id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: company_info id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.company_info ALTER COLUMN id SET DEFAULT nextval('template.company_info_id_seq'::regclass);
+ALTER TABLE ONLY public.company_info ALTER COLUMN id SET DEFAULT nextval('public.company_info_id_seq'::regclass);
 
 
 --
 -- TOC entry 5073 (class 2604 OID 17730)
--- Name: contract_parties id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: contract_parties id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.contract_parties ALTER COLUMN id SET DEFAULT nextval('template.contract_parties_id_seq'::regclass);
+ALTER TABLE ONLY public.contract_parties ALTER COLUMN id SET DEFAULT nextval('public.contract_parties_id_seq'::regclass);
 
 
 --
 -- TOC entry 5067 (class 2604 OID 17704)
--- Name: contracts id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: contracts id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.contracts ALTER COLUMN id SET DEFAULT nextval('template.contracts_id_seq'::regclass);
+ALTER TABLE ONLY public.contracts ALTER COLUMN id SET DEFAULT nextval('public.contracts_id_seq'::regclass);
 
 
 --
 -- TOC entry 4990 (class 2604 OID 17382)
--- Name: document_templates id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: document_templates id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.document_templates ALTER COLUMN id SET DEFAULT nextval('template.document_templates_id_seq'::regclass);
+ALTER TABLE ONLY public.document_templates ALTER COLUMN id SET DEFAULT nextval('public.document_templates_id_seq'::regclass);
 
 
 --
 -- TOC entry 4993 (class 2604 OID 17383)
--- Name: documents id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: documents id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.documents ALTER COLUMN id SET DEFAULT nextval('template.documents_id_seq'::regclass);
+ALTER TABLE ONLY public.documents ALTER COLUMN id SET DEFAULT nextval('public.documents_id_seq'::regclass);
 
 
 --
 -- TOC entry 5002 (class 2604 OID 17384)
--- Name: documents_access_log id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: documents_access_log id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.documents_access_log ALTER COLUMN id SET DEFAULT nextval('template.documents_access_log_id_seq'::regclass);
+ALTER TABLE ONLY public.documents_access_log ALTER COLUMN id SET DEFAULT nextval('public.documents_access_log_id_seq'::regclass);
 
 
 --
 -- TOC entry 4987 (class 2604 OID 17116)
--- Name: feedbacks id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: feedbacks id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.feedbacks ALTER COLUMN id SET DEFAULT nextval('template.feedbacks_id_seq'::regclass);
+ALTER TABLE ONLY public.feedbacks ALTER COLUMN id SET DEFAULT nextval('public.feedbacks_id_seq'::regclass);
 
 
 --
 -- TOC entry 5004 (class 2604 OID 17385)
--- Name: financial_entries id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: financial_entries id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.financial_entries ALTER COLUMN id SET DEFAULT nextval('template.financial_entries_id_seq'::regclass);
+ALTER TABLE ONLY public.financial_entries ALTER COLUMN id SET DEFAULT nextval('public.financial_entries_id_seq'::regclass);
 
 
 --
 -- TOC entry 5008 (class 2604 OID 17386)
--- Name: folders id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: folders id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.folders ALTER COLUMN id SET DEFAULT nextval('template.folders_id_seq'::regclass);
+ALTER TABLE ONLY public.folders ALTER COLUMN id SET DEFAULT nextval('public.folders_id_seq'::regclass);
 
 
 --
 -- TOC entry 5124 (class 2604 OID 18209)
--- Name: form_field_options id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: form_field_options id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_field_options ALTER COLUMN id SET DEFAULT nextval('template.form_field_options_id_seq'::regclass);
+ALTER TABLE ONLY public.form_field_options ALTER COLUMN id SET DEFAULT nextval('public.form_field_options_id_seq'::regclass);
 
 
 --
 -- TOC entry 5119 (class 2604 OID 18190)
--- Name: form_fields id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: form_fields id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_fields ALTER COLUMN id SET DEFAULT nextval('template.form_fields_id_seq'::regclass);
+ALTER TABLE ONLY public.form_fields ALTER COLUMN id SET DEFAULT nextval('public.form_fields_id_seq'::regclass);
 
 
 --
 -- TOC entry 5090 (class 2604 OID 18028)
--- Name: form_responses id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: form_responses id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_responses ALTER COLUMN id SET DEFAULT nextval('template.form_responses_id_seq'::regclass);
+ALTER TABLE ONLY public.form_responses ALTER COLUMN id SET DEFAULT nextval('public.form_responses_id_seq'::regclass);
 
 
 --
 -- TOC entry 5117 (class 2604 OID 18168)
--- Name: form_submissions id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: form_submissions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_submissions ALTER COLUMN id SET DEFAULT nextval('template.form_submissions_id_seq'::regclass);
+ALTER TABLE ONLY public.form_submissions ALTER COLUMN id SET DEFAULT nextval('public.form_submissions_id_seq'::regclass);
 
 
 --
 -- TOC entry 5088 (class 2604 OID 18016)
--- Name: forms id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: forms id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.forms ALTER COLUMN id SET DEFAULT nextval('template.forms_id_seq'::regclass);
+ALTER TABLE ONLY public.forms ALTER COLUMN id SET DEFAULT nextval('public.forms_id_seq'::regclass);
 
 
 --
 -- TOC entry 5092 (class 2604 OID 18115)
--- Name: link_profiles id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: link_profiles id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.link_profiles ALTER COLUMN id SET DEFAULT nextval('template.link_profiles_id_seq'::regclass);
+ALTER TABLE ONLY public.link_profiles ALTER COLUMN id SET DEFAULT nextval('public.link_profiles_id_seq'::regclass);
 
 
 --
 -- TOC entry 5109 (class 2604 OID 18147)
--- Name: links id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: links id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.links ALTER COLUMN id SET DEFAULT nextval('template.links_id_seq'::regclass);
+ALTER TABLE ONLY public.links ALTER COLUMN id SET DEFAULT nextval('public.links_id_seq'::regclass);
 
 
 --
 -- TOC entry 4976 (class 2604 OID 17058)
--- Name: maintenance id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: maintenance id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.maintenance ALTER COLUMN id SET DEFAULT nextval('template.maintenance_id_seq'::regclass);
+ALTER TABLE ONLY public.maintenance ALTER COLUMN id SET DEFAULT nextval('public.maintenance_id_seq'::regclass);
 
 
 --
 -- TOC entry 5011 (class 2604 OID 17387)
--- Name: maintenance_requests id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: maintenance_requests id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.maintenance_requests ALTER COLUMN id SET DEFAULT nextval('template.maintenance_requests_id_seq'::regclass);
+ALTER TABLE ONLY public.maintenance_requests ALTER COLUMN id SET DEFAULT nextval('public.maintenance_requests_id_seq'::regclass);
 
 
 --
 -- TOC entry 5017 (class 2604 OID 17388)
--- Name: notifications id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: notifications id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.notifications ALTER COLUMN id SET DEFAULT nextval('template.notifications_id_seq'::regclass);
+ALTER TABLE ONLY public.notifications ALTER COLUMN id SET DEFAULT nextval('public.notifications_id_seq'::regclass);
 
 
 --
 -- TOC entry 5152 (class 2604 OID 19105)
--- Name: pdf_configuration id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: pdf_configuration id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_configuration ALTER COLUMN id SET DEFAULT nextval('template.pdf_configuration_id_seq'::regclass);
+ALTER TABLE ONLY public.pdf_configuration ALTER COLUMN id SET DEFAULT nextval('public.pdf_configuration_id_seq'::regclass);
 
 
 --
 -- TOC entry 5146 (class 2604 OID 19005)
--- Name: pdf_document_preferences id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: pdf_document_preferences id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_document_preferences ALTER COLUMN id SET DEFAULT nextval('template.pdf_document_preferences_id_seq'::regclass);
+ALTER TABLE ONLY public.pdf_document_preferences ALTER COLUMN id SET DEFAULT nextval('public.pdf_document_preferences_id_seq'::regclass);
 
 
 --
 -- TOC entry 5178 (class 2604 OID 19125)
--- Name: pdf_logos id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: pdf_logos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_logos ALTER COLUMN id SET DEFAULT nextval('template.pdf_logos_id_seq'::regclass);
+ALTER TABLE ONLY public.pdf_logos ALTER COLUMN id SET DEFAULT nextval('public.pdf_logos_id_seq'::regclass);
 
 
 --
 -- TOC entry 5184 (class 2604 OID 19139)
--- Name: pdf_templates id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: pdf_templates id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_templates ALTER COLUMN id SET DEFAULT nextval('template.pdf_templates_id_seq'::regclass);
+ALTER TABLE ONLY public.pdf_templates ALTER COLUMN id SET DEFAULT nextval('public.pdf_templates_id_seq'::regclass);
 
 
 --
 -- TOC entry 5198 (class 2604 OID 19193)
--- Name: pdf_themes id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: pdf_themes id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_themes ALTER COLUMN id SET DEFAULT nextval('template.pdf_themes_id_seq'::regclass);
+ALTER TABLE ONLY public.pdf_themes ALTER COLUMN id SET DEFAULT nextval('public.pdf_themes_id_seq'::regclass);
 
 
 --
 -- TOC entry 4937 (class 2604 OID 17389)
--- Name: properties id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: properties id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.properties ALTER COLUMN id SET DEFAULT nextval('template.properties_id_seq'::regclass);
+ALTER TABLE ONLY public.properties ALTER COLUMN id SET DEFAULT nextval('public.properties_id_seq'::regclass);
 
 
 --
 -- TOC entry 5075 (class 2604 OID 17757)
--- Name: property_analyses id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: property_analyses id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_analyses ALTER COLUMN id SET DEFAULT nextval('template.property_analyses_id_seq'::regclass);
+ALTER TABLE ONLY public.property_analyses ALTER COLUMN id SET DEFAULT nextval('public.property_analyses_id_seq'::regclass);
 
 
 --
 -- TOC entry 5020 (class 2604 OID 17390)
--- Name: property_coordinates id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: property_coordinates id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_coordinates ALTER COLUMN id SET DEFAULT nextval('template.property_coordinates_id_seq'::regclass);
+ALTER TABLE ONLY public.property_coordinates ALTER COLUMN id SET DEFAULT nextval('public.property_coordinates_id_seq'::regclass);
 
 
 --
 -- TOC entry 5022 (class 2604 OID 17391)
--- Name: property_financial_goals id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: property_financial_goals id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_financial_goals ALTER COLUMN id SET DEFAULT nextval('template.property_financial_goals_id_seq'::regclass);
+ALTER TABLE ONLY public.property_financial_goals ALTER COLUMN id SET DEFAULT nextval('public.property_financial_goals_id_seq'::regclass);
 
 
 --
 -- TOC entry 5026 (class 2604 OID 17392)
--- Name: property_financial_snapshots id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: property_financial_snapshots id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_financial_snapshots ALTER COLUMN id SET DEFAULT nextval('template.property_financial_snapshots_id_seq'::regclass);
+ALTER TABLE ONLY public.property_financial_snapshots ALTER COLUMN id SET DEFAULT nextval('public.property_financial_snapshots_id_seq'::regclass);
 
 
 --
 -- TOC entry 5029 (class 2604 OID 17393)
--- Name: property_history id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: property_history id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_history ALTER COLUMN id SET DEFAULT nextval('template.property_history_id_seq'::regclass);
+ALTER TABLE ONLY public.property_history ALTER COLUMN id SET DEFAULT nextval('public.property_history_id_seq'::regclass);
 
 
 --
 -- TOC entry 5032 (class 2604 OID 17394)
--- Name: property_works id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: property_works id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_works ALTER COLUMN id SET DEFAULT nextval('template.property_works_id_seq'::regclass);
+ALTER TABLE ONLY public.property_works ALTER COLUMN id SET DEFAULT nextval('public.property_works_id_seq'::regclass);
 
 
 --
 -- TOC entry 5058 (class 2604 OID 17600)
--- Name: rent_receipts id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: rent_receipts id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.rent_receipts ALTER COLUMN id SET DEFAULT nextval('template.rent_receipts_id_seq'::regclass);
+ALTER TABLE ONLY public.rent_receipts ALTER COLUMN id SET DEFAULT nextval('public.rent_receipts_id_seq'::regclass);
 
 
 --
 -- TOC entry 4984 (class 2604 OID 17105)
--- Name: reports id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: reports id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.reports ALTER COLUMN id SET DEFAULT nextval('template.reports_id_seq'::regclass);
+ALTER TABLE ONLY public.reports ALTER COLUMN id SET DEFAULT nextval('public.reports_id_seq'::regclass);
 
 
 --
 -- TOC entry 5143 (class 2604 OID 18580)
--- Name: sessions id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: sessions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.sessions ALTER COLUMN id SET DEFAULT nextval('template.sessions_id_seq'::regclass);
+ALTER TABLE ONLY public.sessions ALTER COLUMN id SET DEFAULT nextval('public.sessions_id_seq'::regclass);
 
 
 --
 -- TOC entry 5139 (class 2604 OID 18435)
--- Name: storage_extensions id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: storage_extensions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.storage_extensions ALTER COLUMN id SET DEFAULT nextval('template.storage_extensions_id_seq'::regclass);
+ALTER TABLE ONLY public.storage_extensions ALTER COLUMN id SET DEFAULT nextval('public.storage_extensions_id_seq'::regclass);
 
 
 --
 -- TOC entry 5224 (class 2604 OID 19437)
--- Name: storage_transactions id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: storage_transactions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.storage_transactions ALTER COLUMN id SET DEFAULT nextval('template.storage_transactions_id_seq'::regclass);
+ALTER TABLE ONLY public.storage_transactions ALTER COLUMN id SET DEFAULT nextval('public.storage_transactions_id_seq'::regclass);
 
 
 --
 -- TOC entry 5129 (class 2604 OID 18370)
--- Name: storage_usage_details id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: storage_usage_details id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.storage_usage_details ALTER COLUMN id SET DEFAULT nextval('template.storage_usage_details_id_seq'::regclass);
+ALTER TABLE ONLY public.storage_usage_details ALTER COLUMN id SET DEFAULT nextval('public.storage_usage_details_id_seq'::regclass);
 
 
 --
 -- TOC entry 5038 (class 2604 OID 17395)
--- Name: tenant_documents id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: tenant_documents id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenant_documents ALTER COLUMN id SET DEFAULT nextval('template.tenant_documents_id_seq'::regclass);
+ALTER TABLE ONLY public.tenant_documents ALTER COLUMN id SET DEFAULT nextval('public.tenant_documents_id_seq'::regclass);
 
 
 --
 -- TOC entry 5041 (class 2604 OID 17396)
--- Name: tenant_history id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: tenant_history id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenant_history ALTER COLUMN id SET DEFAULT nextval('template.tenant_history_id_seq'::regclass);
+ALTER TABLE ONLY public.tenant_history ALTER COLUMN id SET DEFAULT nextval('public.tenant_history_id_seq'::regclass);
 
 
 --
 -- TOC entry 4971 (class 2604 OID 17397)
--- Name: tenants id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: tenants id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenants ALTER COLUMN id SET DEFAULT nextval('template.tenants_id_seq'::regclass);
+ALTER TABLE ONLY public.tenants ALTER COLUMN id SET DEFAULT nextval('public.tenants_id_seq'::regclass);
 
 
 --
 -- TOC entry 5127 (class 2604 OID 18227)
--- Name: transaction_attachments id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: transaction_attachments id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transaction_attachments ALTER COLUMN id SET DEFAULT nextval('template.transaction_attachments_id_seq'::regclass);
+ALTER TABLE ONLY public.transaction_attachments ALTER COLUMN id SET DEFAULT nextval('public.transaction_attachments_id_seq'::regclass);
 
 
 --
 -- TOC entry 5047 (class 2604 OID 17398)
--- Name: transactions id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: transactions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transactions ALTER COLUMN id SET DEFAULT nextval('template.transactions_id_seq'::regclass);
+ALTER TABLE ONLY public.transactions ALTER COLUMN id SET DEFAULT nextval('public.transactions_id_seq'::regclass);
 
 
 --
 -- TOC entry 5081 (class 2604 OID 17814)
--- Name: user_notification_settings id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: user_notification_settings id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.user_notification_settings ALTER COLUMN id SET DEFAULT nextval('template.user_notification_settings_id_seq'::regclass);
+ALTER TABLE ONLY public.user_notification_settings ALTER COLUMN id SET DEFAULT nextval('public.user_notification_settings_id_seq'::regclass);
 
 
 --
 -- TOC entry 5133 (class 2604 OID 18418)
--- Name: user_subscriptions id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: user_subscriptions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.user_subscriptions ALTER COLUMN id SET DEFAULT nextval('template.user_subscriptions_id_seq'::regclass);
+ALTER TABLE ONLY public.user_subscriptions ALTER COLUMN id SET DEFAULT nextval('public.user_subscriptions_id_seq'::regclass);
 
 
 --
 -- TOC entry 4923 (class 2604 OID 17399)
--- Name: users id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: users id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.users ALTER COLUMN id SET DEFAULT nextval('template.users_id_seq'::regclass);
+ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
 
 
 --
 -- TOC entry 5050 (class 2604 OID 17400)
--- Name: visits id; Type: DEFAULT; Schema: template; Owner: postgres
+-- Name: visits id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.visits ALTER COLUMN id SET DEFAULT nextval('template.visits_id_seq'::regclass);
+ALTER TABLE ONLY public.visits ALTER COLUMN id SET DEFAULT nextval('public.visits_id_seq'::regclass);
 
 
 --
 -- TOC entry 5752 (class 0 OID 19261)
 -- Dependencies: 317
--- Data for Name: ai_conversations; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: ai_conversations; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.ai_conversations (id, user_id, title, created_at, updated_at, status, category, context) FROM stdin;
+COPY public.ai_conversations (id, user_id, title, created_at, updated_at, status, category, context) FROM stdin;
 1	1	Quel est le prix au m² à Villemandeu	2025-05-04 20:57:42.689419	2025-05-04 20:57:42.689419	active	general	{}
 2	1	Comment calculer un préavis de départ pour un loca...	2025-05-04 22:39:16.001289	2025-05-04 20:39:16.016	active	general	{}
 3	1	gfg	2025-05-05 02:04:18.350112	2025-05-05 00:04:18.368	active	general	{}
@@ -3548,10 +3542,10 @@ COPY template.ai_conversations (id, user_id, title, created_at, updated_at, stat
 --
 -- TOC entry 5754 (class 0 OID 19283)
 -- Dependencies: 319
--- Data for Name: ai_messages; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: ai_messages; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.ai_messages (id, user_id, role, content, metadata, conversation_id, created_at, is_urgent, model_id, provider) FROM stdin;
+COPY public.ai_messages (id, user_id, role, content, metadata, conversation_id, created_at, is_urgent, model_id, provider) FROM stdin;
 1	1	user	Comment calculer un préavis de départ pour un locataire ?	{}	2	2025-05-04 22:39:16.009931	f	huggingface	huggingface
 2	1	assistant	La gestion des locataires est facilitée par notre plateforme. Vous pouvez consulter les profils des locataires, accéder à leurs informations de contact et à l'historique des communications dans l'onglet 'Locataires'.	{}	2	2025-05-04 22:39:16.319889	f	huggingface	huggingface
 3	1	user	gfg	{}	3	2025-05-05 02:04:18.362823	f	huggingface	huggingface
@@ -3562,50 +3556,50 @@ COPY template.ai_messages (id, user_id, role, content, metadata, conversation_id
 --
 -- TOC entry 5756 (class 0 OID 19312)
 -- Dependencies: 321
--- Data for Name: ai_suggestions; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: ai_suggestions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.ai_suggestions (id, user_id, property_id, type, suggestion, data, created_at, status) FROM stdin;
+COPY public.ai_suggestions (id, user_id, property_id, type, suggestion, data, created_at, status) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5659 (class 0 OID 17090)
 -- Dependencies: 224
--- Data for Name: alerts; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: alerts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.alerts (id, title, description, "userId", type, status, "createdAt", "updatedAt") FROM stdin;
+COPY public.alerts (id, title, description, "userId", type, status, "createdAt", "updatedAt") FROM stdin;
 \.
 
 
 --
 -- TOC entry 5710 (class 0 OID 17776)
 -- Dependencies: 275
--- Data for Name: analysis_configs; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: analysis_configs; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.analysis_configs (id, property_id, user_id, name, period_type, period_value, created_at, updated_at) FROM stdin;
+COPY public.analysis_configs (id, property_id, user_id, name, period_type, period_value, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5702 (class 0 OID 17609)
 -- Dependencies: 267
--- Data for Name: automatic_reminders; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: automatic_reminders; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.automatic_reminders (id, user_id, type, related_entity_type, related_entity_id, title, message, next_trigger_date, days_in_advance, recurrence, status, created_at, updated_at) FROM stdin;
+COPY public.automatic_reminders (id, user_id, type, related_entity_type, related_entity_id, title, message, next_trigger_date, days_in_advance, recurrence, status, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5736 (class 0 OID 18448)
 -- Dependencies: 301
--- Data for Name: billing_transactions; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: billing_transactions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.billing_transactions (id, user_id, amount, description, status, payment_method, transaction_date, next_billing_date, metadata) FROM stdin;
+COPY public.billing_transactions (id, user_id, amount, description, status, payment_method, transaction_date, next_billing_date, metadata) FROM stdin;
 1	1	9.99	Abonnement Premium	completed	\N	2025-04-01 20:51:22.968368	\N	\N
 2	1	9.99	Renouvellement abonnement Premium	completed	\N	2025-04-30 20:51:22.968368	\N	\N
 \.
@@ -3614,10 +3608,10 @@ COPY template.billing_transactions (id, user_id, amount, description, status, pa
 --
 -- TOC entry 5748 (class 0 OID 19148)
 -- Dependencies: 313
--- Data for Name: company_info; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: company_info; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.company_info (id, user_id, company_name, company_address, company_phone, company_email, company_website, company_siret, created_at, updated_at) FROM stdin;
+COPY public.company_info (id, user_id, company_name, company_address, company_phone, company_email, company_website, company_siret, created_at, updated_at) FROM stdin;
 1	1	Votre Entreprise	123 Rue Exemple, 75000 Paris	01 23 45 67 89	contact@votreentreprise.com	www.votreentreprise.com	123 456 789 00012	2025-05-04 04:18:46.578071	2025-05-04 04:18:46.578071
 \.
 
@@ -3625,10 +3619,10 @@ COPY template.company_info (id, user_id, company_name, company_address, company_
 --
 -- TOC entry 5706 (class 0 OID 17727)
 -- Dependencies: 271
--- Data for Name: contract_parties; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: contract_parties; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.contract_parties (id, contract_id, party_id, party_type, created_at) FROM stdin;
+COPY public.contract_parties (id, contract_id, party_id, party_type, created_at) FROM stdin;
 1	6	8	tenant	2025-04-09 16:38:17.199
 \.
 
@@ -3636,10 +3630,10 @@ COPY template.contract_parties (id, contract_id, party_id, party_type, created_a
 --
 -- TOC entry 5704 (class 0 OID 17701)
 -- Dependencies: 269
--- Data for Name: contracts; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: contracts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.contracts (id, name, type, status, start_date, end_date, property_id, document_id, signature_required, automated_renewal, renewal_date, notification_date, created_at, updated_at) FROM stdin;
+COPY public.contracts (id, name, type, status, start_date, end_date, property_id, document_id, signature_required, automated_renewal, renewal_date, notification_date, created_at, updated_at) FROM stdin;
 6	la parlerne	rental	draft	2025-04-11 22:00:00	2025-04-17 22:00:00	1	\N	t	t	\N	\N	2025-04-09 16:38:17.184	2025-04-09 16:38:17.184
 \.
 
@@ -3647,20 +3641,20 @@ COPY template.contracts (id, name, type, status, start_date, end_date, property_
 --
 -- TOC entry 5664 (class 0 OID 17231)
 -- Dependencies: 229
--- Data for Name: document_templates; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: document_templates; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.document_templates (id, name, document_type, field_mappings, user_id, created_at, updated_at) FROM stdin;
+COPY public.document_templates (id, name, document_type, field_mappings, user_id, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5666 (class 0 OID 17239)
 -- Dependencies: 231
--- Data for Name: documents; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: documents; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.documents (id, title, type, file_path, original_name, template, user_id, folder_id, parent_id, template_id, created_at, updated_at, form_data, content, theme, file_size) FROM stdin;
+COPY public.documents (id, title, type, file_path, original_name, template, user_id, folder_id, parent_id, template_id, created_at, updated_at, form_data, content, theme, file_size) FROM stdin;
 1	Mesure taille-poignet-montre EN (2)	other	Mesure_taille-poignet-montre_EN__2_-1743553815589-38507772.pdf	Mesure taille-poignet-montre EN (2).pdf	f	1	\N	\N	\N	2025-04-02 00:30:15.638	2025-04-02 00:30:15.638	{"customFileName": "Mesure taille-poignet-montre EN (2)"}	{}	{}	0
 2	document-1	other	document-1-1743554474217-519725335.pdf	document-1.pdf	f	2	\N	\N	\N	2025-04-02 00:41:14.234	2025-04-02 00:41:14.234	{"customFileName": "document-1"}	{}	{}	0
 3	document-1	other	document-1-1743554532994-721969766.pdf	document-1.pdf	f	2	\N	\N	\N	2025-04-02 00:42:13	2025-04-02 00:42:13	{"customFileName": "document-1"}	{}	{}	0
@@ -3773,40 +3767,40 @@ COPY template.documents (id, title, type, file_path, original_name, template, us
 --
 -- TOC entry 5667 (class 0 OID 17251)
 -- Dependencies: 232
--- Data for Name: documents_access_log; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: documents_access_log; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.documents_access_log (id, document_id, user_id, access_type, accessed_at, ip_address, user_agent) FROM stdin;
+COPY public.documents_access_log (id, document_id, user_id, access_type, accessed_at, ip_address, user_agent) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5663 (class 0 OID 17113)
 -- Dependencies: 228
--- Data for Name: feedbacks; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: feedbacks; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.feedbacks (id, "userId", content, rating, "createdAt", "updatedAt") FROM stdin;
+COPY public.feedbacks (id, "userId", content, rating, "createdAt", "updatedAt") FROM stdin;
 \.
 
 
 --
 -- TOC entry 5670 (class 0 OID 17259)
 -- Dependencies: 235
--- Data for Name: financial_entries; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: financial_entries; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.financial_entries (id, property_id, date, type, category, amount, recurring, frequency, description, source, related_entity_id, related_entity_type, created_at, updated_at) FROM stdin;
+COPY public.financial_entries (id, property_id, date, type, category, amount, recurring, frequency, description, source, related_entity_id, related_entity_type, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5672 (class 0 OID 17268)
 -- Dependencies: 237
--- Data for Name: folders; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: folders; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.folders (id, name, parent_id, user_id, created_at, updated_at) FROM stdin;
+COPY public.folders (id, name, parent_id, user_id, created_at, updated_at) FROM stdin;
 1	vbnbnbn	\N	2	2025-04-03 20:59:06.646	2025-04-03 20:59:06.646
 \.
 
@@ -3814,20 +3808,20 @@ COPY template.folders (id, name, parent_id, user_id, created_at, updated_at) FRO
 --
 -- TOC entry 5726 (class 0 OID 18206)
 -- Dependencies: 291
--- Data for Name: form_field_options; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: form_field_options; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.form_field_options (id, form_field_id, value, "position", created_at) FROM stdin;
+COPY public.form_field_options (id, form_field_id, value, "position", created_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5724 (class 0 OID 18187)
 -- Dependencies: 289
--- Data for Name: form_fields; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: form_fields; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.form_fields (id, link_id, field_id, type, label, required, "position", created_at, updated_at) FROM stdin;
+COPY public.form_fields (id, link_id, field_id, type, label, required, "position", created_at, updated_at) FROM stdin;
 1	2	test_field	text	Champ de Test	t	0	2025-04-28 02:18:20.822962	2025-04-28 02:18:20.822962
 2	3	test_field	text	Champ de Test	t	0	2025-04-28 02:18:20.822962	2025-04-28 02:18:20.822962
 \.
@@ -3836,20 +3830,20 @@ COPY template.form_fields (id, link_id, field_id, type, label, required, "positi
 --
 -- TOC entry 5716 (class 0 OID 18025)
 -- Dependencies: 281
--- Data for Name: form_responses; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: form_responses; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.form_responses (id, form_id, data, created_at, ip_address) FROM stdin;
+COPY public.form_responses (id, form_id, data, created_at, ip_address) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5722 (class 0 OID 18165)
 -- Dependencies: 287
--- Data for Name: form_submissions; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: form_submissions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.form_submissions (id, link_id, form_data, ip_address, user_agent, created_at) FROM stdin;
+COPY public.form_submissions (id, link_id, form_data, ip_address, user_agent, created_at) FROM stdin;
 1	2	{"1745781530029": "", "1745781531297": "2525", "1745781531567": ""}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36	2025-04-27 19:19:23.784
 2	2	{"1745781530029": "478448", "1745781531297": "451", "1745781531567": ""}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36	2025-04-27 19:32:30.982
 3	2	{"1745781530029": "rtrt", "1745781531297": "rtrt", "1745781531567": "rt"}	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36	2025-04-27 20:49:07.649
@@ -3891,20 +3885,20 @@ COPY template.form_submissions (id, link_id, form_data, ip_address, user_agent, 
 --
 -- TOC entry 5714 (class 0 OID 18013)
 -- Dependencies: 279
--- Data for Name: forms; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: forms; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.forms (id, user_id, title, slug, fields, created_at) FROM stdin;
+COPY public.forms (id, user_id, title, slug, fields, created_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5718 (class 0 OID 18112)
 -- Dependencies: 283
--- Data for Name: link_profiles; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: link_profiles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.link_profiles (id, user_id, slug, title, description, background_color, text_color, accent_color, logo_url, views, background_image, background_pattern, button_style, button_radius, font_family, animation, custom_css, custom_theme, background_saturation, background_hue_rotate, background_sepia, background_grayscale, background_invert, background_color_filter, background_color_filter_opacity, created_at, updated_at) FROM stdin;
+COPY public.link_profiles (id, user_id, slug, title, description, background_color, text_color, accent_color, logo_url, views, background_image, background_pattern, button_style, button_radius, font_family, animation, custom_css, custom_theme, background_saturation, background_hue_rotate, background_sepia, background_grayscale, background_invert, background_color_filter, background_color_filter_opacity, created_at, updated_at) FROM stdin;
 3	1	test-user-1	Mon Linktree	Tous mes liens professionnels en un seul endroit	#f5f5f5	#000000	#ef4444		80	\N	\N	brutalist	8	Roboto	none	\N	\N	100	0	0	0	0	\N	0.3	2025-04-29 16:22:31.714	2025-05-04 23:35:09.946
 1	2	test-user	Jeans immo	Tous mes liens professionnels en un seul endroit	#0f172a	#f8fafc	#f472b6	/uploads/logos/user-2-logo-1745837161653-95585562.png	434	/uploads/backgrounds/user-2-background-1745839072007-455308981.jpg	\N	neon	16	Space Grotesk	bounce	\N	\N	100	150	35	30	70	#f59e0b	0.3	2025-04-27 19:18:28.224	2025-04-28 15:16:49.071
 2	23	teste123	Mon Linktree	Tous mes liens professionnels en un seul endroit	#ffffff	#000000	#70C7BA		0	\N	\N	rounded	8	Inter	fade	\N	\N	100	0	0	0	0	\N	0.3	2025-04-28 23:49:31.611	2025-04-28 23:49:31.611
@@ -3914,10 +3908,10 @@ COPY template.link_profiles (id, user_id, slug, title, description, background_c
 --
 -- TOC entry 5720 (class 0 OID 18144)
 -- Dependencies: 285
--- Data for Name: links; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: links; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.links (id, profile_id, title, url, icon, enabled, clicks, "position", featured, custom_color, custom_text_color, animation, type, form_definition, created_at, updated_at, button_style) FROM stdin;
+COPY public.links (id, profile_id, title, url, icon, enabled, clicks, "position", featured, custom_color, custom_text_color, animation, type, form_definition, created_at, updated_at, button_style) FROM stdin;
 6	3	tdfgdfg		\N	t	5	1	f	\N	\N	\N	form	[{"id": "1746029730247", "type": "text", "label": "dfgdfg", "options": [], "required": false}]	2025-04-30 16:15:35.545	2025-05-04 12:16:27.696	\N
 5	3	dfdf		\N	t	13	0	f	\N	\N	\N	form	[{"id": "1745968701599", "type": "text", "label": "fdf", "options": [], "required": false}]	2025-04-29 23:18:36.86	2025-05-04 12:18:42.853	\N
 3	1	bn,bn,		\N	t	1	1	f	\N	\N	\N	form	[{"id": "1745788013405", "type": "text", "label": "bn,bn,", "options": [], "required": false}]	2025-04-27 21:07:00.216	2025-04-28 11:18:03.335	\N
@@ -3929,20 +3923,20 @@ COPY template.links (id, profile_id, title, url, icon, enabled, clicks, "positio
 --
 -- TOC entry 5657 (class 0 OID 17055)
 -- Dependencies: 222
--- Data for Name: maintenance; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: maintenance; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.maintenance (id, title, description, "propertyId", status, "createdAt", "updatedAt") FROM stdin;
+COPY public.maintenance (id, title, description, "propertyId", status, "createdAt", "updatedAt") FROM stdin;
 \.
 
 
 --
 -- TOC entry 5674 (class 0 OID 17276)
 -- Dependencies: 239
--- Data for Name: maintenance_requests; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: maintenance_requests; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.maintenance_requests (id, title, description, priority, status, property_id, tenant_id, reported_by, total_cost, document_id, document_ids, created_at, updated_at) FROM stdin;
+COPY public.maintenance_requests (id, title, description, priority, status, property_id, tenant_id, reported_by, total_cost, document_id, document_ids, created_at, updated_at) FROM stdin;
 6	gdsg	dfgdfg	medium	completed	1	\N	50	40.00	\N	"[]"	2025-03-06 00:00:00	2025-04-02 12:19:23.059
 1	vbv	bvbv	low	completed	1	\N	vbvb	40.00	7	"[7]"	2025-04-02 00:57:54.135	2025-04-02 12:26:08.525
 2	 cv	bcvb	low	completed	1	\N	vbvb	200.00	\N	"[]"	2025-04-02 00:58:18.355	2025-04-02 12:27:10.418
@@ -3957,20 +3951,20 @@ COPY template.maintenance_requests (id, title, description, priority, status, pr
 --
 -- TOC entry 5676 (class 0 OID 17287)
 -- Dependencies: 241
--- Data for Name: notifications; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.notifications (id, user_id, title, message, type, related_to, related_id, is_read, created_at) FROM stdin;
+COPY public.notifications (id, user_id, title, message, type, related_to, related_id, is_read, created_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5742 (class 0 OID 19102)
 -- Dependencies: 307
--- Data for Name: pdf_configuration; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: pdf_configuration; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.pdf_configuration (id, user_id, name, orientation, page_size, margin_top, margin_right, margin_bottom, margin_left, show_header, show_footer, show_pagination, show_filters, default_config, created_at, updated_at, header_color, alternate_row_color, items_per_page, custom_title, font_family, font_size, theme_id, accent_color, watermark_text, watermark_opacity, compress_pdf, password_protection, print_background, scale, landscape_scaling, header_height, footer_height) FROM stdin;
+COPY public.pdf_configuration (id, user_id, name, orientation, page_size, margin_top, margin_right, margin_bottom, margin_left, show_header, show_footer, show_pagination, show_filters, default_config, created_at, updated_at, header_color, alternate_row_color, items_per_page, custom_title, font_family, font_size, theme_id, accent_color, watermark_text, watermark_opacity, compress_pdf, password_protection, print_background, scale, landscape_scaling, header_height, footer_height) FROM stdin;
 1	1	Configuration standard	portrait	A4	20	10	20	10	t	t	t	t	t	2025-05-04 04:18:46.578071	2025-05-04 04:41:10.008351	#f3f4f6	#f9fafb	25	Rapport	Helvetica	10	1	#4f46e5	\N	0.1	t	\N	t	1	t	30	20
 \.
 
@@ -3978,10 +3972,10 @@ COPY template.pdf_configuration (id, user_id, name, orientation, page_size, marg
 --
 -- TOC entry 5740 (class 0 OID 19002)
 -- Dependencies: 305
--- Data for Name: pdf_document_preferences; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: pdf_document_preferences; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.pdf_document_preferences (id, configuration_id, document_type, enabled, display_order, created_at, updated_at, columns_to_display, custom_title, table_header_color, table_text_color, table_alternate_color, max_items_per_page) FROM stdin;
+COPY public.pdf_document_preferences (id, configuration_id, document_type, enabled, display_order, created_at, updated_at, columns_to_display, custom_title, table_header_color, table_text_color, table_alternate_color, max_items_per_page) FROM stdin;
 13	3	visits	t	0	2025-05-04 02:47:35.221994	2025-05-04 02:47:35.221994	{visitor,datetime,type,property,status,email,phone}	Liste des visites	#4B70E2	#000000	#F5F5FF	10
 14	3	tenants	t	0	2025-05-04 02:47:35.221994	2025-05-04 02:47:35.221994	{name,property,lease_type,lease_start,lease_end,rent,status,email,phone}	Liste des locataires	#4B70E2	#000000	#F5F5FF	10
 15	3	maintenance	t	0	2025-05-04 02:47:35.221994	2025-05-04 02:47:35.221994	{date,property,title,description,reporter,cost,priority,status}	Suivi de maintenance	#4B70E2	#000000	#F5F5FF	10
@@ -4000,10 +3994,10 @@ COPY template.pdf_document_preferences (id, configuration_id, document_type, ena
 --
 -- TOC entry 5744 (class 0 OID 19122)
 -- Dependencies: 309
--- Data for Name: pdf_logos; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: pdf_logos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.pdf_logos (id, user_id, name, image_data, width, height, is_default, created_at, updated_at) FROM stdin;
+COPY public.pdf_logos (id, user_id, name, image_data, width, height, is_default, created_at, updated_at) FROM stdin;
 1	1	Logo principal	data:image/png;base64,VOTRE_IMAGE_EN_BASE64	120	80	t	2025-05-04 04:18:46.578071	2025-05-04 04:18:46.578071
 \.
 
@@ -4011,10 +4005,10 @@ COPY template.pdf_logos (id, user_id, name, image_data, width, height, is_defaul
 --
 -- TOC entry 5746 (class 0 OID 19136)
 -- Dependencies: 311
--- Data for Name: pdf_templates; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: pdf_templates; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.pdf_templates (id, name, type, columns, header_template, footer_template, is_default, created_at, updated_at, header_color, alternate_row_color, items_per_page, default_title, border_style, border_width, row_padding, cell_alignment) FROM stdin;
+COPY public.pdf_templates (id, name, type, columns, header_template, footer_template, is_default, created_at, updated_at, header_color, alternate_row_color, items_per_page, default_title, border_style, border_width, row_padding, cell_alignment) FROM stdin;
 1	Template visites standard	visite	[{"key": "visitor", "label": "Visiteur"}, {"key": "datetime", "label": "Date et heure"}, {"key": "property", "label": "Propriété"}, {"key": "contact", "label": "Contact"}, {"key": "type", "label": "Type"}, {"key": "status", "label": "Statut"}]	\N	\N	t	2025-05-04 04:18:46.578071	2025-05-04 04:30:38.401352	#f3f4f6	#f9fafb	25	Liste des visite	solid	1	8	left
 2	Template locataires standard	locataires	[{"key": "fullName", "label": "Nom complet"}, {"key": "property", "label": "Propriété"}, {"key": "leaseStart", "label": "Début du bail"}, {"key": "leaseEnd", "label": "Fin du bail"}, {"key": "rentAmount", "label": "Montant du loyer"}, {"key": "status", "label": "Statut"}]	\N	\N	t	2025-05-04 04:18:46.578071	2025-05-04 04:30:38.401352	#f3f4f6	#f9fafb	25	Liste des locataires	solid	1	8	left
 3	Template maintenance standard	maintenance	[{"key": "title", "label": "Problème"}, {"key": "property", "label": "Propriété"}, {"key": "reportedDate", "label": "Date signalée"}, {"key": "priority", "label": "Priorité"}, {"key": "status", "label": "Statut"}, {"key": "cost", "label": "Coût"}]	\N	\N	t	2025-05-04 04:18:46.578071	2025-05-04 04:30:38.401352	#f3f4f6	#f9fafb	25	Liste des maintenance	solid	1	8	left
@@ -4025,10 +4019,10 @@ COPY template.pdf_templates (id, name, type, columns, header_template, footer_te
 --
 -- TOC entry 5750 (class 0 OID 19190)
 -- Dependencies: 315
--- Data for Name: pdf_themes; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: pdf_themes; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.pdf_themes (id, name, header_color, alternate_row_color, text_color, border_color, accent_color, background_color, font_family, is_default, created_at, updated_at) FROM stdin;
+COPY public.pdf_themes (id, name, header_color, alternate_row_color, text_color, border_color, accent_color, background_color, font_family, is_default, created_at, updated_at) FROM stdin;
 1	Classique Bleu	#e6f0ff	#f8fafc	#333333	#cbd5e1	#4f46e5	#ffffff	Helvetica	t	2025-05-04 04:35:08.356459	2025-05-04 04:37:49.831152
 2	Moderne Sombre	#1e293b	#334155	#f8fafc	#475569	#06b6d4	#ffffff	Helvetica	f	2025-05-04 04:35:08.356459	2025-05-04 04:37:49.831152
 3	Minimaliste	#f9fafb	#ffffff	#111827	#e5e7eb	#4b5563	#ffffff	Helvetica	f	2025-05-04 04:35:08.356459	2025-05-04 04:37:49.831152
@@ -4039,10 +4033,10 @@ COPY template.pdf_themes (id, name, header_color, alternate_row_color, text_colo
 --
 -- TOC entry 5654 (class 0 OID 16870)
 -- Dependencies: 219
--- Data for Name: properties; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: properties; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.properties (id, name, address, description, type, units, bedrooms, floors, bathrooms, toilets, energy_class, energy_emissions, living_area, land_area, has_parking, has_terrace, has_garage, has_outbuilding, has_balcony, has_elevator, has_cellar, has_garden, is_new_construction, purchase_price, monthly_rent, monthly_expenses, loan_amount, monthly_loan_payment, loan_duration, status, construction_year, created_at, updated_at, purchase_date, area, "livingArea", "landArea", "constructionYear", rooms, "hasParking", "hasTerrace", "hasGarage", "hasOutbuilding", "hasBalcony", "hasElevator", "hasCellar", "hasGarden", "isNewConstruction", images, user_id) FROM stdin;
+COPY public.properties (id, name, address, description, type, units, bedrooms, floors, bathrooms, toilets, energy_class, energy_emissions, living_area, land_area, has_parking, has_terrace, has_garage, has_outbuilding, has_balcony, has_elevator, has_cellar, has_garden, is_new_construction, purchase_price, monthly_rent, monthly_expenses, loan_amount, monthly_loan_payment, loan_duration, status, construction_year, created_at, updated_at, purchase_date, area, "livingArea", "landArea", "constructionYear", rooms, "hasParking", "hasTerrace", "hasGarage", "hasOutbuilding", "hasBalcony", "hasElevator", "hasCellar", "hasGarden", "isNewConstruction", images, user_id) FROM stdin;
 12	la parlerne551	68 Rue Blomet 75015 Paris		apartment	0	0	0	0	0	D	\N	0	0	f	f	f	f	f	f	f	f	f	365.00	0.00	\N	456.00	230.00	20	available	\N	2025-04-15 20:34:54.227	2025-04-15 20:34:54.227	\N	0	\N	\N	\N	0	f	f	f	f	f	f	f	f	f	[]	1
 13	ttste 2 	36 Rue Colbert 59800 Lille		apartment	0	0	0	0	0	D	\N	0	0	f	f	f	f	f	f	f	f	f	645.00	45.00	45.00	45.00	45.00	20	available	\N	2025-04-15 20:38:05.773	2025-04-15 20:38:05.773	\N	0	\N	\N	\N	0	f	f	f	f	f	f	f	f	f	[]	1
 14	teste transaction	45 Rue Pelleport 33800 Bordeaux		apartment	0	0	0	0	0	D	\N	0	0	f	f	f	f	f	f	f	f	f	45000.00	0.00	\N	53000.00	0.00	25	available	\N	2025-04-15 21:08:06.787	2025-04-15 21:08:06.787	\N	0	\N	\N	\N	0	f	f	f	f	f	f	f	f	f	[]	1
@@ -4080,20 +4074,20 @@ COPY template.properties (id, name, address, description, type, units, bedrooms,
 --
 -- TOC entry 5708 (class 0 OID 17754)
 -- Dependencies: 273
--- Data for Name: property_analyses; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: property_analyses; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.property_analyses (id, property_id, user_id, analysis_date, data, created_at, updated_at) FROM stdin;
+COPY public.property_analyses (id, property_id, user_id, analysis_date, data, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5679 (class 0 OID 17296)
 -- Dependencies: 244
--- Data for Name: property_coordinates; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: property_coordinates; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.property_coordinates (id, property_id, latitude, longitude, updated_at) FROM stdin;
+COPY public.property_coordinates (id, property_id, latitude, longitude, updated_at) FROM stdin;
 1	1	48.84389100	2.30664100	2025-04-15 21:10:34.183849
 3	5	48.89044600	2.34793700	2025-04-15 21:25:04.200908
 2	4	49.90634600	2.26959100	2025-04-15 19:25:45.129
@@ -4128,80 +4122,80 @@ COPY template.property_coordinates (id, property_id, latitude, longitude, update
 --
 -- TOC entry 5681 (class 0 OID 17301)
 -- Dependencies: 246
--- Data for Name: property_financial_goals; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: property_financial_goals; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.property_financial_goals (id, property_id, title, type, target_value, current_value, deadline, status, notes, created_at, updated_at) FROM stdin;
+COPY public.property_financial_goals (id, property_id, title, type, target_value, current_value, deadline, status, notes, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5683 (class 0 OID 17310)
 -- Dependencies: 248
--- Data for Name: property_financial_snapshots; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: property_financial_snapshots; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.property_financial_snapshots (id, property_id, snapshot_date, gross_rental_yield, net_rental_yield, cash_on_cash_return, cap_rate, monthly_cash_flow, total_income, total_expenses, occupancy_rate, metadata, created_at) FROM stdin;
+COPY public.property_financial_snapshots (id, property_id, snapshot_date, gross_rental_yield, net_rental_yield, cash_on_cash_return, cap_rate, monthly_cash_flow, total_income, total_expenses, occupancy_rate, metadata, created_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5685 (class 0 OID 17318)
 -- Dependencies: 250
--- Data for Name: property_history; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: property_history; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.property_history (id, property_id, field, old_value, new_value, change_type, user_id, created_at, metadata) FROM stdin;
+COPY public.property_history (id, property_id, field, old_value, new_value, change_type, user_id, created_at, metadata) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5687 (class 0 OID 17326)
 -- Dependencies: 252
--- Data for Name: property_works; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: property_works; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.property_works (id, property_id, title, description, type, status, start_date, end_date, estimated_cost, actual_cost, contractor, priority, documents, created_at, updated_at) FROM stdin;
+COPY public.property_works (id, property_id, title, description, type, status, start_date, end_date, estimated_cost, actual_cost, contractor, priority, documents, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5700 (class 0 OID 17597)
 -- Dependencies: 265
--- Data for Name: rent_receipts; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: rent_receipts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.rent_receipts (id, tenant_id, property_id, transaction_id, amount, charges, rent_period_start, rent_period_end, status, document_id, created_at, updated_at) FROM stdin;
+COPY public.rent_receipts (id, tenant_id, property_id, transaction_id, amount, charges, rent_period_start, rent_period_end, status, document_id, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5661 (class 0 OID 17102)
 -- Dependencies: 226
--- Data for Name: reports; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: reports; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.reports (id, title, description, "reportType", "fileUrl", "userId", "createdAt", "updatedAt") FROM stdin;
+COPY public.reports (id, title, description, "reportType", "fileUrl", "userId", "createdAt", "updatedAt") FROM stdin;
 \.
 
 
 --
 -- TOC entry 5738 (class 0 OID 18577)
 -- Dependencies: 303
--- Data for Name: sessions; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.sessions (id, user_id, session_id, ip_address, user_agent, payload, expires_at, created_at, updated_at) FROM stdin;
+COPY public.sessions (id, user_id, session_id, ip_address, user_agent, payload, expires_at, created_at, updated_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5734 (class 0 OID 18432)
 -- Dependencies: 299
--- Data for Name: storage_extensions; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: storage_extensions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.storage_extensions (id, name, quota_bytes, price, is_default) FROM stdin;
+COPY public.storage_extensions (id, name, quota_bytes, price, is_default) FROM stdin;
 1	Inclus	5368709120	0	t
 2	Stockage 25GB	26843545600	9.99	f
 3	Stockage 50GB	53687091200	19.99	f
@@ -4216,40 +4210,40 @@ COPY template.storage_extensions (id, name, quota_bytes, price, is_default) FROM
 --
 -- TOC entry 5758 (class 0 OID 19434)
 -- Dependencies: 323
--- Data for Name: storage_transactions; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: storage_transactions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.storage_transactions (id, user_id, previous_tier, new_tier, amount_paid, transaction_date, expiration_date, payment_method, payment_reference, status, notes) FROM stdin;
+COPY public.storage_transactions (id, user_id, previous_tier, new_tier, amount_paid, transaction_date, expiration_date, payment_method, payment_reference, status, notes) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5730 (class 0 OID 18367)
 -- Dependencies: 295
--- Data for Name: storage_usage_details; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: storage_usage_details; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.storage_usage_details (id, user_id, resource_type, used_bytes, item_count, last_updated) FROM stdin;
+COPY public.storage_usage_details (id, user_id, resource_type, used_bytes, item_count, last_updated) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5689 (class 0 OID 17337)
 -- Dependencies: 254
--- Data for Name: tenant_documents; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: tenant_documents; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.tenant_documents (id, tenant_id, document_id, document_type, uploaded_at) FROM stdin;
+COPY public.tenant_documents (id, tenant_id, document_id, document_type, uploaded_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5691 (class 0 OID 17345)
 -- Dependencies: 256
--- Data for Name: tenant_history; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: tenant_history; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.tenant_history (id, rating, feedback, category, tenant_full_name, original_user_id, event_type, event_severity, event_details, documents, bail_status, bail_id, property_name, created_at, created_by, tenant_id, is_orphaned) FROM stdin;
+COPY public.tenant_history (id, rating, feedback, category, tenant_full_name, original_user_id, event_type, event_severity, event_details, documents, bail_status, bail_id, property_name, created_at, created_by, tenant_id, is_orphaned) FROM stdin;
 29	4	65	entretien	tftft	2	entretien	0	{}	{}	\N	\N	\N	2025-04-11 22:22:11.806	2	\N	t
 34	2	teste	paiement	tftft	\N	paiement	0	{}	{}	\N	\N	\N	2025-04-11 23:11:38.102	2	\N	f
 35	5	testeertertert	communication	tftft	\N	communication	0	{}	{}	\N	\N	la parlfferne	2025-04-11 23:12:03.3	2	\N	f
@@ -4265,10 +4259,10 @@ COPY template.tenant_history (id, rating, feedback, category, tenant_full_name, 
 --
 -- TOC entry 5655 (class 0 OID 16906)
 -- Dependencies: 220
--- Data for Name: tenants; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: tenants; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.tenants (id, user_id, property_id, lease_start, lease_end, rent_amount, lease_type, active, lease_status, created_at, updated_at, tenant_id) FROM stdin;
+COPY public.tenants (id, user_id, property_id, lease_start, lease_end, rent_amount, lease_type, active, lease_status, created_at, updated_at, tenant_id) FROM stdin;
 132	19	1	2025-04-11 00:00:00	2026-04-11 00:00:00	55.00	bail_vide	t	actif	2025-04-11 23:19:01.310926	2025-04-11 23:19:01.310926	\N
 \.
 
@@ -4276,20 +4270,20 @@ COPY template.tenants (id, user_id, property_id, lease_start, lease_end, rent_am
 --
 -- TOC entry 5728 (class 0 OID 18224)
 -- Dependencies: 293
--- Data for Name: transaction_attachments; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: transaction_attachments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.transaction_attachments (id, transaction_id, file_name, file_path, file_type, file_size, uploaded_at) FROM stdin;
+COPY public.transaction_attachments (id, transaction_id, file_name, file_path, file_type, file_size, uploaded_at) FROM stdin;
 \.
 
 
 --
 -- TOC entry 5694 (class 0 OID 17357)
 -- Dependencies: 259
--- Data for Name: transactions; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: transactions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.transactions (id, user_id, property_id, tenant_id, document_id, document_ids, type, category, amount, description, date, status, payment_method, created_at, updated_at) FROM stdin;
+COPY public.transactions (id, user_id, property_id, tenant_id, document_id, document_ids, type, category, amount, description, date, status, payment_method, created_at, updated_at) FROM stdin;
 60	2	10	\N	\N	{}	credit	mortgage	50.00	Mensualité prêt 7/240 - test transaction 1 	2025-10-15 10:00:00	pending	bank_transfer	2025-04-15 22:26:02.158823	2025-04-15 22:26:02.158823
 2	2	1	\N	5	{5}	income	rent	0.00		2025-04-11 10:00:00	completed	bank_transfer	2025-04-02 02:57:17.001996	2025-04-02 00:57:17.359
 306	2	\N	\N	\N	{}	income	rent	0.00		2025-04-16 10:00:00	pending	bank_transfer	2025-04-16 12:59:07.556526	2025-04-16 12:59:07.556526
@@ -5159,10 +5153,10 @@ COPY template.transactions (id, user_id, property_id, tenant_id, document_id, do
 --
 -- TOC entry 5712 (class 0 OID 17811)
 -- Dependencies: 277
--- Data for Name: user_notification_settings; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: user_notification_settings; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.user_notification_settings (id, user_id, type, channel, enabled, frequency, importance, created_at, updated_at) FROM stdin;
+COPY public.user_notification_settings (id, user_id, type, channel, enabled, frequency, importance, created_at, updated_at) FROM stdin;
 1	2	payment	both	t	immediate	all	2025-04-21 16:46:28.050222+02	2025-04-21 16:46:28.050222+02
 2	4	payment	both	t	immediate	all	2025-04-21 16:46:28.050222+02	2025-04-21 16:46:28.050222+02
 3	8	payment	both	t	immediate	all	2025-04-21 16:46:28.050222+02	2025-04-21 16:46:28.050222+02
@@ -5213,10 +5207,10 @@ COPY template.user_notification_settings (id, user_id, type, channel, enabled, f
 --
 -- TOC entry 5732 (class 0 OID 18415)
 -- Dependencies: 297
--- Data for Name: user_subscriptions; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: user_subscriptions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.user_subscriptions (id, user_id, plan_id, start_date, end_date, is_active, auto_renew, created_at, updated_at, storage_extension_id, external_id) FROM stdin;
+COPY public.user_subscriptions (id, user_id, plan_id, start_date, end_date, is_active, auto_renew, created_at, updated_at, storage_extension_id, external_id) FROM stdin;
 1	1	7	2025-05-01 20:51:22.968368	\N	t	f	2025-05-01 20:51:22.968368	2025-05-01 20:51:22.968368	1	\N
 2	1	9	2025-05-01 20:51:22.968368	\N	t	f	2025-05-01 20:51:22.968368	2025-05-01 20:51:22.968368	1	\N
 3	1	7	2025-05-01 20:51:22.968368	\N	t	f	2025-05-01 20:51:22.968368	2025-05-01 20:51:22.968368	5	\N
@@ -5227,10 +5221,10 @@ COPY template.user_subscriptions (id, user_id, plan_id, start_date, end_date, is
 --
 -- TOC entry 5653 (class 0 OID 16853)
 -- Dependencies: 218
--- Data for Name: users; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.users (id, username, password, full_name, email, phone_number, role, profile_image, archived, account_type, parent_account_id, settings, created_at, updated_at, is_premium, request_count, request_limit, preferred_ai_model, storage_used, storage_limit, storage_tier) FROM stdin;
+COPY public.users (id, username, password, full_name, email, phone_number, role, profile_image, archived, account_type, parent_account_id, settings, created_at, updated_at, is_premium, request_count, request_limit, preferred_ai_model, storage_used, storage_limit, storage_tier) FROM stdin;
 20	admin_test	$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy	Admin Test	admin@example.com	\N	clients	\N	f	individual	\N	{}	2025-04-29 01:18:04.955131	2025-05-05 14:40:39.28893	f	0	100	openai-gpt-3.5	0.00	5368709120.00	basic
 2	nouveau_nom	697592fb93e33904f815bb7667e3f16cfd86c1f5c704b2af716fc8f2c507757af1559186e774f293b3bf6ab7085e1c212af7a26a545954b71810507da358ad88.fb88291581ddee16843427993edfd6d8	Test User	test@example.com	\N	clients	\N	f	individual	\N	{}	2025-04-01 17:13:46.734	2025-05-05 14:40:39.295393	f	0	100	openai-gpt-3.5	0.00	5368709120.00	basic
 21	admin_test	admin123	Admin Test	admin@example.com	\N	clients	\N	f	individual	\N	{}	2025-04-29 01:20:38.184108	2025-05-05 14:40:39.304069	f	0	100	openai-gpt-3.5	0.00	5368709120.00	basic
@@ -5255,10 +5249,10 @@ COPY template.users (id, username, password, full_name, email, phone_number, rol
 --
 -- TOC entry 5697 (class 0 OID 17366)
 -- Dependencies: 262
--- Data for Name: visits; Type: TABLE DATA; Schema: template; Owner: postgres
+-- Data for Name: visits; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY template.visits (id, first_name, last_name, email, phone, datetime, visit_type, property_id, manual_address, message, status, rating, feedback, archived, agent_id, source, documents, reminder_sent, created_at, updated_at) FROM stdin;
+COPY public.visits (id, first_name, last_name, email, phone, datetime, visit_type, property_id, manual_address, message, status, rating, feedback, archived, agent_id, source, documents, reminder_sent, created_at, updated_at) FROM stdin;
 2	ggg	dfdf	f@gmail.com	0659818847	2025-04-11 03:00:00	physical	\N	51551	hgghgh	completed	\N	\N	f	\N	manual	[]	f	2025-04-10 15:49:24.914219	2025-04-10 15:11:31.827
 1	yty	tyt	tyty@gmail.com	0659818847	2025-04-11 14:00:00	virtual	1	dfdfdf	gfgf	cancelled	\N	\N	f	\N	manual	[]	f	2025-04-10 15:45:56.208798	2025-04-12 17:11:26.068
 4	656	56	airgonfle@outlook.fr	0659818849	2025-04-12 07:01:00	physical	1	\N	\N	completed	\N	\N	f	\N	manual	[]	f	2025-04-12 04:01:45.949084	2025-04-12 17:12:13.188
@@ -5276,2212 +5270,2229 @@ COPY template.visits (id, first_name, last_name, email, phone, datetime, visit_t
 --
 -- TOC entry 5932 (class 0 OID 0)
 -- Dependencies: 316
--- Name: ai_conversations_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: ai_conversations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.ai_conversations_id_seq', 3, true);
+SELECT pg_catalog.setval('public.ai_conversations_id_seq', 3, true);
 
 
 --
 -- TOC entry 5933 (class 0 OID 0)
 -- Dependencies: 318
--- Name: ai_messages_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: ai_messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.ai_messages_id_seq', 4, true);
+SELECT pg_catalog.setval('public.ai_messages_id_seq', 4, true);
 
 
 --
 -- TOC entry 5934 (class 0 OID 0)
 -- Dependencies: 320
--- Name: ai_suggestions_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: ai_suggestions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.ai_suggestions_id_seq', 1, false);
+SELECT pg_catalog.setval('public.ai_suggestions_id_seq', 1, false);
 
 
 --
 -- TOC entry 5935 (class 0 OID 0)
 -- Dependencies: 223
--- Name: alerts_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: alerts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.alerts_id_seq', 1, false);
+SELECT pg_catalog.setval('public.alerts_id_seq', 1, false);
 
 
 --
 -- TOC entry 5936 (class 0 OID 0)
 -- Dependencies: 274
--- Name: analysis_configs_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: analysis_configs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.analysis_configs_id_seq', 1, false);
+SELECT pg_catalog.setval('public.analysis_configs_id_seq', 1, false);
 
 
 --
 -- TOC entry 5937 (class 0 OID 0)
 -- Dependencies: 266
--- Name: automatic_reminders_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: automatic_reminders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.automatic_reminders_id_seq', 1, false);
+SELECT pg_catalog.setval('public.automatic_reminders_id_seq', 1, false);
 
 
 --
 -- TOC entry 5938 (class 0 OID 0)
 -- Dependencies: 300
--- Name: billing_transactions_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: billing_transactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.billing_transactions_id_seq', 2, true);
+SELECT pg_catalog.setval('public.billing_transactions_id_seq', 2, true);
 
 
 --
 -- TOC entry 5939 (class 0 OID 0)
 -- Dependencies: 312
--- Name: company_info_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: company_info_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.company_info_id_seq', 1, true);
+SELECT pg_catalog.setval('public.company_info_id_seq', 1, true);
 
 
 --
 -- TOC entry 5940 (class 0 OID 0)
 -- Dependencies: 270
--- Name: contract_parties_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: contract_parties_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.contract_parties_id_seq', 1, true);
+SELECT pg_catalog.setval('public.contract_parties_id_seq', 1, true);
 
 
 --
 -- TOC entry 5941 (class 0 OID 0)
 -- Dependencies: 268
--- Name: contracts_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: contracts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.contracts_id_seq', 6, true);
+SELECT pg_catalog.setval('public.contracts_id_seq', 6, true);
 
 
 --
 -- TOC entry 5942 (class 0 OID 0)
 -- Dependencies: 230
--- Name: document_templates_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: document_templates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.document_templates_id_seq', 1, false);
+SELECT pg_catalog.setval('public.document_templates_id_seq', 1, false);
 
 
 --
 -- TOC entry 5943 (class 0 OID 0)
 -- Dependencies: 233
--- Name: documents_access_log_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: documents_access_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.documents_access_log_id_seq', 1, false);
+SELECT pg_catalog.setval('public.documents_access_log_id_seq', 1, false);
 
 
 --
 -- TOC entry 5944 (class 0 OID 0)
 -- Dependencies: 234
--- Name: documents_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: documents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.documents_id_seq', 106, true);
+SELECT pg_catalog.setval('public.documents_id_seq', 106, true);
 
 
 --
 -- TOC entry 5945 (class 0 OID 0)
 -- Dependencies: 227
--- Name: feedbacks_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: feedbacks_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.feedbacks_id_seq', 1, false);
+SELECT pg_catalog.setval('public.feedbacks_id_seq', 1, false);
 
 
 --
 -- TOC entry 5946 (class 0 OID 0)
 -- Dependencies: 236
--- Name: financial_entries_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: financial_entries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.financial_entries_id_seq', 1, false);
+SELECT pg_catalog.setval('public.financial_entries_id_seq', 1, false);
 
 
 --
 -- TOC entry 5947 (class 0 OID 0)
 -- Dependencies: 238
--- Name: folders_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: folders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.folders_id_seq', 1, true);
+SELECT pg_catalog.setval('public.folders_id_seq', 1, true);
 
 
 --
 -- TOC entry 5948 (class 0 OID 0)
 -- Dependencies: 290
--- Name: form_field_options_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: form_field_options_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.form_field_options_id_seq', 1, false);
+SELECT pg_catalog.setval('public.form_field_options_id_seq', 1, false);
 
 
 --
 -- TOC entry 5949 (class 0 OID 0)
 -- Dependencies: 288
--- Name: form_fields_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: form_fields_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.form_fields_id_seq', 2, true);
+SELECT pg_catalog.setval('public.form_fields_id_seq', 2, true);
 
 
 --
 -- TOC entry 5950 (class 0 OID 0)
 -- Dependencies: 280
--- Name: form_responses_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: form_responses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.form_responses_id_seq', 1, false);
+SELECT pg_catalog.setval('public.form_responses_id_seq', 1, false);
 
 
 --
 -- TOC entry 5951 (class 0 OID 0)
 -- Dependencies: 286
--- Name: form_submissions_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: form_submissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.form_submissions_id_seq', 35, true);
+SELECT pg_catalog.setval('public.form_submissions_id_seq', 35, true);
 
 
 --
 -- TOC entry 5952 (class 0 OID 0)
 -- Dependencies: 278
--- Name: forms_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: forms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.forms_id_seq', 1, false);
+SELECT pg_catalog.setval('public.forms_id_seq', 1, false);
 
 
 --
 -- TOC entry 5953 (class 0 OID 0)
 -- Dependencies: 282
--- Name: link_profiles_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: link_profiles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.link_profiles_id_seq', 3, true);
+SELECT pg_catalog.setval('public.link_profiles_id_seq', 3, true);
 
 
 --
 -- TOC entry 5954 (class 0 OID 0)
 -- Dependencies: 284
--- Name: links_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: links_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.links_id_seq', 6, true);
+SELECT pg_catalog.setval('public.links_id_seq', 6, true);
 
 
 --
 -- TOC entry 5955 (class 0 OID 0)
 -- Dependencies: 221
--- Name: maintenance_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: maintenance_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.maintenance_id_seq', 1, false);
+SELECT pg_catalog.setval('public.maintenance_id_seq', 1, false);
 
 
 --
 -- TOC entry 5956 (class 0 OID 0)
 -- Dependencies: 240
--- Name: maintenance_requests_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: maintenance_requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.maintenance_requests_id_seq', 8, true);
+SELECT pg_catalog.setval('public.maintenance_requests_id_seq', 8, true);
 
 
 --
 -- TOC entry 5957 (class 0 OID 0)
 -- Dependencies: 242
--- Name: notifications_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: notifications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.notifications_id_seq', 1, false);
+SELECT pg_catalog.setval('public.notifications_id_seq', 1, false);
 
 
 --
 -- TOC entry 5958 (class 0 OID 0)
 -- Dependencies: 306
--- Name: pdf_configuration_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: pdf_configuration_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.pdf_configuration_id_seq', 1, true);
+SELECT pg_catalog.setval('public.pdf_configuration_id_seq', 1, true);
 
 
 --
 -- TOC entry 5959 (class 0 OID 0)
 -- Dependencies: 304
--- Name: pdf_document_preferences_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: pdf_document_preferences_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.pdf_document_preferences_id_seq', 25, true);
+SELECT pg_catalog.setval('public.pdf_document_preferences_id_seq', 25, true);
 
 
 --
 -- TOC entry 5960 (class 0 OID 0)
 -- Dependencies: 308
--- Name: pdf_logos_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: pdf_logos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.pdf_logos_id_seq', 1, true);
+SELECT pg_catalog.setval('public.pdf_logos_id_seq', 1, true);
 
 
 --
 -- TOC entry 5961 (class 0 OID 0)
 -- Dependencies: 310
--- Name: pdf_templates_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: pdf_templates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.pdf_templates_id_seq', 4, true);
+SELECT pg_catalog.setval('public.pdf_templates_id_seq', 4, true);
 
 
 --
 -- TOC entry 5962 (class 0 OID 0)
 -- Dependencies: 314
--- Name: pdf_themes_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: pdf_themes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.pdf_themes_id_seq', 4, true);
+SELECT pg_catalog.setval('public.pdf_themes_id_seq', 4, true);
 
 
 --
 -- TOC entry 5963 (class 0 OID 0)
 -- Dependencies: 243
--- Name: properties_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: properties_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.properties_id_seq', 31, true);
+SELECT pg_catalog.setval('public.properties_id_seq', 31, true);
 
 
 --
 -- TOC entry 5964 (class 0 OID 0)
 -- Dependencies: 272
--- Name: property_analyses_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: property_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.property_analyses_id_seq', 1, false);
+SELECT pg_catalog.setval('public.property_analyses_id_seq', 1, false);
 
 
 --
 -- TOC entry 5965 (class 0 OID 0)
 -- Dependencies: 245
--- Name: property_coordinates_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: property_coordinates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.property_coordinates_id_seq', 28, true);
+SELECT pg_catalog.setval('public.property_coordinates_id_seq', 28, true);
 
 
 --
 -- TOC entry 5966 (class 0 OID 0)
 -- Dependencies: 247
--- Name: property_financial_goals_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: property_financial_goals_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.property_financial_goals_id_seq', 1, false);
+SELECT pg_catalog.setval('public.property_financial_goals_id_seq', 1, false);
 
 
 --
 -- TOC entry 5967 (class 0 OID 0)
 -- Dependencies: 249
--- Name: property_financial_snapshots_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: property_financial_snapshots_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.property_financial_snapshots_id_seq', 1, false);
+SELECT pg_catalog.setval('public.property_financial_snapshots_id_seq', 1, false);
 
 
 --
 -- TOC entry 5968 (class 0 OID 0)
 -- Dependencies: 251
--- Name: property_history_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: property_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.property_history_id_seq', 1, false);
+SELECT pg_catalog.setval('public.property_history_id_seq', 1, false);
 
 
 --
 -- TOC entry 5969 (class 0 OID 0)
 -- Dependencies: 253
--- Name: property_works_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: property_works_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.property_works_id_seq', 1, false);
+SELECT pg_catalog.setval('public.property_works_id_seq', 1, false);
 
 
 --
 -- TOC entry 5970 (class 0 OID 0)
 -- Dependencies: 264
--- Name: rent_receipts_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: rent_receipts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.rent_receipts_id_seq', 1, false);
+SELECT pg_catalog.setval('public.rent_receipts_id_seq', 1, false);
 
 
 --
 -- TOC entry 5971 (class 0 OID 0)
 -- Dependencies: 225
--- Name: reports_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: reports_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.reports_id_seq', 1, false);
+SELECT pg_catalog.setval('public.reports_id_seq', 1, false);
 
 
 --
 -- TOC entry 5972 (class 0 OID 0)
 -- Dependencies: 302
--- Name: sessions_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: sessions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.sessions_id_seq', 1, false);
+SELECT pg_catalog.setval('public.sessions_id_seq', 1, false);
 
 
 --
 -- TOC entry 5973 (class 0 OID 0)
 -- Dependencies: 298
--- Name: storage_extensions_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: storage_extensions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.storage_extensions_id_seq', 8, true);
+SELECT pg_catalog.setval('public.storage_extensions_id_seq', 8, true);
 
 
 --
 -- TOC entry 5974 (class 0 OID 0)
 -- Dependencies: 322
--- Name: storage_transactions_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: storage_transactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.storage_transactions_id_seq', 1, false);
+SELECT pg_catalog.setval('public.storage_transactions_id_seq', 1, false);
 
 
 --
 -- TOC entry 5975 (class 0 OID 0)
 -- Dependencies: 294
--- Name: storage_usage_details_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: storage_usage_details_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.storage_usage_details_id_seq', 1, false);
+SELECT pg_catalog.setval('public.storage_usage_details_id_seq', 1, false);
 
 
 --
 -- TOC entry 5976 (class 0 OID 0)
 -- Dependencies: 255
--- Name: tenant_documents_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: tenant_documents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.tenant_documents_id_seq', 6, true);
+SELECT pg_catalog.setval('public.tenant_documents_id_seq', 6, true);
 
 
 --
 -- TOC entry 5977 (class 0 OID 0)
 -- Dependencies: 257
--- Name: tenant_history_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: tenant_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.tenant_history_id_seq', 41, true);
+SELECT pg_catalog.setval('public.tenant_history_id_seq', 41, true);
 
 
 --
 -- TOC entry 5978 (class 0 OID 0)
 -- Dependencies: 258
--- Name: tenants_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: tenants_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.tenants_id_seq', 132, true);
+SELECT pg_catalog.setval('public.tenants_id_seq', 132, true);
 
 
 --
 -- TOC entry 5979 (class 0 OID 0)
 -- Dependencies: 292
--- Name: transaction_attachments_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: transaction_attachments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.transaction_attachments_id_seq', 1, false);
+SELECT pg_catalog.setval('public.transaction_attachments_id_seq', 1, false);
 
 
 --
 -- TOC entry 5980 (class 0 OID 0)
 -- Dependencies: 260
--- Name: transactions_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: transactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.transactions_id_seq', 1460, true);
+SELECT pg_catalog.setval('public.transactions_id_seq', 1460, true);
 
 
 --
 -- TOC entry 5981 (class 0 OID 0)
 -- Dependencies: 276
--- Name: user_notification_settings_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: user_notification_settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.user_notification_settings_id_seq', 44, true);
+SELECT pg_catalog.setval('public.user_notification_settings_id_seq', 44, true);
 
 
 --
 -- TOC entry 5982 (class 0 OID 0)
 -- Dependencies: 296
--- Name: user_subscriptions_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: user_subscriptions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.user_subscriptions_id_seq', 4, true);
+SELECT pg_catalog.setval('public.user_subscriptions_id_seq', 4, true);
 
 
 --
 -- TOC entry 5983 (class 0 OID 0)
 -- Dependencies: 261
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.users_id_seq', 28, true);
+SELECT pg_catalog.setval('public.users_id_seq', 28, true);
 
 
 --
 -- TOC entry 5984 (class 0 OID 0)
 -- Dependencies: 263
--- Name: visits_id_seq; Type: SEQUENCE SET; Schema: template; Owner: postgres
+-- Name: visits_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('template.visits_id_seq', 11, true);
+SELECT pg_catalog.setval('public.visits_id_seq', 11, true);
 
 
 --
 -- TOC entry 5412 (class 2606 OID 19275)
--- Name: ai_conversations ai_conversations_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: ai_conversations ai_conversations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_conversations
+ALTER TABLE ONLY public.ai_conversations
     ADD CONSTRAINT ai_conversations_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5417 (class 2606 OID 19297)
--- Name: ai_messages ai_messages_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: ai_messages ai_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_messages
+ALTER TABLE ONLY public.ai_messages
     ADD CONSTRAINT ai_messages_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5422 (class 2606 OID 19324)
--- Name: ai_suggestions ai_suggestions_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: ai_suggestions ai_suggestions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_suggestions
+ALTER TABLE ONLY public.ai_suggestions
     ADD CONSTRAINT ai_suggestions_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5259 (class 2606 OID 17100)
--- Name: alerts alerts_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: alerts alerts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.alerts
+ALTER TABLE ONLY public.alerts
     ADD CONSTRAINT alerts_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5337 (class 2606 OID 17782)
--- Name: analysis_configs analysis_configs_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: analysis_configs analysis_configs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.analysis_configs
+ALTER TABLE ONLY public.analysis_configs
     ADD CONSTRAINT analysis_configs_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5325 (class 2606 OID 17620)
--- Name: automatic_reminders automatic_reminders_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: automatic_reminders automatic_reminders_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.automatic_reminders
+ALTER TABLE ONLY public.automatic_reminders
     ADD CONSTRAINT automatic_reminders_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5386 (class 2606 OID 18456)
--- Name: billing_transactions billing_transactions_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: billing_transactions billing_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.billing_transactions
+ALTER TABLE ONLY public.billing_transactions
     ADD CONSTRAINT billing_transactions_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5408 (class 2606 OID 19157)
--- Name: company_info company_info_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: company_info company_info_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.company_info
+ALTER TABLE ONLY public.company_info
     ADD CONSTRAINT company_info_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5331 (class 2606 OID 17736)
--- Name: contract_parties contract_parties_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: contract_parties contract_parties_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.contract_parties
+ALTER TABLE ONLY public.contract_parties
     ADD CONSTRAINT contract_parties_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5329 (class 2606 OID 17715)
--- Name: contracts contracts_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: contracts contracts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.contracts
+ALTER TABLE ONLY public.contracts
     ADD CONSTRAINT contracts_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5265 (class 2606 OID 17408)
--- Name: document_templates document_templates_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: document_templates document_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.document_templates
+ALTER TABLE ONLY public.document_templates
     ADD CONSTRAINT document_templates_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5269 (class 2606 OID 17410)
--- Name: documents_access_log documents_access_log_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: documents_access_log documents_access_log_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.documents_access_log
+ALTER TABLE ONLY public.documents_access_log
     ADD CONSTRAINT documents_access_log_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5267 (class 2606 OID 17412)
--- Name: documents documents_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: documents documents_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.documents
+ALTER TABLE ONLY public.documents
     ADD CONSTRAINT documents_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5263 (class 2606 OID 17122)
--- Name: feedbacks feedbacks_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: feedbacks feedbacks_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.feedbacks
+ALTER TABLE ONLY public.feedbacks
     ADD CONSTRAINT feedbacks_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5271 (class 2606 OID 17414)
--- Name: financial_entries financial_entries_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: financial_entries financial_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.financial_entries
+ALTER TABLE ONLY public.financial_entries
     ADD CONSTRAINT financial_entries_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5273 (class 2606 OID 17416)
--- Name: folders folders_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: folders folders_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.folders
+ALTER TABLE ONLY public.folders
     ADD CONSTRAINT folders_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5370 (class 2606 OID 18213)
--- Name: form_field_options form_field_options_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_field_options form_field_options_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_field_options
+ALTER TABLE ONLY public.form_field_options
     ADD CONSTRAINT form_field_options_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5365 (class 2606 OID 18199)
--- Name: form_fields form_fields_link_id_field_id_key; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_fields form_fields_link_id_field_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_fields
+ALTER TABLE ONLY public.form_fields
     ADD CONSTRAINT form_fields_link_id_field_id_key UNIQUE (link_id, field_id);
 
 
 --
 -- TOC entry 5367 (class 2606 OID 18197)
--- Name: form_fields form_fields_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_fields form_fields_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_fields
+ALTER TABLE ONLY public.form_fields
     ADD CONSTRAINT form_fields_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5350 (class 2606 OID 18033)
--- Name: form_responses form_responses_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_responses form_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_responses
+ALTER TABLE ONLY public.form_responses
     ADD CONSTRAINT form_responses_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5361 (class 2606 OID 18173)
--- Name: form_submissions form_submissions_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_submissions form_submissions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_submissions
+ALTER TABLE ONLY public.form_submissions
     ADD CONSTRAINT form_submissions_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5345 (class 2606 OID 18021)
--- Name: forms forms_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: forms forms_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.forms
+ALTER TABLE ONLY public.forms
     ADD CONSTRAINT forms_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5347 (class 2606 OID 18023)
--- Name: forms forms_slug_key; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: forms forms_slug_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.forms
+ALTER TABLE ONLY public.forms
     ADD CONSTRAINT forms_slug_key UNIQUE (slug);
 
 
 --
 -- TOC entry 5353 (class 2606 OID 18135)
--- Name: link_profiles link_profiles_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: link_profiles link_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.link_profiles
+ALTER TABLE ONLY public.link_profiles
     ADD CONSTRAINT link_profiles_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5355 (class 2606 OID 18137)
--- Name: link_profiles link_profiles_slug_key; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: link_profiles link_profiles_slug_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.link_profiles
+ALTER TABLE ONLY public.link_profiles
     ADD CONSTRAINT link_profiles_slug_key UNIQUE (slug);
 
 
 --
 -- TOC entry 5359 (class 2606 OID 18158)
--- Name: links links_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: links links_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.links
+ALTER TABLE ONLY public.links
     ADD CONSTRAINT links_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5257 (class 2606 OID 17065)
--- Name: maintenance maintenance_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: maintenance maintenance_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.maintenance
+ALTER TABLE ONLY public.maintenance
     ADD CONSTRAINT maintenance_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5275 (class 2606 OID 17418)
--- Name: maintenance_requests maintenance_requests_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: maintenance_requests maintenance_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.maintenance_requests
+ALTER TABLE ONLY public.maintenance_requests
     ADD CONSTRAINT maintenance_requests_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5281 (class 2606 OID 17420)
--- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.notifications
+ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5402 (class 2606 OID 19120)
--- Name: pdf_configuration pdf_configuration_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: pdf_configuration pdf_configuration_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_configuration
+ALTER TABLE ONLY public.pdf_configuration
     ADD CONSTRAINT pdf_configuration_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5398 (class 2606 OID 19014)
--- Name: pdf_document_preferences pdf_document_preferences_configuration_id_document_type_key; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: pdf_document_preferences pdf_document_preferences_configuration_id_document_type_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_document_preferences
+ALTER TABLE ONLY public.pdf_document_preferences
     ADD CONSTRAINT pdf_document_preferences_configuration_id_document_type_key UNIQUE (configuration_id, document_type);
 
 
 --
 -- TOC entry 5400 (class 2606 OID 19012)
--- Name: pdf_document_preferences pdf_document_preferences_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: pdf_document_preferences pdf_document_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_document_preferences
+ALTER TABLE ONLY public.pdf_document_preferences
     ADD CONSTRAINT pdf_document_preferences_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5404 (class 2606 OID 19134)
--- Name: pdf_logos pdf_logos_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: pdf_logos pdf_logos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_logos
+ALTER TABLE ONLY public.pdf_logos
     ADD CONSTRAINT pdf_logos_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5406 (class 2606 OID 19146)
--- Name: pdf_templates pdf_templates_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: pdf_templates pdf_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_templates
+ALTER TABLE ONLY public.pdf_templates
     ADD CONSTRAINT pdf_templates_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5410 (class 2606 OID 19203)
--- Name: pdf_themes pdf_themes_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: pdf_themes pdf_themes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_themes
+ALTER TABLE ONLY public.pdf_themes
     ADD CONSTRAINT pdf_themes_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5253 (class 2606 OID 16904)
--- Name: properties properties_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: properties properties_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.properties
+ALTER TABLE ONLY public.properties
     ADD CONSTRAINT properties_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5335 (class 2606 OID 17764)
--- Name: property_analyses property_analyses_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_analyses property_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_analyses
+ALTER TABLE ONLY public.property_analyses
     ADD CONSTRAINT property_analyses_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5283 (class 2606 OID 17422)
--- Name: property_coordinates property_coordinates_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_coordinates property_coordinates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_coordinates
+ALTER TABLE ONLY public.property_coordinates
     ADD CONSTRAINT property_coordinates_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5285 (class 2606 OID 17424)
--- Name: property_financial_goals property_financial_goals_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_financial_goals property_financial_goals_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_financial_goals
+ALTER TABLE ONLY public.property_financial_goals
     ADD CONSTRAINT property_financial_goals_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5287 (class 2606 OID 17426)
--- Name: property_financial_snapshots property_financial_snapshots_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_financial_snapshots property_financial_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_financial_snapshots
+ALTER TABLE ONLY public.property_financial_snapshots
     ADD CONSTRAINT property_financial_snapshots_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5289 (class 2606 OID 17428)
--- Name: property_history property_history_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_history property_history_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_history
+ALTER TABLE ONLY public.property_history
     ADD CONSTRAINT property_history_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5291 (class 2606 OID 17430)
--- Name: property_works property_works_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_works property_works_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_works
+ALTER TABLE ONLY public.property_works
     ADD CONSTRAINT property_works_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5318 (class 2606 OID 17607)
--- Name: rent_receipts rent_receipts_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: rent_receipts rent_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.rent_receipts
+ALTER TABLE ONLY public.rent_receipts
     ADD CONSTRAINT rent_receipts_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5261 (class 2606 OID 17111)
--- Name: reports reports_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.reports
+ALTER TABLE ONLY public.reports
     ADD CONSTRAINT reports_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5393 (class 2606 OID 18586)
--- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.sessions
+ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5395 (class 2606 OID 18588)
--- Name: sessions sessions_session_id_key; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: sessions sessions_session_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.sessions
+ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_session_id_key UNIQUE (session_id);
 
 
 --
 -- TOC entry 5384 (class 2606 OID 18440)
--- Name: storage_extensions storage_extensions_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: storage_extensions storage_extensions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.storage_extensions
+ALTER TABLE ONLY public.storage_extensions
     ADD CONSTRAINT storage_extensions_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5429 (class 2606 OID 19443)
--- Name: storage_transactions storage_transactions_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: storage_transactions storage_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.storage_transactions
+ALTER TABLE ONLY public.storage_transactions
     ADD CONSTRAINT storage_transactions_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5377 (class 2606 OID 18377)
--- Name: storage_usage_details storage_usage_details_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: storage_usage_details storage_usage_details_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.storage_usage_details
+ALTER TABLE ONLY public.storage_usage_details
     ADD CONSTRAINT storage_usage_details_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5293 (class 2606 OID 17432)
--- Name: tenant_documents tenant_documents_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenant_documents tenant_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenant_documents
+ALTER TABLE ONLY public.tenant_documents
     ADD CONSTRAINT tenant_documents_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5295 (class 2606 OID 17434)
--- Name: tenant_history tenant_history_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenant_history tenant_history_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenant_history
+ALTER TABLE ONLY public.tenant_history
     ADD CONSTRAINT tenant_history_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5255 (class 2606 OID 16917)
--- Name: tenants tenants_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenants tenants_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenants
+ALTER TABLE ONLY public.tenants
     ADD CONSTRAINT tenants_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5373 (class 2606 OID 18232)
--- Name: transaction_attachments transaction_attachments_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: transaction_attachments transaction_attachments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transaction_attachments
+ALTER TABLE ONLY public.transaction_attachments
     ADD CONSTRAINT transaction_attachments_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5308 (class 2606 OID 17436)
--- Name: transactions transactions_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: transactions transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transactions
+ALTER TABLE ONLY public.transactions
     ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5343 (class 2606 OID 17828)
--- Name: user_notification_settings user_notification_settings_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: user_notification_settings user_notification_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.user_notification_settings
+ALTER TABLE ONLY public.user_notification_settings
     ADD CONSTRAINT user_notification_settings_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5382 (class 2606 OID 18425)
--- Name: user_subscriptions user_subscriptions_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: user_subscriptions user_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.user_subscriptions
+ALTER TABLE ONLY public.user_subscriptions
     ADD CONSTRAINT user_subscriptions_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5250 (class 2606 OID 16868)
--- Name: users users_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.users
+ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5316 (class 2606 OID 17438)
--- Name: visits visits_pkey; Type: CONSTRAINT; Schema: template; Owner: postgres
+-- Name: visits visits_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.visits
+ALTER TABLE ONLY public.visits
     ADD CONSTRAINT visits_pkey PRIMARY KEY (id);
 
 
 --
 -- TOC entry 5413 (class 1259 OID 19346)
--- Name: ai_conversations_user_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: ai_conversations_user_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX ai_conversations_user_id_idx ON template.ai_conversations USING btree (user_id);
+CREATE INDEX ai_conversations_user_id_idx ON public.ai_conversations USING btree (user_id);
 
 
 --
 -- TOC entry 5415 (class 1259 OID 19345)
--- Name: ai_messages_conversation_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: ai_messages_conversation_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX ai_messages_conversation_id_idx ON template.ai_messages USING btree (conversation_id);
+CREATE INDEX ai_messages_conversation_id_idx ON public.ai_messages USING btree (conversation_id);
 
 
 --
 -- TOC entry 5423 (class 1259 OID 19348)
--- Name: ai_suggestions_property_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: ai_suggestions_property_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX ai_suggestions_property_id_idx ON template.ai_suggestions USING btree (property_id);
+CREATE INDEX ai_suggestions_property_id_idx ON public.ai_suggestions USING btree (property_id);
 
 
 --
 -- TOC entry 5424 (class 1259 OID 19347)
--- Name: ai_suggestions_user_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: ai_suggestions_user_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX ai_suggestions_user_id_idx ON template.ai_suggestions USING btree (user_id);
+CREATE INDEX ai_suggestions_user_id_idx ON public.ai_suggestions USING btree (user_id);
 
 
 --
 -- TOC entry 5323 (class 1259 OID 17651)
--- Name: automatic_reminders_next_trigger_date_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: automatic_reminders_next_trigger_date_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX automatic_reminders_next_trigger_date_idx ON template.automatic_reminders USING btree (next_trigger_date);
+CREATE INDEX automatic_reminders_next_trigger_date_idx ON public.automatic_reminders USING btree (next_trigger_date);
 
 
 --
 -- TOC entry 5326 (class 1259 OID 17652)
--- Name: automatic_reminders_status_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: automatic_reminders_status_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX automatic_reminders_status_idx ON template.automatic_reminders USING btree (status);
+CREATE INDEX automatic_reminders_status_idx ON public.automatic_reminders USING btree (status);
 
 
 --
 -- TOC entry 5327 (class 1259 OID 17650)
--- Name: automatic_reminders_user_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: automatic_reminders_user_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX automatic_reminders_user_id_idx ON template.automatic_reminders USING btree (user_id);
+CREATE INDEX automatic_reminders_user_id_idx ON public.automatic_reminders USING btree (user_id);
 
 
 --
 -- TOC entry 5414 (class 1259 OID 19281)
--- Name: idx_ai_conversations_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_ai_conversations_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ai_conversations_user_id ON template.ai_conversations USING btree (user_id);
+CREATE INDEX idx_ai_conversations_user_id ON public.ai_conversations USING btree (user_id);
 
 
 --
 -- TOC entry 5418 (class 1259 OID 19309)
--- Name: idx_ai_messages_conversation_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_ai_messages_conversation_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ai_messages_conversation_id ON template.ai_messages USING btree (conversation_id);
+CREATE INDEX idx_ai_messages_conversation_id ON public.ai_messages USING btree (conversation_id);
 
 
 --
 -- TOC entry 5419 (class 1259 OID 19310)
--- Name: idx_ai_messages_created_at; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_ai_messages_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ai_messages_created_at ON template.ai_messages USING btree (created_at);
+CREATE INDEX idx_ai_messages_created_at ON public.ai_messages USING btree (created_at);
 
 
 --
 -- TOC entry 5420 (class 1259 OID 19308)
--- Name: idx_ai_messages_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_ai_messages_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ai_messages_user_id ON template.ai_messages USING btree (user_id);
+CREATE INDEX idx_ai_messages_user_id ON public.ai_messages USING btree (user_id);
 
 
 --
 -- TOC entry 5425 (class 1259 OID 19336)
--- Name: idx_ai_suggestions_property_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_ai_suggestions_property_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ai_suggestions_property_id ON template.ai_suggestions USING btree (property_id);
+CREATE INDEX idx_ai_suggestions_property_id ON public.ai_suggestions USING btree (property_id);
 
 
 --
 -- TOC entry 5426 (class 1259 OID 19337)
--- Name: idx_ai_suggestions_type; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_ai_suggestions_type; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ai_suggestions_type ON template.ai_suggestions USING btree (type);
+CREATE INDEX idx_ai_suggestions_type ON public.ai_suggestions USING btree (type);
 
 
 --
 -- TOC entry 5427 (class 1259 OID 19335)
--- Name: idx_ai_suggestions_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_ai_suggestions_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ai_suggestions_user_id ON template.ai_suggestions USING btree (user_id);
+CREATE INDEX idx_ai_suggestions_user_id ON public.ai_suggestions USING btree (user_id);
 
 
 --
 -- TOC entry 5338 (class 1259 OID 17795)
--- Name: idx_analysis_configs_property_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_analysis_configs_property_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_analysis_configs_property_id ON template.analysis_configs USING btree (property_id);
+CREATE INDEX idx_analysis_configs_property_id ON public.analysis_configs USING btree (property_id);
 
 
 --
 -- TOC entry 5339 (class 1259 OID 17796)
--- Name: idx_analysis_configs_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_analysis_configs_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_analysis_configs_user_id ON template.analysis_configs USING btree (user_id);
+CREATE INDEX idx_analysis_configs_user_id ON public.analysis_configs USING btree (user_id);
 
 
 --
 -- TOC entry 5387 (class 1259 OID 18463)
--- Name: idx_billing_status; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_billing_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_billing_status ON template.billing_transactions USING btree (status);
+CREATE INDEX idx_billing_status ON public.billing_transactions USING btree (status);
 
 
 --
 -- TOC entry 5388 (class 1259 OID 18462)
--- Name: idx_billing_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_billing_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_billing_user_id ON template.billing_transactions USING btree (user_id);
+CREATE INDEX idx_billing_user_id ON public.billing_transactions USING btree (user_id);
 
 
 --
 -- TOC entry 5368 (class 1259 OID 18219)
--- Name: idx_form_fields_link_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_form_fields_link_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_form_fields_link_id ON template.form_fields USING btree (link_id);
+CREATE INDEX idx_form_fields_link_id ON public.form_fields USING btree (link_id);
 
 
 --
 -- TOC entry 5362 (class 1259 OID 18182)
--- Name: idx_form_submissions_created_at; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_form_submissions_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_form_submissions_created_at ON template.form_submissions USING btree (created_at);
+CREATE INDEX idx_form_submissions_created_at ON public.form_submissions USING btree (created_at);
 
 
 --
 -- TOC entry 5363 (class 1259 OID 18181)
--- Name: idx_form_submissions_link_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_form_submissions_link_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_form_submissions_link_id ON template.form_submissions USING btree (link_id);
+CREATE INDEX idx_form_submissions_link_id ON public.form_submissions USING btree (link_id);
 
 
 --
 -- TOC entry 5348 (class 1259 OID 18039)
--- Name: idx_forms_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_forms_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_forms_user_id ON template.forms USING btree (user_id);
+CREATE INDEX idx_forms_user_id ON public.forms USING btree (user_id);
 
 
 --
 -- TOC entry 5356 (class 1259 OID 18179)
--- Name: idx_links_profile_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_links_profile_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_links_profile_id ON template.links USING btree (profile_id);
+CREATE INDEX idx_links_profile_id ON public.links USING btree (profile_id);
 
 
 --
 -- TOC entry 5357 (class 1259 OID 18180)
--- Name: idx_links_type; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_links_type; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_links_type ON template.links USING btree (type);
+CREATE INDEX idx_links_type ON public.links USING btree (type);
 
 
 --
 -- TOC entry 5276 (class 1259 OID 18248)
--- Name: idx_notifications_created_at; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_notifications_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_notifications_created_at ON template.notifications USING btree (created_at);
+CREATE INDEX idx_notifications_created_at ON public.notifications USING btree (created_at);
 
 
 --
 -- TOC entry 5277 (class 1259 OID 18247)
--- Name: idx_notifications_is_read; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_notifications_is_read; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_notifications_is_read ON template.notifications USING btree (is_read);
+CREATE INDEX idx_notifications_is_read ON public.notifications USING btree (is_read);
 
 
 --
 -- TOC entry 5278 (class 1259 OID 18246)
--- Name: idx_notifications_type; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_notifications_type; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_notifications_type ON template.notifications USING btree (type);
+CREATE INDEX idx_notifications_type ON public.notifications USING btree (type);
 
 
 --
 -- TOC entry 5279 (class 1259 OID 18245)
--- Name: idx_notifications_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_notifications_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_notifications_user_id ON template.notifications USING btree (user_id);
+CREATE INDEX idx_notifications_user_id ON public.notifications USING btree (user_id);
 
 
 --
 -- TOC entry 5396 (class 1259 OID 19020)
--- Name: idx_pdf_document_prefs_config_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_pdf_document_prefs_config_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_pdf_document_prefs_config_id ON template.pdf_document_preferences USING btree (configuration_id);
+CREATE INDEX idx_pdf_document_prefs_config_id ON public.pdf_document_preferences USING btree (configuration_id);
 
 
 --
 -- TOC entry 5332 (class 1259 OID 17793)
--- Name: idx_property_analyses_property_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_property_analyses_property_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_property_analyses_property_id ON template.property_analyses USING btree (property_id);
+CREATE INDEX idx_property_analyses_property_id ON public.property_analyses USING btree (property_id);
 
 
 --
 -- TOC entry 5333 (class 1259 OID 17794)
--- Name: idx_property_analyses_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_property_analyses_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_property_analyses_user_id ON template.property_analyses USING btree (user_id);
+CREATE INDEX idx_property_analyses_user_id ON public.property_analyses USING btree (user_id);
 
 
 --
 -- TOC entry 5351 (class 1259 OID 18040)
--- Name: idx_responses_form_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_responses_form_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_responses_form_id ON template.form_responses USING btree (form_id);
+CREATE INDEX idx_responses_form_id ON public.form_responses USING btree (form_id);
 
 
 --
 -- TOC entry 5389 (class 1259 OID 18601)
--- Name: idx_sessions_expires_at; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_sessions_expires_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_sessions_expires_at ON template.sessions USING btree (expires_at);
+CREATE INDEX idx_sessions_expires_at ON public.sessions USING btree (expires_at);
 
 
 --
 -- TOC entry 5390 (class 1259 OID 18600)
--- Name: idx_sessions_session_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_sessions_session_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_sessions_session_id ON template.sessions USING btree (session_id);
+CREATE INDEX idx_sessions_session_id ON public.sessions USING btree (session_id);
 
 
 --
 -- TOC entry 5391 (class 1259 OID 18599)
--- Name: idx_sessions_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_sessions_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_sessions_user_id ON template.sessions USING btree (user_id);
+CREATE INDEX idx_sessions_user_id ON public.sessions USING btree (user_id);
 
 
 --
 -- TOC entry 5374 (class 1259 OID 18383)
--- Name: idx_storage_details_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_storage_details_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_storage_details_user_id ON template.storage_usage_details USING btree (user_id);
+CREATE INDEX idx_storage_details_user_id ON public.storage_usage_details USING btree (user_id);
 
 
 --
 -- TOC entry 5375 (class 1259 OID 18384)
--- Name: idx_storage_details_user_type; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_storage_details_user_type; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_storage_details_user_type ON template.storage_usage_details USING btree (user_id, resource_type);
+CREATE UNIQUE INDEX idx_storage_details_user_type ON public.storage_usage_details USING btree (user_id, resource_type);
 
 
 --
 -- TOC entry 5371 (class 1259 OID 18243)
--- Name: idx_transaction_attachments_transaction_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_transaction_attachments_transaction_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_transaction_attachments_transaction_id ON template.transaction_attachments USING btree (transaction_id);
+CREATE INDEX idx_transaction_attachments_transaction_id ON public.transaction_attachments USING btree (transaction_id);
 
 
 --
 -- TOC entry 5296 (class 1259 OID 18240)
--- Name: idx_transactions_created_at; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_transactions_created_at; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_transactions_created_at ON template.transactions USING btree (created_at);
+CREATE INDEX idx_transactions_created_at ON public.transactions USING btree (created_at);
 
 
 --
 -- TOC entry 5297 (class 1259 OID 18241)
--- Name: idx_transactions_property_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_transactions_property_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_transactions_property_id ON template.transactions USING btree (property_id);
+CREATE INDEX idx_transactions_property_id ON public.transactions USING btree (property_id);
 
 
 --
 -- TOC entry 5298 (class 1259 OID 18239)
--- Name: idx_transactions_status; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_transactions_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_transactions_status ON template.transactions USING btree (status);
+CREATE INDEX idx_transactions_status ON public.transactions USING btree (status);
 
 
 --
 -- TOC entry 5299 (class 1259 OID 18242)
--- Name: idx_transactions_tenant_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_transactions_tenant_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_transactions_tenant_id ON template.transactions USING btree (tenant_id);
+CREATE INDEX idx_transactions_tenant_id ON public.transactions USING btree (tenant_id);
 
 
 --
 -- TOC entry 5300 (class 1259 OID 18238)
--- Name: idx_transactions_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_transactions_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_transactions_user_id ON template.transactions USING btree (user_id);
+CREATE INDEX idx_transactions_user_id ON public.transactions USING btree (user_id);
 
 
 --
 -- TOC entry 5340 (class 1259 OID 17835)
--- Name: idx_user_notification_settings_type; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_user_notification_settings_type; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_user_notification_settings_type ON template.user_notification_settings USING btree (type);
+CREATE INDEX idx_user_notification_settings_type ON public.user_notification_settings USING btree (type);
 
 
 --
 -- TOC entry 5341 (class 1259 OID 17834)
--- Name: idx_user_notification_settings_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_user_notification_settings_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_user_notification_settings_user_id ON template.user_notification_settings USING btree (user_id);
+CREATE INDEX idx_user_notification_settings_user_id ON public.user_notification_settings USING btree (user_id);
 
 
 --
 -- TOC entry 5378 (class 1259 OID 18466)
--- Name: idx_user_subscriptions_active; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_user_subscriptions_active; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_user_subscriptions_active ON template.user_subscriptions USING btree (is_active);
+CREATE INDEX idx_user_subscriptions_active ON public.user_subscriptions USING btree (is_active);
 
 
 --
 -- TOC entry 5379 (class 1259 OID 18446)
--- Name: idx_user_subscriptions_storage; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_user_subscriptions_storage; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_user_subscriptions_storage ON template.user_subscriptions USING btree (storage_extension_id);
+CREATE INDEX idx_user_subscriptions_storage ON public.user_subscriptions USING btree (storage_extension_id);
 
 
 --
 -- TOC entry 5380 (class 1259 OID 18465)
--- Name: idx_user_subscriptions_user_id; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_user_subscriptions_user_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_user_subscriptions_user_id ON template.user_subscriptions USING btree (user_id);
+CREATE INDEX idx_user_subscriptions_user_id ON public.user_subscriptions USING btree (user_id);
 
 
 --
 -- TOC entry 5248 (class 1259 OID 19350)
--- Name: idx_users_preferred_ai_model; Type: INDEX; Schema: template; Owner: postgres
+-- Name: idx_users_preferred_ai_model; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_users_preferred_ai_model ON template.users USING btree (preferred_ai_model);
+CREATE INDEX idx_users_preferred_ai_model ON public.users USING btree (preferred_ai_model);
 
 
 --
 -- TOC entry 5319 (class 1259 OID 17647)
--- Name: rent_receipts_property_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: rent_receipts_property_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX rent_receipts_property_id_idx ON template.rent_receipts USING btree (property_id);
+CREATE INDEX rent_receipts_property_id_idx ON public.rent_receipts USING btree (property_id);
 
 
 --
 -- TOC entry 5320 (class 1259 OID 17649)
--- Name: rent_receipts_status_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: rent_receipts_status_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX rent_receipts_status_idx ON template.rent_receipts USING btree (status);
+CREATE INDEX rent_receipts_status_idx ON public.rent_receipts USING btree (status);
 
 
 --
 -- TOC entry 5321 (class 1259 OID 17646)
--- Name: rent_receipts_tenant_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: rent_receipts_tenant_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX rent_receipts_tenant_id_idx ON template.rent_receipts USING btree (tenant_id);
+CREATE INDEX rent_receipts_tenant_id_idx ON public.rent_receipts USING btree (tenant_id);
 
 
 --
 -- TOC entry 5322 (class 1259 OID 17648)
--- Name: rent_receipts_transaction_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: rent_receipts_transaction_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX rent_receipts_transaction_id_idx ON template.rent_receipts USING btree (transaction_id);
+CREATE INDEX rent_receipts_transaction_id_idx ON public.rent_receipts USING btree (transaction_id);
 
 
 --
 -- TOC entry 5301 (class 1259 OID 17800)
--- Name: transactions_category_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_category_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_category_idx ON template.transactions USING btree (category);
+CREATE INDEX transactions_category_idx ON public.transactions USING btree (category);
 
 
 --
 -- TOC entry 5302 (class 1259 OID 17798)
--- Name: transactions_date_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_date_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_date_idx ON template.transactions USING btree (date);
+CREATE INDEX transactions_date_idx ON public.transactions USING btree (date);
 
 
 --
 -- TOC entry 5303 (class 1259 OID 17807)
--- Name: transactions_month_category_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_month_category_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_month_category_idx ON template.transactions USING btree (date_trunc('month'::text, date), category);
+CREATE INDEX transactions_month_category_idx ON public.transactions USING btree (date_trunc('month'::text, date), category);
 
 
 --
 -- TOC entry 5304 (class 1259 OID 17806)
--- Name: transactions_month_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_month_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_month_idx ON template.transactions USING btree (date_trunc('month'::text, date));
+CREATE INDEX transactions_month_idx ON public.transactions USING btree (date_trunc('month'::text, date));
 
 
 --
 -- TOC entry 5305 (class 1259 OID 17809)
--- Name: transactions_month_property_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_month_property_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_month_property_idx ON template.transactions USING btree (date_trunc('month'::text, date), property_id);
+CREATE INDEX transactions_month_property_idx ON public.transactions USING btree (date_trunc('month'::text, date), property_id);
 
 
 --
 -- TOC entry 5306 (class 1259 OID 17808)
--- Name: transactions_month_type_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_month_type_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_month_type_idx ON template.transactions USING btree (date_trunc('month'::text, date), type);
+CREATE INDEX transactions_month_type_idx ON public.transactions USING btree (date_trunc('month'::text, date), type);
 
 
 --
 -- TOC entry 5309 (class 1259 OID 17803)
--- Name: transactions_property_category_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_property_category_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_property_category_idx ON template.transactions USING btree (property_id, category);
+CREATE INDEX transactions_property_category_idx ON public.transactions USING btree (property_id, category);
 
 
 --
 -- TOC entry 5310 (class 1259 OID 17801)
--- Name: transactions_property_id_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_property_id_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_property_id_idx ON template.transactions USING btree (property_id);
+CREATE INDEX transactions_property_id_idx ON public.transactions USING btree (property_id);
 
 
 --
 -- TOC entry 5311 (class 1259 OID 17802)
--- Name: transactions_property_type_category_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_property_type_category_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_property_type_category_idx ON template.transactions USING btree (property_id, type, category);
+CREATE INDEX transactions_property_type_category_idx ON public.transactions USING btree (property_id, type, category);
 
 
 --
 -- TOC entry 5312 (class 1259 OID 17805)
--- Name: transactions_property_type_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_property_type_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_property_type_idx ON template.transactions USING btree (property_id, type);
+CREATE INDEX transactions_property_type_idx ON public.transactions USING btree (property_id, type);
 
 
 --
 -- TOC entry 5313 (class 1259 OID 17804)
--- Name: transactions_type_category_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_type_category_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_type_category_idx ON template.transactions USING btree (type, category);
+CREATE INDEX transactions_type_category_idx ON public.transactions USING btree (type, category);
 
 
 --
 -- TOC entry 5314 (class 1259 OID 17799)
--- Name: transactions_type_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: transactions_type_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX transactions_type_idx ON template.transactions USING btree (type);
+CREATE INDEX transactions_type_idx ON public.transactions USING btree (type);
 
 
 --
 -- TOC entry 5251 (class 1259 OID 19349)
--- Name: users_preferred_ai_model_idx; Type: INDEX; Schema: template; Owner: postgres
+-- Name: users_preferred_ai_model_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX users_preferred_ai_model_idx ON template.users USING btree (preferred_ai_model);
+CREATE INDEX users_preferred_ai_model_idx ON public.users USING btree (preferred_ai_model);
 
 
 --
 -- TOC entry 5492 (class 2620 OID 19211)
--- Name: pdf_configuration sync_theme_on_update; Type: TRIGGER; Schema: template; Owner: postgres
+-- Name: pdf_configuration sync_theme_on_update; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER sync_theme_on_update BEFORE UPDATE ON template.pdf_configuration FOR EACH ROW WHEN ((new.theme_id IS DISTINCT FROM old.theme_id)) EXECUTE FUNCTION template.sync_theme_colors();
+CREATE TRIGGER sync_theme_on_update BEFORE UPDATE ON public.pdf_configuration FOR EACH ROW WHEN ((new.theme_id IS DISTINCT FROM old.theme_id)) EXECUTE FUNCTION public.sync_theme_colors();
 
 
 --
 -- TOC entry 5490 (class 2620 OID 19452)
--- Name: documents trg_update_storage_on_document_change; Type: TRIGGER; Schema: template; Owner: postgres
+-- Name: documents trg_update_storage_on_document_change; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER trg_update_storage_on_document_change AFTER INSERT OR DELETE OR UPDATE ON template.documents FOR EACH ROW EXECUTE FUNCTION template.update_storage_on_document_change();
+CREATE TRIGGER trg_update_storage_on_document_change AFTER INSERT OR DELETE OR UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION public.update_storage_on_document_change();
 
 
 --
 -- TOC entry 5496 (class 2620 OID 19162)
--- Name: company_info update_company_info_timestamp; Type: TRIGGER; Schema: template; Owner: postgres
+-- Name: company_info update_company_info_timestamp; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER update_company_info_timestamp BEFORE UPDATE ON template.company_info FOR EACH ROW EXECUTE FUNCTION template.update_modified_column();
+CREATE TRIGGER update_company_info_timestamp BEFORE UPDATE ON public.company_info FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
 
 
 --
 -- TOC entry 5493 (class 2620 OID 19159)
--- Name: pdf_configuration update_pdf_configuration_timestamp; Type: TRIGGER; Schema: template; Owner: postgres
+-- Name: pdf_configuration update_pdf_configuration_timestamp; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER update_pdf_configuration_timestamp BEFORE UPDATE ON template.pdf_configuration FOR EACH ROW EXECUTE FUNCTION template.update_modified_column();
+CREATE TRIGGER update_pdf_configuration_timestamp BEFORE UPDATE ON public.pdf_configuration FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
 
 
 --
 -- TOC entry 5491 (class 2620 OID 19021)
--- Name: pdf_document_preferences update_pdf_document_preferences_timestamp; Type: TRIGGER; Schema: template; Owner: postgres
+-- Name: pdf_document_preferences update_pdf_document_preferences_timestamp; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER update_pdf_document_preferences_timestamp BEFORE UPDATE ON template.pdf_document_preferences FOR EACH ROW EXECUTE FUNCTION template.update_modified_column();
+CREATE TRIGGER update_pdf_document_preferences_timestamp BEFORE UPDATE ON public.pdf_document_preferences FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
 
 
 --
 -- TOC entry 5494 (class 2620 OID 19160)
--- Name: pdf_logos update_pdf_logos_timestamp; Type: TRIGGER; Schema: template; Owner: postgres
+-- Name: pdf_logos update_pdf_logos_timestamp; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER update_pdf_logos_timestamp BEFORE UPDATE ON template.pdf_logos FOR EACH ROW EXECUTE FUNCTION template.update_modified_column();
+CREATE TRIGGER update_pdf_logos_timestamp BEFORE UPDATE ON public.pdf_logos FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
 
 
 --
 -- TOC entry 5495 (class 2620 OID 19161)
--- Name: pdf_templates update_pdf_templates_timestamp; Type: TRIGGER; Schema: template; Owner: postgres
+-- Name: pdf_templates update_pdf_templates_timestamp; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER update_pdf_templates_timestamp BEFORE UPDATE ON template.pdf_templates FOR EACH ROW EXECUTE FUNCTION template.update_modified_column();
+CREATE TRIGGER update_pdf_templates_timestamp BEFORE UPDATE ON public.pdf_templates FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
 
 
 --
 -- TOC entry 5497 (class 2620 OID 19204)
--- Name: pdf_themes update_pdf_themes_timestamp; Type: TRIGGER; Schema: template; Owner: postgres
+-- Name: pdf_themes update_pdf_themes_timestamp; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER update_pdf_themes_timestamp BEFORE UPDATE ON template.pdf_themes FOR EACH ROW EXECUTE FUNCTION template.update_modified_column();
+CREATE TRIGGER update_pdf_themes_timestamp BEFORE UPDATE ON public.pdf_themes FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
 
 
 --
 -- TOC entry 5484 (class 2606 OID 19276)
--- Name: ai_conversations ai_conversations_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: ai_conversations ai_conversations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_conversations
-    ADD CONSTRAINT ai_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.ai_conversations
+    ADD CONSTRAINT ai_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5485 (class 2606 OID 19303)
--- Name: ai_messages ai_messages_conversation_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: ai_messages ai_messages_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_messages
-    ADD CONSTRAINT ai_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES template.ai_conversations(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.ai_messages
+    ADD CONSTRAINT ai_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.ai_conversations(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5486 (class 2606 OID 19298)
--- Name: ai_messages ai_messages_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: ai_messages ai_messages_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_messages
-    ADD CONSTRAINT ai_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.ai_messages
+    ADD CONSTRAINT ai_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5487 (class 2606 OID 19330)
--- Name: ai_suggestions ai_suggestions_property_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: ai_suggestions ai_suggestions_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_suggestions
-    ADD CONSTRAINT ai_suggestions_property_id_fkey FOREIGN KEY (property_id) REFERENCES template.properties(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.ai_suggestions
+    ADD CONSTRAINT ai_suggestions_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5488 (class 2606 OID 19325)
--- Name: ai_suggestions ai_suggestions_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: ai_suggestions ai_suggestions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.ai_suggestions
-    ADD CONSTRAINT ai_suggestions_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.ai_suggestions
+    ADD CONSTRAINT ai_suggestions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5467 (class 2606 OID 17783)
--- Name: analysis_configs analysis_configs_property_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: analysis_configs analysis_configs_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.analysis_configs
-    ADD CONSTRAINT analysis_configs_property_id_fkey FOREIGN KEY (property_id) REFERENCES template.properties(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.analysis_configs
+    ADD CONSTRAINT analysis_configs_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5468 (class 2606 OID 17788)
--- Name: analysis_configs analysis_configs_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: analysis_configs analysis_configs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.analysis_configs
-    ADD CONSTRAINT analysis_configs_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.analysis_configs
+    ADD CONSTRAINT analysis_configs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5461 (class 2606 OID 17641)
--- Name: automatic_reminders automatic_reminders_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: automatic_reminders automatic_reminders_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.automatic_reminders
-    ADD CONSTRAINT automatic_reminders_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.automatic_reminders
+    ADD CONSTRAINT automatic_reminders_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5481 (class 2606 OID 18457)
--- Name: billing_transactions billing_transactions_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: billing_transactions billing_transactions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.billing_transactions
-    ADD CONSTRAINT billing_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.billing_transactions
+    ADD CONSTRAINT billing_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5464 (class 2606 OID 17737)
--- Name: contract_parties contract_parties_contract_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: contract_parties contract_parties_contract_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.contract_parties
-    ADD CONSTRAINT contract_parties_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES template.contracts(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.contract_parties
+    ADD CONSTRAINT contract_parties_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES public.contracts(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5462 (class 2606 OID 17721)
--- Name: contracts contracts_document_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: contracts contracts_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.contracts
-    ADD CONSTRAINT contracts_document_id_fkey FOREIGN KEY (document_id) REFERENCES template.documents(id);
+ALTER TABLE ONLY public.contracts
+    ADD CONSTRAINT contracts_document_id_fkey FOREIGN KEY (document_id) REFERENCES public.documents(id);
 
 
 --
 -- TOC entry 5463 (class 2606 OID 17716)
--- Name: contracts contracts_property_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: contracts contracts_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.contracts
-    ADD CONSTRAINT contracts_property_id_fkey FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.contracts
+    ADD CONSTRAINT contracts_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5434 (class 2606 OID 17464)
--- Name: document_templates document_templates_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: document_templates document_templates_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.document_templates
-    ADD CONSTRAINT document_templates_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.document_templates
+    ADD CONSTRAINT document_templates_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5435 (class 2606 OID 17469)
--- Name: documents_access_log documents_access_log_document_id_documents_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: documents_access_log documents_access_log_document_id_documents_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.documents_access_log
-    ADD CONSTRAINT documents_access_log_document_id_documents_id_fk FOREIGN KEY (document_id) REFERENCES template.documents(id);
+ALTER TABLE ONLY public.documents_access_log
+    ADD CONSTRAINT documents_access_log_document_id_documents_id_fk FOREIGN KEY (document_id) REFERENCES public.documents(id);
 
 
 --
 -- TOC entry 5436 (class 2606 OID 17474)
--- Name: documents_access_log documents_access_log_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: documents_access_log documents_access_log_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.documents_access_log
-    ADD CONSTRAINT documents_access_log_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.documents_access_log
+    ADD CONSTRAINT documents_access_log_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5437 (class 2606 OID 17479)
--- Name: financial_entries financial_entries_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: financial_entries financial_entries_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.financial_entries
-    ADD CONSTRAINT financial_entries_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.financial_entries
+    ADD CONSTRAINT financial_entries_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5440 (class 2606 OID 18249)
--- Name: notifications fk_notifications_user; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: notifications fk_notifications_user; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.notifications
-    ADD CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5478 (class 2606 OID 18467)
--- Name: user_subscriptions fk_storage_extension; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: user_subscriptions fk_storage_extension; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.user_subscriptions
-    ADD CONSTRAINT fk_storage_extension FOREIGN KEY (storage_extension_id) REFERENCES template.storage_extensions(id);
+ALTER TABLE ONLY public.user_subscriptions
+    ADD CONSTRAINT fk_storage_extension FOREIGN KEY (storage_extension_id) REFERENCES public.storage_extensions(id);
 
 
 --
 -- TOC entry 5483 (class 2606 OID 19205)
--- Name: pdf_configuration fk_theme; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: pdf_configuration fk_theme; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.pdf_configuration
-    ADD CONSTRAINT fk_theme FOREIGN KEY (theme_id) REFERENCES template.pdf_themes(id);
+ALTER TABLE ONLY public.pdf_configuration
+    ADD CONSTRAINT fk_theme FOREIGN KEY (theme_id) REFERENCES public.pdf_themes(id);
 
 
 --
 -- TOC entry 5475 (class 2606 OID 18214)
--- Name: form_field_options form_field_options_form_field_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_field_options form_field_options_form_field_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_field_options
-    ADD CONSTRAINT form_field_options_form_field_id_fkey FOREIGN KEY (form_field_id) REFERENCES template.form_fields(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.form_field_options
+    ADD CONSTRAINT form_field_options_form_field_id_fkey FOREIGN KEY (form_field_id) REFERENCES public.form_fields(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5474 (class 2606 OID 18200)
--- Name: form_fields form_fields_link_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_fields form_fields_link_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_fields
-    ADD CONSTRAINT form_fields_link_id_fkey FOREIGN KEY (link_id) REFERENCES template.links(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.form_fields
+    ADD CONSTRAINT form_fields_link_id_fkey FOREIGN KEY (link_id) REFERENCES public.links(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5470 (class 2606 OID 18034)
--- Name: form_responses form_responses_form_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_responses form_responses_form_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_responses
-    ADD CONSTRAINT form_responses_form_id_fkey FOREIGN KEY (form_id) REFERENCES template.forms(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.form_responses
+    ADD CONSTRAINT form_responses_form_id_fkey FOREIGN KEY (form_id) REFERENCES public.forms(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5473 (class 2606 OID 18174)
--- Name: form_submissions form_submissions_link_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: form_submissions form_submissions_link_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.form_submissions
-    ADD CONSTRAINT form_submissions_link_id_fkey FOREIGN KEY (link_id) REFERENCES template.links(id);
+ALTER TABLE ONLY public.form_submissions
+    ADD CONSTRAINT form_submissions_link_id_fkey FOREIGN KEY (link_id) REFERENCES public.links(id);
 
 
 --
 -- TOC entry 5471 (class 2606 OID 18138)
--- Name: link_profiles link_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: link_profiles link_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.link_profiles
-    ADD CONSTRAINT link_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.link_profiles
+    ADD CONSTRAINT link_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5472 (class 2606 OID 18159)
--- Name: links links_profile_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: links links_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.links
-    ADD CONSTRAINT links_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES template.link_profiles(id);
+ALTER TABLE ONLY public.links
+    ADD CONSTRAINT links_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.link_profiles(id);
 
 
 --
 -- TOC entry 5438 (class 2606 OID 17484)
--- Name: maintenance_requests maintenance_requests_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: maintenance_requests maintenance_requests_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.maintenance_requests
-    ADD CONSTRAINT maintenance_requests_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.maintenance_requests
+    ADD CONSTRAINT maintenance_requests_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5439 (class 2606 OID 17489)
--- Name: maintenance_requests maintenance_requests_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: maintenance_requests maintenance_requests_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.maintenance_requests
-    ADD CONSTRAINT maintenance_requests_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES template.tenants(id);
+ALTER TABLE ONLY public.maintenance_requests
+    ADD CONSTRAINT maintenance_requests_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id);
 
 
 --
 -- TOC entry 5465 (class 2606 OID 17765)
--- Name: property_analyses property_analyses_property_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_analyses property_analyses_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_analyses
-    ADD CONSTRAINT property_analyses_property_id_fkey FOREIGN KEY (property_id) REFERENCES template.properties(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.property_analyses
+    ADD CONSTRAINT property_analyses_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5466 (class 2606 OID 17770)
--- Name: property_analyses property_analyses_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_analyses property_analyses_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_analyses
-    ADD CONSTRAINT property_analyses_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.property_analyses
+    ADD CONSTRAINT property_analyses_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5441 (class 2606 OID 17494)
--- Name: property_coordinates property_coordinates_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_coordinates property_coordinates_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_coordinates
-    ADD CONSTRAINT property_coordinates_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.property_coordinates
+    ADD CONSTRAINT property_coordinates_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5442 (class 2606 OID 17499)
--- Name: property_financial_goals property_financial_goals_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_financial_goals property_financial_goals_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_financial_goals
-    ADD CONSTRAINT property_financial_goals_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.property_financial_goals
+    ADD CONSTRAINT property_financial_goals_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5443 (class 2606 OID 17504)
--- Name: property_financial_snapshots property_financial_snapshots_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_financial_snapshots property_financial_snapshots_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_financial_snapshots
-    ADD CONSTRAINT property_financial_snapshots_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.property_financial_snapshots
+    ADD CONSTRAINT property_financial_snapshots_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5444 (class 2606 OID 17509)
--- Name: property_history property_history_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_history property_history_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_history
-    ADD CONSTRAINT property_history_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.property_history
+    ADD CONSTRAINT property_history_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5445 (class 2606 OID 17514)
--- Name: property_history property_history_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_history property_history_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_history
-    ADD CONSTRAINT property_history_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.property_history
+    ADD CONSTRAINT property_history_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5446 (class 2606 OID 17519)
--- Name: property_works property_works_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: property_works property_works_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.property_works
-    ADD CONSTRAINT property_works_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.property_works
+    ADD CONSTRAINT property_works_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5457 (class 2606 OID 17636)
--- Name: rent_receipts rent_receipts_document_id_documents_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: rent_receipts rent_receipts_document_id_documents_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.rent_receipts
-    ADD CONSTRAINT rent_receipts_document_id_documents_id_fk FOREIGN KEY (document_id) REFERENCES template.documents(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.rent_receipts
+    ADD CONSTRAINT rent_receipts_document_id_documents_id_fk FOREIGN KEY (document_id) REFERENCES public.documents(id) ON DELETE SET NULL;
 
 
 --
 -- TOC entry 5458 (class 2606 OID 17626)
--- Name: rent_receipts rent_receipts_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: rent_receipts rent_receipts_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.rent_receipts
-    ADD CONSTRAINT rent_receipts_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.rent_receipts
+    ADD CONSTRAINT rent_receipts_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5459 (class 2606 OID 17621)
--- Name: rent_receipts rent_receipts_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: rent_receipts rent_receipts_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.rent_receipts
-    ADD CONSTRAINT rent_receipts_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES template.tenants(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.rent_receipts
+    ADD CONSTRAINT rent_receipts_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5460 (class 2606 OID 17631)
--- Name: rent_receipts rent_receipts_transaction_id_transactions_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: rent_receipts rent_receipts_transaction_id_transactions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.rent_receipts
-    ADD CONSTRAINT rent_receipts_transaction_id_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES template.transactions(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.rent_receipts
+    ADD CONSTRAINT rent_receipts_transaction_id_transactions_id_fk FOREIGN KEY (transaction_id) REFERENCES public.transactions(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5482 (class 2606 OID 18589)
--- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.sessions
-    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5489 (class 2606 OID 19444)
--- Name: storage_transactions storage_transactions_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: storage_transactions storage_transactions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.storage_transactions
-    ADD CONSTRAINT storage_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.storage_transactions
+    ADD CONSTRAINT storage_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5477 (class 2606 OID 18378)
--- Name: storage_usage_details storage_usage_details_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: storage_usage_details storage_usage_details_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.storage_usage_details
-    ADD CONSTRAINT storage_usage_details_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.storage_usage_details
+    ADD CONSTRAINT storage_usage_details_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5447 (class 2606 OID 17524)
--- Name: tenant_documents tenant_documents_document_id_documents_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenant_documents tenant_documents_document_id_documents_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenant_documents
-    ADD CONSTRAINT tenant_documents_document_id_documents_id_fk FOREIGN KEY (document_id) REFERENCES template.documents(id);
+ALTER TABLE ONLY public.tenant_documents
+    ADD CONSTRAINT tenant_documents_document_id_documents_id_fk FOREIGN KEY (document_id) REFERENCES public.documents(id);
 
 
 --
 -- TOC entry 5448 (class 2606 OID 17529)
--- Name: tenant_documents tenant_documents_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenant_documents tenant_documents_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenant_documents
-    ADD CONSTRAINT tenant_documents_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES template.tenants(id);
+ALTER TABLE ONLY public.tenant_documents
+    ADD CONSTRAINT tenant_documents_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id);
 
 
 --
 -- TOC entry 5449 (class 2606 OID 17534)
--- Name: tenant_history tenant_history_created_by_users_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenant_history tenant_history_created_by_users_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenant_history
-    ADD CONSTRAINT tenant_history_created_by_users_id_fk FOREIGN KEY (created_by) REFERENCES template.users(id);
+ALTER TABLE ONLY public.tenant_history
+    ADD CONSTRAINT tenant_history_created_by_users_id_fk FOREIGN KEY (created_by) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5450 (class 2606 OID 17748)
--- Name: tenant_history tenant_history_tenant_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenant_history tenant_history_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenant_history
-    ADD CONSTRAINT tenant_history_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES template.tenants(id);
+ALTER TABLE ONLY public.tenant_history
+    ADD CONSTRAINT tenant_history_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id);
 
 
 --
 -- TOC entry 5430 (class 2606 OID 16923)
--- Name: tenants tenants_property_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenants tenants_property_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenants
-    ADD CONSTRAINT tenants_property_id_fkey FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.tenants
+    ADD CONSTRAINT tenants_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5431 (class 2606 OID 17544)
--- Name: tenants tenants_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenants tenants_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenants
-    ADD CONSTRAINT tenants_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.tenants
+    ADD CONSTRAINT tenants_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5432 (class 2606 OID 16918)
--- Name: tenants tenants_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenants tenants_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenants
-    ADD CONSTRAINT tenants_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.tenants
+    ADD CONSTRAINT tenants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5433 (class 2606 OID 17549)
--- Name: tenants tenants_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: tenants tenants_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.tenants
-    ADD CONSTRAINT tenants_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.tenants
+    ADD CONSTRAINT tenants_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5476 (class 2606 OID 18233)
--- Name: transaction_attachments transaction_attachments_transaction_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: transaction_attachments transaction_attachments_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transaction_attachments
-    ADD CONSTRAINT transaction_attachments_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES template.transactions(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.transaction_attachments
+    ADD CONSTRAINT transaction_attachments_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5451 (class 2606 OID 17554)
--- Name: transactions transactions_document_id_documents_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: transactions transactions_document_id_documents_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transactions
-    ADD CONSTRAINT transactions_document_id_documents_id_fk FOREIGN KEY (document_id) REFERENCES template.documents(id);
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_document_id_documents_id_fk FOREIGN KEY (document_id) REFERENCES public.documents(id);
 
 
 --
 -- TOC entry 5452 (class 2606 OID 17559)
--- Name: transactions transactions_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: transactions transactions_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transactions
-    ADD CONSTRAINT transactions_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5453 (class 2606 OID 17564)
--- Name: transactions transactions_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: transactions transactions_tenant_id_tenants_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transactions
-    ADD CONSTRAINT transactions_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES template.tenants(id);
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_tenant_id_tenants_id_fk FOREIGN KEY (tenant_id) REFERENCES public.tenants(id);
 
 
 --
 -- TOC entry 5454 (class 2606 OID 17569)
--- Name: transactions transactions_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: transactions transactions_user_id_users_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.transactions
-    ADD CONSTRAINT transactions_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_user_id_users_id_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5469 (class 2606 OID 17829)
--- Name: user_notification_settings user_notification_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: user_notification_settings user_notification_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.user_notification_settings
-    ADD CONSTRAINT user_notification_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.user_notification_settings
+    ADD CONSTRAINT user_notification_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
 -- TOC entry 5479 (class 2606 OID 18441)
--- Name: user_subscriptions user_subscriptions_storage_extension_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: user_subscriptions user_subscriptions_storage_extension_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.user_subscriptions
-    ADD CONSTRAINT user_subscriptions_storage_extension_id_fkey FOREIGN KEY (storage_extension_id) REFERENCES template.storage_extensions(id);
+ALTER TABLE ONLY public.user_subscriptions
+    ADD CONSTRAINT user_subscriptions_storage_extension_id_fkey FOREIGN KEY (storage_extension_id) REFERENCES public.storage_extensions(id);
 
 
 --
 -- TOC entry 5480 (class 2606 OID 18426)
--- Name: user_subscriptions user_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: user_subscriptions user_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.user_subscriptions
-    ADD CONSTRAINT user_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.user_subscriptions
+    ADD CONSTRAINT user_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5455 (class 2606 OID 17574)
--- Name: visits visits_agent_id_users_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: visits visits_agent_id_users_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.visits
-    ADD CONSTRAINT visits_agent_id_users_id_fk FOREIGN KEY (agent_id) REFERENCES template.users(id);
+ALTER TABLE ONLY public.visits
+    ADD CONSTRAINT visits_agent_id_users_id_fk FOREIGN KEY (agent_id) REFERENCES public.users(id);
 
 
 --
 -- TOC entry 5456 (class 2606 OID 17579)
--- Name: visits visits_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: template; Owner: postgres
+-- Name: visits visits_property_id_properties_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY template.visits
-    ADD CONSTRAINT visits_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES template.properties(id);
+ALTER TABLE ONLY public.visits
+    ADD CONSTRAINT visits_property_id_properties_id_fk FOREIGN KEY (property_id) REFERENCES public.properties(id);
 
 
 --
 -- TOC entry 5646 (class 0 OID 17239)
 -- Dependencies: 231
--- Name: documents; Type: ROW SECURITY; Schema: template; Owner: postgres
+-- Name: documents; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
-ALTER TABLE template.documents 
+ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 
 --
 -- TOC entry 5651 (class 3256 OID 19967)
--- Name: documents documents_policy; Type: POLICY; Schema: template; Owner: postgres
+-- Name: documents documents_policy; Type: POLICY; Schema: public; Owner: postgres
 --
 
-
+CREATE POLICY documents_policy ON public.documents USING (((public.current_user_id() = 0) OR (EXISTS ( SELECT 1
+   FROM public.users
+  WHERE ((users.id = public.current_user_id()) AND (users.role = 'admin'::text)))) OR (user_id = public.current_user_id()) OR (EXISTS ( SELECT 1
+   FROM (public.tenant_documents td
+     JOIN public.tenants t ON ((td.tenant_id = t.id)))
+  WHERE ((td.document_id = documents.id) AND (t.user_id = public.current_user_id()))))));
 
 
 --
 -- TOC entry 5644 (class 0 OID 16870)
 -- Dependencies: 219
--- Name: properties; Type: ROW SECURITY; Schema: template; Owner: postgres
+-- Name: properties; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
-ALTER TABLE template.properties 
+ALTER TABLE public.properties ENABLE ROW LEVEL SECURITY;
 
 --
 -- TOC entry 5649 (class 3256 OID 19965)
--- Name: properties properties_policy; Type: POLICY; Schema: template; Owner: postgres
+-- Name: properties properties_policy; Type: POLICY; Schema: public; Owner: postgres
 --
 
-
+CREATE POLICY properties_policy ON public.properties USING (((public.current_user_id() = 0) OR (EXISTS ( SELECT 1
+   FROM public.users
+  WHERE ((users.id = public.current_user_id()) AND (users.role = 'admin'::text)))) OR (EXISTS ( SELECT 1
+   FROM public.tenants
+  WHERE ((tenants.property_id = properties.id) AND (tenants.user_id = public.current_user_id()))))));
 
 
 --
 -- TOC entry 5645 (class 0 OID 16906)
 -- Dependencies: 220
--- Name: tenants; Type: ROW SECURITY; Schema: template; Owner: postgres
+-- Name: tenants; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
-ALTER TABLE template.tenants 
+ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 
 --
 -- TOC entry 5650 (class 3256 OID 19966)
--- Name: tenants tenants_policy; Type: POLICY; Schema: template; Owner: postgres
+-- Name: tenants tenants_policy; Type: POLICY; Schema: public; Owner: postgres
 --
 
-
+CREATE POLICY tenants_policy ON public.tenants USING (((public.current_user_id() = 0) OR (EXISTS ( SELECT 1
+   FROM public.users
+  WHERE ((users.id = public.current_user_id()) AND (users.role = 'admin'::text)))) OR (user_id = public.current_user_id())));
 
 
 --
 -- TOC entry 5647 (class 0 OID 17357)
 -- Dependencies: 259
--- Name: transactions; Type: ROW SECURITY; Schema: template; Owner: postgres
+-- Name: transactions; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
-ALTER TABLE template.transactions 
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
 --
 -- TOC entry 5652 (class 3256 OID 19969)
--- Name: transactions transactions_policy; Type: POLICY; Schema: template; Owner: postgres
+-- Name: transactions transactions_policy; Type: POLICY; Schema: public; Owner: postgres
 --
 
-
+CREATE POLICY transactions_policy ON public.transactions USING (((public.current_user_id() = 0) OR (EXISTS ( SELECT 1
+   FROM public.users
+  WHERE ((users.id = public.current_user_id()) AND (users.role = 'admin'::text)))) OR (user_id = public.current_user_id()) OR (EXISTS ( SELECT 1
+   FROM public.tenants
+  WHERE ((tenants.id = transactions.tenant_id) AND (tenants.user_id = public.current_user_id()))))));
 
 
 --
 -- TOC entry 5643 (class 0 OID 16853)
 -- Dependencies: 218
--- Name: users; Type: ROW SECURITY; Schema: template; Owner: postgres
+-- Name: users; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
-ALTER TABLE template.users 
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 --
 -- TOC entry 5648 (class 3256 OID 19964)
--- Name: users users_policy; Type: POLICY; Schema: template; Owner: postgres
+-- Name: users users_policy; Type: POLICY; Schema: public; Owner: postgres
 --
 
-
+CREATE POLICY users_policy ON public.users USING (((public.current_user_id() = id) OR (public.current_user_id() = 0) OR (EXISTS ( SELECT 1
+   FROM public.users users_1
+  WHERE ((users_1.id = public.current_user_id()) AND (users_1.role = 'admin'::text))))));
 
 
 --
@@ -7496,1446 +7507,1446 @@ GRANT USAGE ON SCHEMA public TO admin;
 --
 -- TOC entry 5766 (class 0 OID 0)
 -- Dependencies: 219
--- Name: TABLE properties; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE properties; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.properties TO app_admin;
-GRANT ALL ON TABLE template.properties TO admin_role;
-GRANT SELECT ON TABLE template.properties TO client_role;
-GRANT SELECT ON TABLE template.properties TO clients;
-GRANT ALL ON TABLE template.properties TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.properties TO app_manager;
-GRANT SELECT ON TABLE template.properties TO app_tenant;
-GRANT ALL ON TABLE template.properties TO app_service;
+GRANT ALL ON TABLE public.properties TO app_admin;
+GRANT ALL ON TABLE public.properties TO admin_role;
+GRANT SELECT ON TABLE public.properties TO client_role;
+GRANT SELECT ON TABLE public.properties TO clients;
+GRANT ALL ON TABLE public.properties TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.properties TO app_manager;
+GRANT SELECT ON TABLE public.properties TO app_tenant;
+GRANT ALL ON TABLE public.properties TO app_service;
 
 
 --
 -- TOC entry 5770 (class 0 OID 0)
 -- Dependencies: 317
--- Name: TABLE ai_conversations; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE ai_conversations; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.ai_conversations TO app_admin;
-GRANT ALL ON TABLE template.ai_conversations TO admin_role;
-GRANT ALL ON TABLE template.ai_conversations TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.ai_conversations TO app_manager;
-GRANT ALL ON TABLE template.ai_conversations TO app_service;
+GRANT ALL ON TABLE public.ai_conversations TO app_admin;
+GRANT ALL ON TABLE public.ai_conversations TO admin_role;
+GRANT ALL ON TABLE public.ai_conversations TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.ai_conversations TO app_manager;
+GRANT ALL ON TABLE public.ai_conversations TO app_service;
 
 
 --
 -- TOC entry 5772 (class 0 OID 0)
 -- Dependencies: 316
--- Name: SEQUENCE ai_conversations_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE ai_conversations_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.ai_conversations_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.ai_conversations_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.ai_conversations_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.ai_conversations_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.ai_conversations_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.ai_conversations_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.ai_conversations_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.ai_conversations_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.ai_conversations_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.ai_conversations_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.ai_conversations_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.ai_conversations_id_seq TO app_service;
 
 
 --
 -- TOC entry 5773 (class 0 OID 0)
 -- Dependencies: 319
--- Name: TABLE ai_messages; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE ai_messages; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.ai_messages TO app_admin;
-GRANT ALL ON TABLE template.ai_messages TO admin_role;
-GRANT ALL ON TABLE template.ai_messages TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.ai_messages TO app_manager;
-GRANT ALL ON TABLE template.ai_messages TO app_service;
+GRANT ALL ON TABLE public.ai_messages TO app_admin;
+GRANT ALL ON TABLE public.ai_messages TO admin_role;
+GRANT ALL ON TABLE public.ai_messages TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.ai_messages TO app_manager;
+GRANT ALL ON TABLE public.ai_messages TO app_service;
 
 
 --
 -- TOC entry 5775 (class 0 OID 0)
 -- Dependencies: 318
--- Name: SEQUENCE ai_messages_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE ai_messages_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.ai_messages_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.ai_messages_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.ai_messages_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.ai_messages_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.ai_messages_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.ai_messages_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.ai_messages_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.ai_messages_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.ai_messages_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.ai_messages_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.ai_messages_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.ai_messages_id_seq TO app_service;
 
 
 --
 -- TOC entry 5776 (class 0 OID 0)
 -- Dependencies: 321
--- Name: TABLE ai_suggestions; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE ai_suggestions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.ai_suggestions TO app_admin;
-GRANT ALL ON TABLE template.ai_suggestions TO admin_role;
-GRANT ALL ON TABLE template.ai_suggestions TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.ai_suggestions TO app_manager;
-GRANT ALL ON TABLE template.ai_suggestions TO app_service;
+GRANT ALL ON TABLE public.ai_suggestions TO app_admin;
+GRANT ALL ON TABLE public.ai_suggestions TO admin_role;
+GRANT ALL ON TABLE public.ai_suggestions TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.ai_suggestions TO app_manager;
+GRANT ALL ON TABLE public.ai_suggestions TO app_service;
 
 
 --
 -- TOC entry 5778 (class 0 OID 0)
 -- Dependencies: 320
--- Name: SEQUENCE ai_suggestions_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE ai_suggestions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.ai_suggestions_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.ai_suggestions_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.ai_suggestions_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.ai_suggestions_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.ai_suggestions_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.ai_suggestions_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.ai_suggestions_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.ai_suggestions_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.ai_suggestions_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.ai_suggestions_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.ai_suggestions_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.ai_suggestions_id_seq TO app_service;
 
 
 --
 -- TOC entry 5779 (class 0 OID 0)
 -- Dependencies: 224
--- Name: TABLE alerts; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE alerts; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.alerts TO app_admin;
-GRANT ALL ON TABLE template.alerts TO admin_role;
-GRANT ALL ON TABLE template.alerts TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.alerts TO app_manager;
-GRANT ALL ON TABLE template.alerts TO app_service;
+GRANT ALL ON TABLE public.alerts TO app_admin;
+GRANT ALL ON TABLE public.alerts TO admin_role;
+GRANT ALL ON TABLE public.alerts TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.alerts TO app_manager;
+GRANT ALL ON TABLE public.alerts TO app_service;
 
 
 --
 -- TOC entry 5781 (class 0 OID 0)
 -- Dependencies: 223
--- Name: SEQUENCE alerts_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE alerts_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.alerts_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.alerts_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.alerts_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.alerts_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.alerts_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.alerts_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.alerts_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.alerts_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.alerts_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.alerts_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.alerts_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.alerts_id_seq TO app_service;
 
 
 --
 -- TOC entry 5782 (class 0 OID 0)
 -- Dependencies: 275
--- Name: TABLE analysis_configs; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE analysis_configs; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.analysis_configs TO app_admin;
-GRANT ALL ON TABLE template.analysis_configs TO admin_role;
-GRANT ALL ON TABLE template.analysis_configs TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.analysis_configs TO app_manager;
-GRANT ALL ON TABLE template.analysis_configs TO app_service;
+GRANT ALL ON TABLE public.analysis_configs TO app_admin;
+GRANT ALL ON TABLE public.analysis_configs TO admin_role;
+GRANT ALL ON TABLE public.analysis_configs TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.analysis_configs TO app_manager;
+GRANT ALL ON TABLE public.analysis_configs TO app_service;
 
 
 --
 -- TOC entry 5784 (class 0 OID 0)
 -- Dependencies: 274
--- Name: SEQUENCE analysis_configs_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE analysis_configs_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.analysis_configs_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.analysis_configs_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.analysis_configs_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.analysis_configs_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.analysis_configs_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.analysis_configs_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.analysis_configs_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.analysis_configs_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.analysis_configs_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.analysis_configs_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.analysis_configs_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.analysis_configs_id_seq TO app_service;
 
 
 --
 -- TOC entry 5785 (class 0 OID 0)
 -- Dependencies: 267
--- Name: TABLE automatic_reminders; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE automatic_reminders; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.automatic_reminders TO app_admin;
-GRANT ALL ON TABLE template.automatic_reminders TO admin_role;
-GRANT ALL ON TABLE template.automatic_reminders TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.automatic_reminders TO app_manager;
-GRANT ALL ON TABLE template.automatic_reminders TO app_service;
+GRANT ALL ON TABLE public.automatic_reminders TO app_admin;
+GRANT ALL ON TABLE public.automatic_reminders TO admin_role;
+GRANT ALL ON TABLE public.automatic_reminders TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.automatic_reminders TO app_manager;
+GRANT ALL ON TABLE public.automatic_reminders TO app_service;
 
 
 --
 -- TOC entry 5787 (class 0 OID 0)
 -- Dependencies: 266
--- Name: SEQUENCE automatic_reminders_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE automatic_reminders_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.automatic_reminders_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.automatic_reminders_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.automatic_reminders_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.automatic_reminders_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.automatic_reminders_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.automatic_reminders_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.automatic_reminders_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.automatic_reminders_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.automatic_reminders_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.automatic_reminders_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.automatic_reminders_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.automatic_reminders_id_seq TO app_service;
 
 
 --
 -- TOC entry 5788 (class 0 OID 0)
 -- Dependencies: 301
--- Name: TABLE billing_transactions; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE billing_transactions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.billing_transactions TO app_admin;
-GRANT ALL ON TABLE template.billing_transactions TO admin_role;
-GRANT ALL ON TABLE template.billing_transactions TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.billing_transactions TO app_manager;
-GRANT ALL ON TABLE template.billing_transactions TO app_service;
+GRANT ALL ON TABLE public.billing_transactions TO app_admin;
+GRANT ALL ON TABLE public.billing_transactions TO admin_role;
+GRANT ALL ON TABLE public.billing_transactions TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.billing_transactions TO app_manager;
+GRANT ALL ON TABLE public.billing_transactions TO app_service;
 
 
 --
 -- TOC entry 5790 (class 0 OID 0)
 -- Dependencies: 300
--- Name: SEQUENCE billing_transactions_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE billing_transactions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.billing_transactions_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.billing_transactions_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.billing_transactions_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.billing_transactions_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.billing_transactions_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.billing_transactions_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.billing_transactions_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.billing_transactions_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.billing_transactions_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.billing_transactions_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.billing_transactions_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.billing_transactions_id_seq TO app_service;
 
 
 --
 -- TOC entry 5791 (class 0 OID 0)
 -- Dependencies: 313
--- Name: TABLE company_info; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE company_info; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.company_info TO app_admin;
-GRANT ALL ON TABLE template.company_info TO admin_role;
-GRANT ALL ON TABLE template.company_info TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.company_info TO app_manager;
-GRANT ALL ON TABLE template.company_info TO app_service;
+GRANT ALL ON TABLE public.company_info TO app_admin;
+GRANT ALL ON TABLE public.company_info TO admin_role;
+GRANT ALL ON TABLE public.company_info TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.company_info TO app_manager;
+GRANT ALL ON TABLE public.company_info TO app_service;
 
 
 --
 -- TOC entry 5793 (class 0 OID 0)
 -- Dependencies: 312
--- Name: SEQUENCE company_info_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE company_info_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.company_info_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.company_info_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.company_info_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.company_info_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.company_info_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.company_info_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.company_info_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.company_info_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.company_info_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.company_info_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.company_info_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.company_info_id_seq TO app_service;
 
 
 --
 -- TOC entry 5794 (class 0 OID 0)
 -- Dependencies: 271
--- Name: TABLE contract_parties; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE contract_parties; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.contract_parties TO app_admin;
-GRANT ALL ON TABLE template.contract_parties TO admin_role;
-GRANT ALL ON TABLE template.contract_parties TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.contract_parties TO app_manager;
-GRANT ALL ON TABLE template.contract_parties TO app_service;
+GRANT ALL ON TABLE public.contract_parties TO app_admin;
+GRANT ALL ON TABLE public.contract_parties TO admin_role;
+GRANT ALL ON TABLE public.contract_parties TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.contract_parties TO app_manager;
+GRANT ALL ON TABLE public.contract_parties TO app_service;
 
 
 --
 -- TOC entry 5796 (class 0 OID 0)
 -- Dependencies: 270
--- Name: SEQUENCE contract_parties_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE contract_parties_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.contract_parties_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.contract_parties_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.contract_parties_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.contract_parties_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.contract_parties_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.contract_parties_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.contract_parties_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.contract_parties_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.contract_parties_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.contract_parties_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.contract_parties_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.contract_parties_id_seq TO app_service;
 
 
 --
 -- TOC entry 5797 (class 0 OID 0)
 -- Dependencies: 269
--- Name: TABLE contracts; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE contracts; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.contracts TO app_admin;
-GRANT ALL ON TABLE template.contracts TO admin_role;
-GRANT ALL ON TABLE template.contracts TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.contracts TO app_manager;
-GRANT ALL ON TABLE template.contracts TO app_service;
+GRANT ALL ON TABLE public.contracts TO app_admin;
+GRANT ALL ON TABLE public.contracts TO admin_role;
+GRANT ALL ON TABLE public.contracts TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.contracts TO app_manager;
+GRANT ALL ON TABLE public.contracts TO app_service;
 
 
 --
 -- TOC entry 5799 (class 0 OID 0)
 -- Dependencies: 268
--- Name: SEQUENCE contracts_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE contracts_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.contracts_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.contracts_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.contracts_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.contracts_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.contracts_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.contracts_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.contracts_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.contracts_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.contracts_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.contracts_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.contracts_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.contracts_id_seq TO app_service;
 
 
 --
 -- TOC entry 5800 (class 0 OID 0)
 -- Dependencies: 229
--- Name: TABLE document_templates; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE document_templates; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.document_templates TO app_admin;
-GRANT ALL ON TABLE template.document_templates TO admin_role;
-GRANT ALL ON TABLE template.document_templates TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.document_templates TO app_manager;
-GRANT ALL ON TABLE template.document_templates TO app_service;
+GRANT ALL ON TABLE public.document_templates TO app_admin;
+GRANT ALL ON TABLE public.document_templates TO admin_role;
+GRANT ALL ON TABLE public.document_templates TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.document_templates TO app_manager;
+GRANT ALL ON TABLE public.document_templates TO app_service;
 
 
 --
 -- TOC entry 5802 (class 0 OID 0)
 -- Dependencies: 230
--- Name: SEQUENCE document_templates_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE document_templates_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.document_templates_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.document_templates_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.document_templates_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.document_templates_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.document_templates_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.document_templates_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.document_templates_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.document_templates_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.document_templates_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.document_templates_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.document_templates_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.document_templates_id_seq TO app_service;
 
 
 --
 -- TOC entry 5803 (class 0 OID 0)
 -- Dependencies: 231
--- Name: TABLE documents; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE documents; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.documents TO app_admin;
-GRANT ALL ON TABLE template.documents TO admin_role;
-GRANT SELECT ON TABLE template.documents TO client_role;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.documents TO clients;
-GRANT ALL ON TABLE template.documents TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.documents TO app_manager;
-GRANT SELECT ON TABLE template.documents TO app_tenant;
-GRANT ALL ON TABLE template.documents TO app_service;
+GRANT ALL ON TABLE public.documents TO app_admin;
+GRANT ALL ON TABLE public.documents TO admin_role;
+GRANT SELECT ON TABLE public.documents TO client_role;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.documents TO clients;
+GRANT ALL ON TABLE public.documents TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.documents TO app_manager;
+GRANT SELECT ON TABLE public.documents TO app_tenant;
+GRANT ALL ON TABLE public.documents TO app_service;
 
 
 --
 -- TOC entry 5804 (class 0 OID 0)
 -- Dependencies: 232
--- Name: TABLE documents_access_log; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE documents_access_log; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.documents_access_log TO app_admin;
-GRANT ALL ON TABLE template.documents_access_log TO admin_role;
-GRANT ALL ON TABLE template.documents_access_log TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.documents_access_log TO app_manager;
-GRANT ALL ON TABLE template.documents_access_log TO app_service;
+GRANT ALL ON TABLE public.documents_access_log TO app_admin;
+GRANT ALL ON TABLE public.documents_access_log TO admin_role;
+GRANT ALL ON TABLE public.documents_access_log TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.documents_access_log TO app_manager;
+GRANT ALL ON TABLE public.documents_access_log TO app_service;
 
 
 --
 -- TOC entry 5806 (class 0 OID 0)
 -- Dependencies: 233
--- Name: SEQUENCE documents_access_log_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE documents_access_log_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.documents_access_log_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.documents_access_log_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.documents_access_log_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.documents_access_log_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.documents_access_log_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.documents_access_log_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.documents_access_log_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.documents_access_log_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.documents_access_log_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.documents_access_log_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.documents_access_log_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.documents_access_log_id_seq TO app_service;
 
 
 --
 -- TOC entry 5808 (class 0 OID 0)
 -- Dependencies: 234
--- Name: SEQUENCE documents_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE documents_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.documents_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.documents_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.documents_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.documents_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.documents_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.documents_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.documents_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.documents_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.documents_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.documents_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.documents_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.documents_id_seq TO app_service;
 
 
 --
 -- TOC entry 5809 (class 0 OID 0)
 -- Dependencies: 228
--- Name: TABLE feedbacks; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE feedbacks; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.feedbacks TO app_admin;
-GRANT ALL ON TABLE template.feedbacks TO admin_role;
-GRANT ALL ON TABLE template.feedbacks TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.feedbacks TO app_manager;
-GRANT ALL ON TABLE template.feedbacks TO app_service;
+GRANT ALL ON TABLE public.feedbacks TO app_admin;
+GRANT ALL ON TABLE public.feedbacks TO admin_role;
+GRANT ALL ON TABLE public.feedbacks TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.feedbacks TO app_manager;
+GRANT ALL ON TABLE public.feedbacks TO app_service;
 
 
 --
 -- TOC entry 5811 (class 0 OID 0)
 -- Dependencies: 227
--- Name: SEQUENCE feedbacks_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE feedbacks_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.feedbacks_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.feedbacks_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.feedbacks_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.feedbacks_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.feedbacks_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.feedbacks_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.feedbacks_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.feedbacks_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.feedbacks_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.feedbacks_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.feedbacks_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.feedbacks_id_seq TO app_service;
 
 
 --
 -- TOC entry 5812 (class 0 OID 0)
 -- Dependencies: 235
--- Name: TABLE financial_entries; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE financial_entries; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.financial_entries TO app_admin;
-GRANT ALL ON TABLE template.financial_entries TO admin_role;
-GRANT ALL ON TABLE template.financial_entries TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.financial_entries TO app_manager;
-GRANT ALL ON TABLE template.financial_entries TO app_service;
+GRANT ALL ON TABLE public.financial_entries TO app_admin;
+GRANT ALL ON TABLE public.financial_entries TO admin_role;
+GRANT ALL ON TABLE public.financial_entries TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.financial_entries TO app_manager;
+GRANT ALL ON TABLE public.financial_entries TO app_service;
 
 
 --
 -- TOC entry 5814 (class 0 OID 0)
 -- Dependencies: 236
--- Name: SEQUENCE financial_entries_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE financial_entries_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.financial_entries_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.financial_entries_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.financial_entries_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.financial_entries_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.financial_entries_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.financial_entries_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.financial_entries_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.financial_entries_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.financial_entries_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.financial_entries_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.financial_entries_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.financial_entries_id_seq TO app_service;
 
 
 --
 -- TOC entry 5815 (class 0 OID 0)
 -- Dependencies: 237
--- Name: TABLE folders; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE folders; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.folders TO app_admin;
-GRANT ALL ON TABLE template.folders TO admin_role;
-GRANT SELECT ON TABLE template.folders TO client_role;
-GRANT ALL ON TABLE template.folders TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.folders TO app_manager;
-GRANT ALL ON TABLE template.folders TO app_service;
+GRANT ALL ON TABLE public.folders TO app_admin;
+GRANT ALL ON TABLE public.folders TO admin_role;
+GRANT SELECT ON TABLE public.folders TO client_role;
+GRANT ALL ON TABLE public.folders TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.folders TO app_manager;
+GRANT ALL ON TABLE public.folders TO app_service;
 
 
 --
 -- TOC entry 5817 (class 0 OID 0)
 -- Dependencies: 238
--- Name: SEQUENCE folders_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE folders_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.folders_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.folders_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.folders_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.folders_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.folders_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.folders_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.folders_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.folders_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.folders_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.folders_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.folders_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.folders_id_seq TO app_service;
 
 
 --
 -- TOC entry 5818 (class 0 OID 0)
 -- Dependencies: 291
--- Name: TABLE form_field_options; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE form_field_options; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.form_field_options TO app_admin;
-GRANT ALL ON TABLE template.form_field_options TO admin_role;
-GRANT ALL ON TABLE template.form_field_options TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.form_field_options TO app_manager;
-GRANT ALL ON TABLE template.form_field_options TO app_service;
+GRANT ALL ON TABLE public.form_field_options TO app_admin;
+GRANT ALL ON TABLE public.form_field_options TO admin_role;
+GRANT ALL ON TABLE public.form_field_options TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.form_field_options TO app_manager;
+GRANT ALL ON TABLE public.form_field_options TO app_service;
 
 
 --
 -- TOC entry 5820 (class 0 OID 0)
 -- Dependencies: 290
--- Name: SEQUENCE form_field_options_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE form_field_options_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.form_field_options_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.form_field_options_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.form_field_options_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.form_field_options_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.form_field_options_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.form_field_options_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.form_field_options_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.form_field_options_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.form_field_options_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.form_field_options_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.form_field_options_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.form_field_options_id_seq TO app_service;
 
 
 --
 -- TOC entry 5821 (class 0 OID 0)
 -- Dependencies: 289
--- Name: TABLE form_fields; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE form_fields; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.form_fields TO app_admin;
-GRANT ALL ON TABLE template.form_fields TO admin_role;
-GRANT ALL ON TABLE template.form_fields TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.form_fields TO app_manager;
-GRANT ALL ON TABLE template.form_fields TO app_service;
+GRANT ALL ON TABLE public.form_fields TO app_admin;
+GRANT ALL ON TABLE public.form_fields TO admin_role;
+GRANT ALL ON TABLE public.form_fields TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.form_fields TO app_manager;
+GRANT ALL ON TABLE public.form_fields TO app_service;
 
 
 --
 -- TOC entry 5823 (class 0 OID 0)
 -- Dependencies: 288
--- Name: SEQUENCE form_fields_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE form_fields_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.form_fields_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.form_fields_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.form_fields_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.form_fields_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.form_fields_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.form_fields_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.form_fields_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.form_fields_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.form_fields_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.form_fields_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.form_fields_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.form_fields_id_seq TO app_service;
 
 
 --
 -- TOC entry 5825 (class 0 OID 0)
 -- Dependencies: 281
--- Name: TABLE form_responses; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE form_responses; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.form_responses TO app_admin;
-GRANT ALL ON TABLE template.form_responses TO admin_role;
-GRANT ALL ON TABLE template.form_responses TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.form_responses TO app_manager;
-GRANT ALL ON TABLE template.form_responses TO app_service;
+GRANT ALL ON TABLE public.form_responses TO app_admin;
+GRANT ALL ON TABLE public.form_responses TO admin_role;
+GRANT ALL ON TABLE public.form_responses TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.form_responses TO app_manager;
+GRANT ALL ON TABLE public.form_responses TO app_service;
 
 
 --
 -- TOC entry 5827 (class 0 OID 0)
 -- Dependencies: 280
--- Name: SEQUENCE form_responses_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE form_responses_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.form_responses_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.form_responses_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.form_responses_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.form_responses_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.form_responses_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.form_responses_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.form_responses_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.form_responses_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.form_responses_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.form_responses_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.form_responses_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.form_responses_id_seq TO app_service;
 
 
 --
 -- TOC entry 5828 (class 0 OID 0)
 -- Dependencies: 287
--- Name: TABLE form_submissions; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE form_submissions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.form_submissions TO app_admin;
-GRANT ALL ON TABLE template.form_submissions TO admin_role;
-GRANT ALL ON TABLE template.form_submissions TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.form_submissions TO app_manager;
-GRANT ALL ON TABLE template.form_submissions TO app_service;
+GRANT ALL ON TABLE public.form_submissions TO app_admin;
+GRANT ALL ON TABLE public.form_submissions TO admin_role;
+GRANT ALL ON TABLE public.form_submissions TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.form_submissions TO app_manager;
+GRANT ALL ON TABLE public.form_submissions TO app_service;
 
 
 --
 -- TOC entry 5830 (class 0 OID 0)
 -- Dependencies: 286
--- Name: SEQUENCE form_submissions_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE form_submissions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.form_submissions_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.form_submissions_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.form_submissions_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.form_submissions_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.form_submissions_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.form_submissions_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.form_submissions_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.form_submissions_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.form_submissions_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.form_submissions_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.form_submissions_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.form_submissions_id_seq TO app_service;
 
 
 --
 -- TOC entry 5832 (class 0 OID 0)
 -- Dependencies: 279
--- Name: TABLE forms; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE forms; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.forms TO app_admin;
-GRANT ALL ON TABLE template.forms TO admin_role;
-GRANT ALL ON TABLE template.forms TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.forms TO app_manager;
-GRANT ALL ON TABLE template.forms TO app_service;
+GRANT ALL ON TABLE public.forms TO app_admin;
+GRANT ALL ON TABLE public.forms TO admin_role;
+GRANT ALL ON TABLE public.forms TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.forms TO app_manager;
+GRANT ALL ON TABLE public.forms TO app_service;
 
 
 --
 -- TOC entry 5834 (class 0 OID 0)
 -- Dependencies: 278
--- Name: SEQUENCE forms_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE forms_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.forms_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.forms_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.forms_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.forms_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.forms_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.forms_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.forms_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.forms_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.forms_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.forms_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.forms_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.forms_id_seq TO app_service;
 
 
 --
 -- TOC entry 5835 (class 0 OID 0)
 -- Dependencies: 283
--- Name: TABLE link_profiles; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE link_profiles; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.link_profiles TO app_admin;
-GRANT ALL ON TABLE template.link_profiles TO admin_role;
-GRANT ALL ON TABLE template.link_profiles TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.link_profiles TO app_manager;
-GRANT ALL ON TABLE template.link_profiles TO app_service;
+GRANT ALL ON TABLE public.link_profiles TO app_admin;
+GRANT ALL ON TABLE public.link_profiles TO admin_role;
+GRANT ALL ON TABLE public.link_profiles TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.link_profiles TO app_manager;
+GRANT ALL ON TABLE public.link_profiles TO app_service;
 
 
 --
 -- TOC entry 5837 (class 0 OID 0)
 -- Dependencies: 282
--- Name: SEQUENCE link_profiles_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE link_profiles_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.link_profiles_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.link_profiles_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.link_profiles_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.link_profiles_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.link_profiles_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.link_profiles_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.link_profiles_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.link_profiles_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.link_profiles_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.link_profiles_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.link_profiles_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.link_profiles_id_seq TO app_service;
 
 
 --
 -- TOC entry 5838 (class 0 OID 0)
 -- Dependencies: 285
--- Name: TABLE links; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE links; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.links TO app_admin;
-GRANT ALL ON TABLE template.links TO admin_role;
-GRANT ALL ON TABLE template.links TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.links TO app_manager;
-GRANT ALL ON TABLE template.links TO app_service;
+GRANT ALL ON TABLE public.links TO app_admin;
+GRANT ALL ON TABLE public.links TO admin_role;
+GRANT ALL ON TABLE public.links TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.links TO app_manager;
+GRANT ALL ON TABLE public.links TO app_service;
 
 
 --
 -- TOC entry 5840 (class 0 OID 0)
 -- Dependencies: 284
--- Name: SEQUENCE links_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE links_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.links_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.links_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.links_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.links_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.links_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.links_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.links_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.links_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.links_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.links_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.links_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.links_id_seq TO app_service;
 
 
 --
 -- TOC entry 5841 (class 0 OID 0)
 -- Dependencies: 222
--- Name: TABLE maintenance; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE maintenance; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.maintenance TO app_admin;
-GRANT ALL ON TABLE template.maintenance TO admin_role;
-GRANT ALL ON TABLE template.maintenance TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.maintenance TO app_manager;
-GRANT ALL ON TABLE template.maintenance TO app_service;
+GRANT ALL ON TABLE public.maintenance TO app_admin;
+GRANT ALL ON TABLE public.maintenance TO admin_role;
+GRANT ALL ON TABLE public.maintenance TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.maintenance TO app_manager;
+GRANT ALL ON TABLE public.maintenance TO app_service;
 
 
 --
 -- TOC entry 5843 (class 0 OID 0)
 -- Dependencies: 221
--- Name: SEQUENCE maintenance_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE maintenance_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.maintenance_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.maintenance_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.maintenance_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.maintenance_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.maintenance_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.maintenance_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.maintenance_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.maintenance_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.maintenance_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.maintenance_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.maintenance_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.maintenance_id_seq TO app_service;
 
 
 --
 -- TOC entry 5844 (class 0 OID 0)
 -- Dependencies: 239
--- Name: TABLE maintenance_requests; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE maintenance_requests; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.maintenance_requests TO app_admin;
-GRANT ALL ON TABLE template.maintenance_requests TO admin_role;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.maintenance_requests TO client_role;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.maintenance_requests TO clients;
-GRANT ALL ON TABLE template.maintenance_requests TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.maintenance_requests TO app_manager;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.maintenance_requests TO app_tenant;
-GRANT ALL ON TABLE template.maintenance_requests TO app_service;
+GRANT ALL ON TABLE public.maintenance_requests TO app_admin;
+GRANT ALL ON TABLE public.maintenance_requests TO admin_role;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.maintenance_requests TO client_role;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.maintenance_requests TO clients;
+GRANT ALL ON TABLE public.maintenance_requests TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.maintenance_requests TO app_manager;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.maintenance_requests TO app_tenant;
+GRANT ALL ON TABLE public.maintenance_requests TO app_service;
 
 
 --
 -- TOC entry 5846 (class 0 OID 0)
 -- Dependencies: 240
--- Name: SEQUENCE maintenance_requests_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE maintenance_requests_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.maintenance_requests_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.maintenance_requests_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.maintenance_requests_id_seq TO client_role;
-GRANT USAGE ON SEQUENCE template.maintenance_requests_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.maintenance_requests_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.maintenance_requests_id_seq TO app_manager;
-GRANT USAGE ON SEQUENCE template.maintenance_requests_id_seq TO app_tenant;
-GRANT ALL ON SEQUENCE template.maintenance_requests_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.maintenance_requests_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.maintenance_requests_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.maintenance_requests_id_seq TO client_role;
+GRANT USAGE ON SEQUENCE public.maintenance_requests_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.maintenance_requests_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.maintenance_requests_id_seq TO app_manager;
+GRANT USAGE ON SEQUENCE public.maintenance_requests_id_seq TO app_tenant;
+GRANT ALL ON SEQUENCE public.maintenance_requests_id_seq TO app_service;
 
 
 --
 -- TOC entry 5847 (class 0 OID 0)
 -- Dependencies: 241
--- Name: TABLE notifications; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE notifications; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.notifications TO app_admin;
-GRANT ALL ON TABLE template.notifications TO admin_role;
-GRANT ALL ON TABLE template.notifications TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.notifications TO app_manager;
-GRANT ALL ON TABLE template.notifications TO app_service;
+GRANT ALL ON TABLE public.notifications TO app_admin;
+GRANT ALL ON TABLE public.notifications TO admin_role;
+GRANT ALL ON TABLE public.notifications TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.notifications TO app_manager;
+GRANT ALL ON TABLE public.notifications TO app_service;
 
 
 --
 -- TOC entry 5849 (class 0 OID 0)
 -- Dependencies: 242
--- Name: SEQUENCE notifications_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE notifications_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.notifications_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.notifications_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.notifications_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.notifications_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.notifications_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.notifications_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.notifications_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.notifications_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.notifications_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.notifications_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.notifications_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.notifications_id_seq TO app_service;
 
 
 --
 -- TOC entry 5850 (class 0 OID 0)
 -- Dependencies: 307
--- Name: TABLE pdf_configuration; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE pdf_configuration; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.pdf_configuration TO app_admin;
-GRANT ALL ON TABLE template.pdf_configuration TO admin_role;
-GRANT ALL ON TABLE template.pdf_configuration TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.pdf_configuration TO app_manager;
-GRANT ALL ON TABLE template.pdf_configuration TO app_service;
+GRANT ALL ON TABLE public.pdf_configuration TO app_admin;
+GRANT ALL ON TABLE public.pdf_configuration TO admin_role;
+GRANT ALL ON TABLE public.pdf_configuration TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.pdf_configuration TO app_manager;
+GRANT ALL ON TABLE public.pdf_configuration TO app_service;
 
 
 --
 -- TOC entry 5852 (class 0 OID 0)
 -- Dependencies: 306
--- Name: SEQUENCE pdf_configuration_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE pdf_configuration_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.pdf_configuration_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.pdf_configuration_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.pdf_configuration_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.pdf_configuration_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.pdf_configuration_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.pdf_configuration_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.pdf_configuration_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.pdf_configuration_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.pdf_configuration_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.pdf_configuration_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.pdf_configuration_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.pdf_configuration_id_seq TO app_service;
 
 
 --
 -- TOC entry 5853 (class 0 OID 0)
 -- Dependencies: 305
--- Name: TABLE pdf_document_preferences; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE pdf_document_preferences; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.pdf_document_preferences TO app_admin;
-GRANT ALL ON TABLE template.pdf_document_preferences TO admin_role;
-GRANT ALL ON TABLE template.pdf_document_preferences TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.pdf_document_preferences TO app_manager;
-GRANT ALL ON TABLE template.pdf_document_preferences TO app_service;
+GRANT ALL ON TABLE public.pdf_document_preferences TO app_admin;
+GRANT ALL ON TABLE public.pdf_document_preferences TO admin_role;
+GRANT ALL ON TABLE public.pdf_document_preferences TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.pdf_document_preferences TO app_manager;
+GRANT ALL ON TABLE public.pdf_document_preferences TO app_service;
 
 
 --
 -- TOC entry 5855 (class 0 OID 0)
 -- Dependencies: 304
--- Name: SEQUENCE pdf_document_preferences_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE pdf_document_preferences_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.pdf_document_preferences_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.pdf_document_preferences_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.pdf_document_preferences_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.pdf_document_preferences_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.pdf_document_preferences_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.pdf_document_preferences_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.pdf_document_preferences_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.pdf_document_preferences_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.pdf_document_preferences_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.pdf_document_preferences_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.pdf_document_preferences_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.pdf_document_preferences_id_seq TO app_service;
 
 
 --
 -- TOC entry 5856 (class 0 OID 0)
 -- Dependencies: 309
--- Name: TABLE pdf_logos; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE pdf_logos; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.pdf_logos TO app_admin;
-GRANT ALL ON TABLE template.pdf_logos TO admin_role;
-GRANT ALL ON TABLE template.pdf_logos TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.pdf_logos TO app_manager;
-GRANT ALL ON TABLE template.pdf_logos TO app_service;
+GRANT ALL ON TABLE public.pdf_logos TO app_admin;
+GRANT ALL ON TABLE public.pdf_logos TO admin_role;
+GRANT ALL ON TABLE public.pdf_logos TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.pdf_logos TO app_manager;
+GRANT ALL ON TABLE public.pdf_logos TO app_service;
 
 
 --
 -- TOC entry 5858 (class 0 OID 0)
 -- Dependencies: 308
--- Name: SEQUENCE pdf_logos_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE pdf_logos_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.pdf_logos_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.pdf_logos_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.pdf_logos_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.pdf_logos_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.pdf_logos_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.pdf_logos_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.pdf_logos_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.pdf_logos_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.pdf_logos_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.pdf_logos_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.pdf_logos_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.pdf_logos_id_seq TO app_service;
 
 
 --
 -- TOC entry 5859 (class 0 OID 0)
 -- Dependencies: 311
--- Name: TABLE pdf_templates; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE pdf_templates; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.pdf_templates TO app_admin;
-GRANT ALL ON TABLE template.pdf_templates TO admin_role;
-GRANT ALL ON TABLE template.pdf_templates TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.pdf_templates TO app_manager;
-GRANT ALL ON TABLE template.pdf_templates TO app_service;
+GRANT ALL ON TABLE public.pdf_templates TO app_admin;
+GRANT ALL ON TABLE public.pdf_templates TO admin_role;
+GRANT ALL ON TABLE public.pdf_templates TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.pdf_templates TO app_manager;
+GRANT ALL ON TABLE public.pdf_templates TO app_service;
 
 
 --
 -- TOC entry 5861 (class 0 OID 0)
 -- Dependencies: 310
--- Name: SEQUENCE pdf_templates_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE pdf_templates_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.pdf_templates_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.pdf_templates_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.pdf_templates_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.pdf_templates_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.pdf_templates_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.pdf_templates_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.pdf_templates_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.pdf_templates_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.pdf_templates_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.pdf_templates_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.pdf_templates_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.pdf_templates_id_seq TO app_service;
 
 
 --
 -- TOC entry 5862 (class 0 OID 0)
 -- Dependencies: 315
--- Name: TABLE pdf_themes; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE pdf_themes; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.pdf_themes TO app_admin;
-GRANT ALL ON TABLE template.pdf_themes TO admin_role;
-GRANT ALL ON TABLE template.pdf_themes TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.pdf_themes TO app_manager;
-GRANT ALL ON TABLE template.pdf_themes TO app_service;
+GRANT ALL ON TABLE public.pdf_themes TO app_admin;
+GRANT ALL ON TABLE public.pdf_themes TO admin_role;
+GRANT ALL ON TABLE public.pdf_themes TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.pdf_themes TO app_manager;
+GRANT ALL ON TABLE public.pdf_themes TO app_service;
 
 
 --
 -- TOC entry 5864 (class 0 OID 0)
 -- Dependencies: 314
--- Name: SEQUENCE pdf_themes_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE pdf_themes_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.pdf_themes_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.pdf_themes_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.pdf_themes_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.pdf_themes_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.pdf_themes_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.pdf_themes_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.pdf_themes_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.pdf_themes_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.pdf_themes_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.pdf_themes_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.pdf_themes_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.pdf_themes_id_seq TO app_service;
 
 
 --
 -- TOC entry 5866 (class 0 OID 0)
 -- Dependencies: 243
--- Name: SEQUENCE properties_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE properties_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.properties_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.properties_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.properties_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.properties_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.properties_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.properties_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.properties_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.properties_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.properties_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.properties_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.properties_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.properties_id_seq TO app_service;
 
 
 --
 -- TOC entry 5867 (class 0 OID 0)
 -- Dependencies: 273
--- Name: TABLE property_analyses; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE property_analyses; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.property_analyses TO app_admin;
-GRANT ALL ON TABLE template.property_analyses TO admin_role;
-GRANT ALL ON TABLE template.property_analyses TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.property_analyses TO app_manager;
-GRANT ALL ON TABLE template.property_analyses TO app_service;
+GRANT ALL ON TABLE public.property_analyses TO app_admin;
+GRANT ALL ON TABLE public.property_analyses TO admin_role;
+GRANT ALL ON TABLE public.property_analyses TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.property_analyses TO app_manager;
+GRANT ALL ON TABLE public.property_analyses TO app_service;
 
 
 --
 -- TOC entry 5869 (class 0 OID 0)
 -- Dependencies: 272
--- Name: SEQUENCE property_analyses_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE property_analyses_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.property_analyses_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.property_analyses_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.property_analyses_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.property_analyses_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.property_analyses_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.property_analyses_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.property_analyses_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.property_analyses_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.property_analyses_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.property_analyses_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.property_analyses_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.property_analyses_id_seq TO app_service;
 
 
 --
 -- TOC entry 5870 (class 0 OID 0)
 -- Dependencies: 244
--- Name: TABLE property_coordinates; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE property_coordinates; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.property_coordinates TO app_admin;
-GRANT ALL ON TABLE template.property_coordinates TO admin_role;
-GRANT ALL ON TABLE template.property_coordinates TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.property_coordinates TO app_manager;
-GRANT ALL ON TABLE template.property_coordinates TO app_service;
+GRANT ALL ON TABLE public.property_coordinates TO app_admin;
+GRANT ALL ON TABLE public.property_coordinates TO admin_role;
+GRANT ALL ON TABLE public.property_coordinates TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.property_coordinates TO app_manager;
+GRANT ALL ON TABLE public.property_coordinates TO app_service;
 
 
 --
 -- TOC entry 5872 (class 0 OID 0)
 -- Dependencies: 245
--- Name: SEQUENCE property_coordinates_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE property_coordinates_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.property_coordinates_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.property_coordinates_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.property_coordinates_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.property_coordinates_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.property_coordinates_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.property_coordinates_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.property_coordinates_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.property_coordinates_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.property_coordinates_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.property_coordinates_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.property_coordinates_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.property_coordinates_id_seq TO app_service;
 
 
 --
 -- TOC entry 5873 (class 0 OID 0)
 -- Dependencies: 246
--- Name: TABLE property_financial_goals; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE property_financial_goals; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.property_financial_goals TO app_admin;
-GRANT ALL ON TABLE template.property_financial_goals TO admin_role;
-GRANT ALL ON TABLE template.property_financial_goals TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.property_financial_goals TO app_manager;
-GRANT ALL ON TABLE template.property_financial_goals TO app_service;
+GRANT ALL ON TABLE public.property_financial_goals TO app_admin;
+GRANT ALL ON TABLE public.property_financial_goals TO admin_role;
+GRANT ALL ON TABLE public.property_financial_goals TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.property_financial_goals TO app_manager;
+GRANT ALL ON TABLE public.property_financial_goals TO app_service;
 
 
 --
 -- TOC entry 5875 (class 0 OID 0)
 -- Dependencies: 247
--- Name: SEQUENCE property_financial_goals_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE property_financial_goals_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.property_financial_goals_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.property_financial_goals_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.property_financial_goals_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.property_financial_goals_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.property_financial_goals_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.property_financial_goals_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.property_financial_goals_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.property_financial_goals_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.property_financial_goals_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.property_financial_goals_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.property_financial_goals_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.property_financial_goals_id_seq TO app_service;
 
 
 --
 -- TOC entry 5876 (class 0 OID 0)
 -- Dependencies: 248
--- Name: TABLE property_financial_snapshots; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE property_financial_snapshots; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.property_financial_snapshots TO app_admin;
-GRANT ALL ON TABLE template.property_financial_snapshots TO admin_role;
-GRANT ALL ON TABLE template.property_financial_snapshots TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.property_financial_snapshots TO app_manager;
-GRANT ALL ON TABLE template.property_financial_snapshots TO app_service;
+GRANT ALL ON TABLE public.property_financial_snapshots TO app_admin;
+GRANT ALL ON TABLE public.property_financial_snapshots TO admin_role;
+GRANT ALL ON TABLE public.property_financial_snapshots TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.property_financial_snapshots TO app_manager;
+GRANT ALL ON TABLE public.property_financial_snapshots TO app_service;
 
 
 --
 -- TOC entry 5878 (class 0 OID 0)
 -- Dependencies: 249
--- Name: SEQUENCE property_financial_snapshots_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE property_financial_snapshots_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.property_financial_snapshots_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.property_financial_snapshots_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.property_financial_snapshots_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.property_financial_snapshots_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.property_financial_snapshots_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.property_financial_snapshots_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.property_financial_snapshots_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.property_financial_snapshots_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.property_financial_snapshots_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.property_financial_snapshots_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.property_financial_snapshots_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.property_financial_snapshots_id_seq TO app_service;
 
 
 --
 -- TOC entry 5879 (class 0 OID 0)
 -- Dependencies: 250
--- Name: TABLE property_history; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE property_history; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.property_history TO app_admin;
-GRANT ALL ON TABLE template.property_history TO admin_role;
-GRANT ALL ON TABLE template.property_history TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.property_history TO app_manager;
-GRANT ALL ON TABLE template.property_history TO app_service;
+GRANT ALL ON TABLE public.property_history TO app_admin;
+GRANT ALL ON TABLE public.property_history TO admin_role;
+GRANT ALL ON TABLE public.property_history TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.property_history TO app_manager;
+GRANT ALL ON TABLE public.property_history TO app_service;
 
 
 --
 -- TOC entry 5881 (class 0 OID 0)
 -- Dependencies: 251
--- Name: SEQUENCE property_history_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE property_history_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.property_history_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.property_history_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.property_history_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.property_history_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.property_history_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.property_history_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.property_history_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.property_history_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.property_history_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.property_history_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.property_history_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.property_history_id_seq TO app_service;
 
 
 --
 -- TOC entry 5882 (class 0 OID 0)
 -- Dependencies: 252
--- Name: TABLE property_works; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE property_works; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.property_works TO app_admin;
-GRANT ALL ON TABLE template.property_works TO admin_role;
-GRANT ALL ON TABLE template.property_works TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.property_works TO app_manager;
-GRANT ALL ON TABLE template.property_works TO app_service;
+GRANT ALL ON TABLE public.property_works TO app_admin;
+GRANT ALL ON TABLE public.property_works TO admin_role;
+GRANT ALL ON TABLE public.property_works TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.property_works TO app_manager;
+GRANT ALL ON TABLE public.property_works TO app_service;
 
 
 --
 -- TOC entry 5884 (class 0 OID 0)
 -- Dependencies: 253
--- Name: SEQUENCE property_works_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE property_works_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.property_works_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.property_works_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.property_works_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.property_works_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.property_works_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.property_works_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.property_works_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.property_works_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.property_works_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.property_works_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.property_works_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.property_works_id_seq TO app_service;
 
 
 --
 -- TOC entry 5885 (class 0 OID 0)
 -- Dependencies: 265
--- Name: TABLE rent_receipts; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE rent_receipts; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.rent_receipts TO app_admin;
-GRANT ALL ON TABLE template.rent_receipts TO admin_role;
-GRANT ALL ON TABLE template.rent_receipts TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.rent_receipts TO app_manager;
-GRANT ALL ON TABLE template.rent_receipts TO app_service;
+GRANT ALL ON TABLE public.rent_receipts TO app_admin;
+GRANT ALL ON TABLE public.rent_receipts TO admin_role;
+GRANT ALL ON TABLE public.rent_receipts TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.rent_receipts TO app_manager;
+GRANT ALL ON TABLE public.rent_receipts TO app_service;
 
 
 --
 -- TOC entry 5887 (class 0 OID 0)
 -- Dependencies: 264
--- Name: SEQUENCE rent_receipts_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE rent_receipts_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.rent_receipts_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.rent_receipts_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.rent_receipts_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.rent_receipts_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.rent_receipts_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.rent_receipts_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.rent_receipts_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.rent_receipts_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.rent_receipts_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.rent_receipts_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.rent_receipts_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.rent_receipts_id_seq TO app_service;
 
 
 --
 -- TOC entry 5888 (class 0 OID 0)
 -- Dependencies: 226
--- Name: TABLE reports; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE reports; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.reports TO app_admin;
-GRANT ALL ON TABLE template.reports TO admin_role;
-GRANT ALL ON TABLE template.reports TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.reports TO app_manager;
-GRANT ALL ON TABLE template.reports TO app_service;
+GRANT ALL ON TABLE public.reports TO app_admin;
+GRANT ALL ON TABLE public.reports TO admin_role;
+GRANT ALL ON TABLE public.reports TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.reports TO app_manager;
+GRANT ALL ON TABLE public.reports TO app_service;
 
 
 --
 -- TOC entry 5890 (class 0 OID 0)
 -- Dependencies: 225
--- Name: SEQUENCE reports_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE reports_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.reports_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.reports_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.reports_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.reports_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.reports_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.reports_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.reports_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.reports_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.reports_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.reports_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.reports_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.reports_id_seq TO app_service;
 
 
 --
 -- TOC entry 5892 (class 0 OID 0)
 -- Dependencies: 303
--- Name: TABLE sessions; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE sessions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.sessions TO app_admin;
-GRANT ALL ON TABLE template.sessions TO admin_role;
-GRANT ALL ON TABLE template.sessions TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.sessions TO app_manager;
-GRANT ALL ON TABLE template.sessions TO app_service;
+GRANT ALL ON TABLE public.sessions TO app_admin;
+GRANT ALL ON TABLE public.sessions TO admin_role;
+GRANT ALL ON TABLE public.sessions TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.sessions TO app_manager;
+GRANT ALL ON TABLE public.sessions TO app_service;
 
 
 --
 -- TOC entry 5894 (class 0 OID 0)
 -- Dependencies: 302
--- Name: SEQUENCE sessions_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE sessions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.sessions_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.sessions_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.sessions_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.sessions_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.sessions_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.sessions_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.sessions_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.sessions_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.sessions_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.sessions_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.sessions_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.sessions_id_seq TO app_service;
 
 
 --
 -- TOC entry 5895 (class 0 OID 0)
 -- Dependencies: 299
--- Name: TABLE storage_extensions; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE storage_extensions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.storage_extensions TO app_admin;
-GRANT ALL ON TABLE template.storage_extensions TO admin_role;
-GRANT ALL ON TABLE template.storage_extensions TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.storage_extensions TO app_manager;
-GRANT ALL ON TABLE template.storage_extensions TO app_service;
+GRANT ALL ON TABLE public.storage_extensions TO app_admin;
+GRANT ALL ON TABLE public.storage_extensions TO admin_role;
+GRANT ALL ON TABLE public.storage_extensions TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.storage_extensions TO app_manager;
+GRANT ALL ON TABLE public.storage_extensions TO app_service;
 
 
 --
 -- TOC entry 5897 (class 0 OID 0)
 -- Dependencies: 298
--- Name: SEQUENCE storage_extensions_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE storage_extensions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.storage_extensions_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.storage_extensions_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.storage_extensions_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.storage_extensions_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.storage_extensions_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.storage_extensions_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.storage_extensions_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.storage_extensions_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.storage_extensions_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.storage_extensions_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.storage_extensions_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.storage_extensions_id_seq TO app_service;
 
 
 --
 -- TOC entry 5898 (class 0 OID 0)
 -- Dependencies: 323
--- Name: TABLE storage_transactions; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE storage_transactions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.storage_transactions TO app_admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.storage_transactions TO app_manager;
-GRANT ALL ON TABLE template.storage_transactions TO app_service;
+GRANT ALL ON TABLE public.storage_transactions TO app_admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.storage_transactions TO app_manager;
+GRANT ALL ON TABLE public.storage_transactions TO app_service;
 
 
 --
 -- TOC entry 5900 (class 0 OID 0)
 -- Dependencies: 322
--- Name: SEQUENCE storage_transactions_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE storage_transactions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.storage_transactions_id_seq TO app_admin;
-GRANT USAGE ON SEQUENCE template.storage_transactions_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.storage_transactions_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.storage_transactions_id_seq TO app_admin;
+GRANT USAGE ON SEQUENCE public.storage_transactions_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.storage_transactions_id_seq TO app_service;
 
 
 --
 -- TOC entry 5901 (class 0 OID 0)
 -- Dependencies: 295
--- Name: TABLE storage_usage_details; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE storage_usage_details; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.storage_usage_details TO app_admin;
-GRANT ALL ON TABLE template.storage_usage_details TO admin_role;
-GRANT ALL ON TABLE template.storage_usage_details TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.storage_usage_details TO app_manager;
-GRANT ALL ON TABLE template.storage_usage_details TO app_service;
+GRANT ALL ON TABLE public.storage_usage_details TO app_admin;
+GRANT ALL ON TABLE public.storage_usage_details TO admin_role;
+GRANT ALL ON TABLE public.storage_usage_details TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.storage_usage_details TO app_manager;
+GRANT ALL ON TABLE public.storage_usage_details TO app_service;
 
 
 --
 -- TOC entry 5903 (class 0 OID 0)
 -- Dependencies: 294
--- Name: SEQUENCE storage_usage_details_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE storage_usage_details_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.storage_usage_details_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.storage_usage_details_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.storage_usage_details_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.storage_usage_details_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.storage_usage_details_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.storage_usage_details_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.storage_usage_details_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.storage_usage_details_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.storage_usage_details_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.storage_usage_details_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.storage_usage_details_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.storage_usage_details_id_seq TO app_service;
 
 
 --
 -- TOC entry 5904 (class 0 OID 0)
 -- Dependencies: 254
--- Name: TABLE tenant_documents; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE tenant_documents; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.tenant_documents TO app_admin;
-GRANT ALL ON TABLE template.tenant_documents TO admin_role;
-GRANT ALL ON TABLE template.tenant_documents TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.tenant_documents TO app_manager;
-GRANT ALL ON TABLE template.tenant_documents TO app_service;
+GRANT ALL ON TABLE public.tenant_documents TO app_admin;
+GRANT ALL ON TABLE public.tenant_documents TO admin_role;
+GRANT ALL ON TABLE public.tenant_documents TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.tenant_documents TO app_manager;
+GRANT ALL ON TABLE public.tenant_documents TO app_service;
 
 
 --
 -- TOC entry 5906 (class 0 OID 0)
 -- Dependencies: 255
--- Name: SEQUENCE tenant_documents_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE tenant_documents_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.tenant_documents_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.tenant_documents_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.tenant_documents_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.tenant_documents_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.tenant_documents_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.tenant_documents_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.tenant_documents_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.tenant_documents_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.tenant_documents_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.tenant_documents_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.tenant_documents_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.tenant_documents_id_seq TO app_service;
 
 
 --
 -- TOC entry 5907 (class 0 OID 0)
 -- Dependencies: 256
--- Name: TABLE tenant_history; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE tenant_history; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.tenant_history TO app_admin;
-GRANT ALL ON TABLE template.tenant_history TO admin_role;
-GRANT ALL ON TABLE template.tenant_history TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.tenant_history TO app_manager;
-GRANT ALL ON TABLE template.tenant_history TO app_service;
+GRANT ALL ON TABLE public.tenant_history TO app_admin;
+GRANT ALL ON TABLE public.tenant_history TO admin_role;
+GRANT ALL ON TABLE public.tenant_history TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.tenant_history TO app_manager;
+GRANT ALL ON TABLE public.tenant_history TO app_service;
 
 
 --
 -- TOC entry 5909 (class 0 OID 0)
 -- Dependencies: 257
--- Name: SEQUENCE tenant_history_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE tenant_history_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.tenant_history_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.tenant_history_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.tenant_history_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.tenant_history_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.tenant_history_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.tenant_history_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.tenant_history_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.tenant_history_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.tenant_history_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.tenant_history_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.tenant_history_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.tenant_history_id_seq TO app_service;
 
 
 --
 -- TOC entry 5910 (class 0 OID 0)
 -- Dependencies: 220
--- Name: TABLE tenants; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE tenants; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.tenants TO app_admin;
-GRANT ALL ON TABLE template.tenants TO admin_role;
-GRANT SELECT ON TABLE template.tenants TO clients;
-GRANT ALL ON TABLE template.tenants TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.tenants TO app_manager;
-GRANT SELECT ON TABLE template.tenants TO app_tenant;
-GRANT ALL ON TABLE template.tenants TO app_service;
+GRANT ALL ON TABLE public.tenants TO app_admin;
+GRANT ALL ON TABLE public.tenants TO admin_role;
+GRANT SELECT ON TABLE public.tenants TO clients;
+GRANT ALL ON TABLE public.tenants TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.tenants TO app_manager;
+GRANT SELECT ON TABLE public.tenants TO app_tenant;
+GRANT ALL ON TABLE public.tenants TO app_service;
 
 
 --
 -- TOC entry 5912 (class 0 OID 0)
 -- Dependencies: 258
--- Name: SEQUENCE tenants_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE tenants_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.tenants_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.tenants_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.tenants_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.tenants_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.tenants_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.tenants_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.tenants_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.tenants_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.tenants_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.tenants_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.tenants_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.tenants_id_seq TO app_service;
 
 
 --
 -- TOC entry 5913 (class 0 OID 0)
 -- Dependencies: 293
--- Name: TABLE transaction_attachments; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE transaction_attachments; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.transaction_attachments TO app_admin;
-GRANT ALL ON TABLE template.transaction_attachments TO admin_role;
-GRANT ALL ON TABLE template.transaction_attachments TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.transaction_attachments TO app_manager;
-GRANT ALL ON TABLE template.transaction_attachments TO app_service;
+GRANT ALL ON TABLE public.transaction_attachments TO app_admin;
+GRANT ALL ON TABLE public.transaction_attachments TO admin_role;
+GRANT ALL ON TABLE public.transaction_attachments TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.transaction_attachments TO app_manager;
+GRANT ALL ON TABLE public.transaction_attachments TO app_service;
 
 
 --
 -- TOC entry 5915 (class 0 OID 0)
 -- Dependencies: 292
--- Name: SEQUENCE transaction_attachments_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE transaction_attachments_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.transaction_attachments_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.transaction_attachments_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.transaction_attachments_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.transaction_attachments_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.transaction_attachments_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.transaction_attachments_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.transaction_attachments_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.transaction_attachments_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.transaction_attachments_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.transaction_attachments_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.transaction_attachments_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.transaction_attachments_id_seq TO app_service;
 
 
 --
 -- TOC entry 5916 (class 0 OID 0)
 -- Dependencies: 259
--- Name: TABLE transactions; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE transactions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.transactions TO app_admin;
-GRANT ALL ON TABLE template.transactions TO admin_role;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.transactions TO clients;
-GRANT ALL ON TABLE template.transactions TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.transactions TO app_manager;
-GRANT ALL ON TABLE template.transactions TO app_service;
+GRANT ALL ON TABLE public.transactions TO app_admin;
+GRANT ALL ON TABLE public.transactions TO admin_role;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.transactions TO clients;
+GRANT ALL ON TABLE public.transactions TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.transactions TO app_manager;
+GRANT ALL ON TABLE public.transactions TO app_service;
 
 
 --
 -- TOC entry 5918 (class 0 OID 0)
 -- Dependencies: 260
--- Name: SEQUENCE transactions_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE transactions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.transactions_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.transactions_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.transactions_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.transactions_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.transactions_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.transactions_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.transactions_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.transactions_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.transactions_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.transactions_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.transactions_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.transactions_id_seq TO app_service;
 
 
 --
 -- TOC entry 5920 (class 0 OID 0)
 -- Dependencies: 277
--- Name: TABLE user_notification_settings; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE user_notification_settings; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.user_notification_settings TO app_admin;
-GRANT ALL ON TABLE template.user_notification_settings TO admin_role;
-GRANT ALL ON TABLE template.user_notification_settings TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.user_notification_settings TO app_manager;
-GRANT ALL ON TABLE template.user_notification_settings TO app_service;
+GRANT ALL ON TABLE public.user_notification_settings TO app_admin;
+GRANT ALL ON TABLE public.user_notification_settings TO admin_role;
+GRANT ALL ON TABLE public.user_notification_settings TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.user_notification_settings TO app_manager;
+GRANT ALL ON TABLE public.user_notification_settings TO app_service;
 
 
 --
 -- TOC entry 5922 (class 0 OID 0)
 -- Dependencies: 276
--- Name: SEQUENCE user_notification_settings_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE user_notification_settings_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.user_notification_settings_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.user_notification_settings_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.user_notification_settings_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.user_notification_settings_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.user_notification_settings_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.user_notification_settings_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.user_notification_settings_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.user_notification_settings_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.user_notification_settings_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.user_notification_settings_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.user_notification_settings_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.user_notification_settings_id_seq TO app_service;
 
 
 --
 -- TOC entry 5923 (class 0 OID 0)
 -- Dependencies: 297
--- Name: TABLE user_subscriptions; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE user_subscriptions; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.user_subscriptions TO app_admin;
-GRANT ALL ON TABLE template.user_subscriptions TO admin_role;
-GRANT ALL ON TABLE template.user_subscriptions TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.user_subscriptions TO app_manager;
-GRANT ALL ON TABLE template.user_subscriptions TO app_service;
+GRANT ALL ON TABLE public.user_subscriptions TO app_admin;
+GRANT ALL ON TABLE public.user_subscriptions TO admin_role;
+GRANT ALL ON TABLE public.user_subscriptions TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.user_subscriptions TO app_manager;
+GRANT ALL ON TABLE public.user_subscriptions TO app_service;
 
 
 --
 -- TOC entry 5925 (class 0 OID 0)
 -- Dependencies: 296
--- Name: SEQUENCE user_subscriptions_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE user_subscriptions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.user_subscriptions_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.user_subscriptions_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.user_subscriptions_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.user_subscriptions_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.user_subscriptions_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.user_subscriptions_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.user_subscriptions_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.user_subscriptions_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.user_subscriptions_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.user_subscriptions_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.user_subscriptions_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.user_subscriptions_id_seq TO app_service;
 
 
 --
 -- TOC entry 5926 (class 0 OID 0)
 -- Dependencies: 218
--- Name: TABLE users; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE users; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.users TO app_admin;
-GRANT ALL ON TABLE template.users TO admin_role;
-GRANT SELECT ON TABLE template.users TO client_role;
-GRANT SELECT ON TABLE template.users TO clients;
-GRANT ALL ON TABLE template.users TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.users TO app_manager;
-GRANT SELECT ON TABLE template.users TO app_tenant;
-GRANT ALL ON TABLE template.users TO app_service;
+GRANT ALL ON TABLE public.users TO app_admin;
+GRANT ALL ON TABLE public.users TO admin_role;
+GRANT SELECT ON TABLE public.users TO client_role;
+GRANT SELECT ON TABLE public.users TO clients;
+GRANT ALL ON TABLE public.users TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.users TO app_manager;
+GRANT SELECT ON TABLE public.users TO app_tenant;
+GRANT ALL ON TABLE public.users TO app_service;
 
 
 --
 -- TOC entry 5928 (class 0 OID 0)
 -- Dependencies: 261
--- Name: SEQUENCE users_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE users_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.users_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.users_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.users_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.users_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.users_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.users_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.users_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.users_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.users_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.users_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.users_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.users_id_seq TO app_service;
 
 
 --
 -- TOC entry 5929 (class 0 OID 0)
 -- Dependencies: 262
--- Name: TABLE visits; Type: ACL; Schema: template; Owner: postgres
+-- Name: TABLE visits; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE template.visits TO app_admin;
-GRANT ALL ON TABLE template.visits TO admin_role;
-GRANT SELECT ON TABLE template.visits TO client_role;
-GRANT ALL ON TABLE template.visits TO admin;
-GRANT SELECT,INSERT,UPDATE ON TABLE template.visits TO app_manager;
-GRANT ALL ON TABLE template.visits TO app_service;
+GRANT ALL ON TABLE public.visits TO app_admin;
+GRANT ALL ON TABLE public.visits TO admin_role;
+GRANT SELECT ON TABLE public.visits TO client_role;
+GRANT ALL ON TABLE public.visits TO admin;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.visits TO app_manager;
+GRANT ALL ON TABLE public.visits TO app_service;
 
 
 --
 -- TOC entry 5931 (class 0 OID 0)
 -- Dependencies: 263
--- Name: SEQUENCE visits_id_seq; Type: ACL; Schema: template; Owner: postgres
+-- Name: SEQUENCE visits_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON SEQUENCE template.visits_id_seq TO app_admin;
-GRANT ALL ON SEQUENCE template.visits_id_seq TO admin_role;
-GRANT USAGE ON SEQUENCE template.visits_id_seq TO clients;
-GRANT ALL ON SEQUENCE template.visits_id_seq TO admin;
-GRANT USAGE ON SEQUENCE template.visits_id_seq TO app_manager;
-GRANT ALL ON SEQUENCE template.visits_id_seq TO app_service;
+GRANT ALL ON SEQUENCE public.visits_id_seq TO app_admin;
+GRANT ALL ON SEQUENCE public.visits_id_seq TO admin_role;
+GRANT USAGE ON SEQUENCE public.visits_id_seq TO clients;
+GRANT ALL ON SEQUENCE public.visits_id_seq TO admin;
+GRANT USAGE ON SEQUENCE public.visits_id_seq TO app_manager;
+GRANT ALL ON SEQUENCE public.visits_id_seq TO app_service;
 
 
 -- Completed on 2025-05-06 00:32:10

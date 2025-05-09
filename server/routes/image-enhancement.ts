@@ -5,6 +5,9 @@ import fs from 'fs';
 import sharp from 'sharp';
 import logger from '../utils/logger';
 import { enhanceImageWithLocalAI } from '../services/image-enhancement';
+import { db } from '../db';
+import { sql } from 'drizzle-orm';
+import { ensureAuth, getUserId } from '../middleware/auth';
 
 const router = Router();
 
@@ -85,11 +88,23 @@ const handleMulterErrors = (err: any, req: Request, res: Response, next: NextFun
   next();
 };
 
-router.post('/', upload.fields([
+router.post('/', ensureAuth, upload.fields([
   { name: 'image', maxCount: 1 },
   { name: 'watermark', maxCount: 1 }
 ]), handleMulterErrors, async (req: Request, res: Response) => {
   try {
+    // Récupérer l'ID utilisateur
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête si nécessaire
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const imageFile = files?.['image']?.[0];
     const watermarkFile = files?.['watermark']?.[0];
@@ -114,10 +129,14 @@ router.post('/', upload.fields([
     });
 
     if (!imageFile) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'No image file provided' });
     }
 
     if (!enhancementType) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'Enhancement type is required' });
     }
 
@@ -135,15 +154,15 @@ router.post('/', upload.fields([
 
     // Traitement de l'image avec protection contre les erreurs
     try {
-    // Traitement de l'image
-    const enhancedBuffer = await enhanceImageWithLocalAI(imageFile.buffer, enhancementType, {
-      style,
-      intensity: parseFloat(intensity) || 1,
-      format,
+      // Traitement de l'image
+      const enhancedBuffer = await enhanceImageWithLocalAI(imageFile.buffer, enhancementType, {
+        style,
+        intensity: parseFloat(intensity) || 1,
+        format,
         quality: parseInt(quality as string) || 92,
-      watermarkSettings: parsedWatermarkSettings,
-      watermarkBuffer: watermarkFile?.buffer
-    });
+        watermarkSettings: parsedWatermarkSettings,
+        watermarkBuffer: watermarkFile?.buffer
+      });
 
       // Sauvegarde du fichier avec un nom unique
       const timestamp = Date.now();
@@ -151,22 +170,28 @@ router.post('/', upload.fields([
       const filename = `enhanced-${timestamp}-${uniqueId}.${format}`;
       const outputPath = path.join(uploadsDir, filename);
 
-    await fs.promises.writeFile(outputPath, enhancedBuffer);
+      await fs.promises.writeFile(outputPath, enhancedBuffer);
 
-    logger.info('Enhancement completed successfully', {
-      filename,
-      type: enhancementType,
-      format
-    });
+      // Réinitialiser le search_path après utilisation
+      await db.execute(sql`SET search_path TO public`);
 
-    return res.json({
-      imageUrl: `/${ENHANCED_IMAGES_DIR}/${filename}`,
+      logger.info('Enhancement completed successfully', {
+        filename,
+        type: enhancementType,
+        format
+      });
+
+      return res.json({
+        imageUrl: `/${ENHANCED_IMAGES_DIR}/${filename}`,
         method: 'sharp',
-      enhancementType,
-      format
-    });
+        enhancementType,
+        format
+      });
       
     } catch (processingError) {
+      // Réinitialiser le search_path en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(() => {});
+      
       logger.error('Error during image processing:', processingError);
       
       // Générer une image d'erreur
@@ -209,6 +234,9 @@ router.post('/', upload.fields([
     }
 
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     logger.error('Unhandled error processing image:', error);
     return res.status(500).json({
       error: 'Erreur lors du traitement de l\'image',
@@ -218,8 +246,20 @@ router.post('/', upload.fields([
 });
 
 // Ajouter la route pour le transfert de style qui est appelée dans le frontend
-router.post('/style-transfer', upload.single('image'), async (req, res) => {
+router.post('/style-transfer', ensureAuth, upload.single('image'), async (req, res) => {
   try {
+    // Récupérer l'ID utilisateur
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête si nécessaire
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const imageFile = req.file;
     const { style, prompt, strength } = req.body;
 
@@ -231,10 +271,14 @@ router.post('/style-transfer', upload.single('image'), async (req, res) => {
     });
 
     if (!imageFile) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'No image file provided' });
     }
 
     if (!style) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'Style parameter is required' });
     }
 
@@ -252,6 +296,9 @@ router.post('/style-transfer', upload.single('image'), async (req, res) => {
 
     await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.promises.writeFile(outputPath, enhancedBuffer);
+
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
 
     logger.info('Style transfer completed successfully', {
       filename,
@@ -276,6 +323,9 @@ router.post('/style-transfer', upload.single('image'), async (req, res) => {
     });
 
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     logger.error('Error processing style transfer:', error);
     return res.status(500).json({
       error: 'Erreur lors du transfert de style',
@@ -285,8 +335,20 @@ router.post('/style-transfer', upload.single('image'), async (req, res) => {
 });
 
 // Route pour la génération d'images
-router.post('/generate', upload.none(), async (req, res) => {
+router.post('/generate', ensureAuth, upload.none(), async (req, res) => {
   try {
+    // Récupérer l'ID utilisateur
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête si nécessaire
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const { prompt, style, ratio } = req.body;
 
     logger.info('Processing image generation request', {
@@ -296,6 +358,8 @@ router.post('/generate', upload.none(), async (req, res) => {
     });
 
     if (!prompt) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
@@ -343,6 +407,9 @@ router.post('/generate', upload.none(), async (req, res) => {
     await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.promises.writeFile(outputPath, generatedBuffer);
 
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+
     logger.info('Image generation completed successfully', {
       filename,
       prompt: prompt.substring(0, 30),
@@ -358,6 +425,9 @@ router.post('/generate', upload.none(), async (req, res) => {
     });
 
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     logger.error('Error generating image:', error);
     return res.status(500).json({
       error: 'Erreur lors de la génération de l\'image',
@@ -367,8 +437,9 @@ router.post('/generate', upload.none(), async (req, res) => {
 });
 
 // Ajouter une route pour le nettoyage des images temporaires
-router.post('/cleanup', async (req, res) => {
+router.post('/cleanup', ensureAuth, async (req, res) => {
   try {
+    // Pas besoin de changer de schéma ici car c'est une opération sur le système de fichiers
     await cleanupOldImages();
     return res.json({ success: true, message: 'Images temporaires nettoyées avec succès' });
   } catch (error) {

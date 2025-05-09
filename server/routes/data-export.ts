@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { ensureAuth, isAdmin, adminOnly } from '../middleware/auth';
+import { ensureAuth, isAdmin, adminOnly, getUserId } from '../middleware/auth';
 import { db } from '@db';
 import { stringify } from 'csv-stringify';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -9,7 +9,7 @@ import path from 'path';
 import { pipeline } from 'stream/promises';
 import logger from '../utils/logger';
 import { properties, tenants, visits, maintenanceRequests, transactions, documents } from '@shared/schema';
-import { and, eq, gte, lte, like } from 'drizzle-orm';
+import { and, eq, gte, lte, like, sql } from 'drizzle-orm';
 import { AppError } from '../middleware/errorHandler';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -47,9 +47,22 @@ const upload = multer({
 // Export CSV - Admin only
 router.get('/export/csv', ensureAuth, isAdmin, async (req, res) => {
   try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const { type, search, date_start, date_end, status } = req.query;
 
     if (!type || !['properties', 'tenants', 'visits', 'transactions', 'maintenance'].includes(type as string)) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'Type de données invalide' });
     }
 
@@ -60,6 +73,12 @@ router.get('/export/csv', ensureAuth, isAdmin, async (req, res) => {
         date_end ? lte(properties.createdAt, new Date(date_end as string)) : undefined
       )
     } : {};
+
+    const conditions: any[] = Object.values(dateFilter).filter(Boolean);
+    if (search) {
+      // Ajouter une condition de recherche si nécessaire
+      // Mise en œuvre à adapter selon le modèle de données
+    }
 
     switch(type) {
       case 'transactions':
@@ -77,13 +96,18 @@ router.get('/export/csv', ensureAuth, isAdmin, async (req, res) => {
         
         // Ajouter d'autres filtres si nécessaire (type, catégorie, etc.)
         if (req.query.type && req.query.type !== 'all') {
+          const transactionType = req.query.type as string;
           if (!transactionQuery.where) {
-            transactionQuery.where = eq(transactions.type, req.query.type as string);
+            if (transactionType === 'income' || transactionType === 'expense' || transactionType === 'credit') {
+              transactionQuery.where = eq(transactions.type, transactionType);
+            }
           } else {
-            transactionQuery.where = and(
-              transactionQuery.where,
-              eq(transactions.type, req.query.type as string)
-            );
+            if (transactionType === 'income' || transactionType === 'expense' || transactionType === 'credit') {
+              transactionQuery.where = and(
+                transactionQuery.where,
+                eq(transactions.type, transactionType)
+              );
+            }
           }
         }
         
@@ -99,12 +123,13 @@ router.get('/export/csv', ensureAuth, isAdmin, async (req, res) => {
         }
         
         if (req.query.paymentMethod && req.query.paymentMethod !== 'all') {
+          const paymentMethod = req.query.paymentMethod as string;
           if (!transactionQuery.where) {
-            transactionQuery.where = eq(transactions.paymentMethod, req.query.paymentMethod as string);
+            transactionQuery.where = eq(transactions.paymentMethod, paymentMethod);
           } else {
             transactionQuery.where = and(
               transactionQuery.where,
-              eq(transactions.paymentMethod, req.query.paymentMethod as string)
+              eq(transactions.paymentMethod, paymentMethod)
             );
           }
         }
@@ -166,6 +191,9 @@ router.get('/export/csv', ensureAuth, isAdmin, async (req, res) => {
         break;
     }
 
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+
     if (!data || data.length === 0) {
       return res.status(404).json({ error: 'Aucune donnée trouvée' });
     }
@@ -184,20 +212,37 @@ router.get('/export/csv', ensureAuth, isAdmin, async (req, res) => {
     stringifier.end();
 
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
     logger.error('Erreur lors de l\'export CSV:', error);
-    res.status(500).json({ error: error.message || 'Erreur lors de l\'export des données' });
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Erreur lors de l\'export des données' });
   }
 });
 
 // Import CSV - Admin only
 router.post('/import/csv', ensureAuth, isAdmin, upload.single('file'), async (req, res) => {
   try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     if (!req.file) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'Aucun fichier CSV fourni' });
     }
 
     const { type } = req.body;
     if (!type || !['properties', 'tenants', 'visits', 'transactions', 'maintenance'].includes(type)) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'Type de données invalide' });
     }
 
@@ -217,11 +262,12 @@ router.post('/import/csv', ensureAuth, isAdmin, upload.single('file'), async (re
               const [day, month, year] = dateStr.split('/').map(Number);
 
               await db.insert(transactions).values({
+                userId,
                 date: new Date(year, month - 1, day),
-                propertyId: await getPropertyIdByName(property),
+                propertyId: await getPropertyIdByName(property, clientSchema),
                 description: description,
                 category: category,
-                type: transactionType,
+                type: transactionType as 'income' | 'expense' | 'credit',
                 amount: parseFloat(amount),
                 paymentMethod: method,
                 status: status,
@@ -240,11 +286,14 @@ router.post('/import/csv', ensureAuth, isAdmin, upload.single('file'), async (re
               const [day, month, year] = dateStr.split('/').map(Number);
 
               await db.insert(maintenanceRequests).values({
-                createdAt: new Date(year, month - 1, day),
-                propertyId: await getPropertyIdByName(property),
+                userId,
                 title: problem,
+                description: '',
                 status: status,
+                priority: 'medium',
+                propertyId: await getPropertyIdByName(property, clientSchema),
                 totalCost: parseFloat(cost),
+                createdAt: new Date(year, month - 1, day),
                 updatedAt: new Date()
               });
             }
@@ -262,47 +311,81 @@ router.post('/import/csv', ensureAuth, isAdmin, upload.single('file'), async (re
           break;
       }
 
+      // Réinitialiser le search_path après utilisation
+      await db.execute(sql`SET search_path TO public`);
+      
       fs.unlinkSync(filePath);
       res.json({ message: 'Import réussi' });
     } catch (error) {
+      // Réinitialiser le search_path en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(() => {});
       logger.error('Erreur lors du traitement des données:', error);
       throw new AppError('Erreur lors du traitement des données CSV', 400);
     }
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
     logger.error('Erreur lors de l\'import CSV:', error);
-    res.status(error.statusCode || 500).json({ error: error.message || 'Erreur lors de l\'import des données' });
+    res.status(error instanceof AppError ? error.statusCode : 500).json({ error: error instanceof Error ? error.message : 'Erreur lors de l\'import des données' });
   }
 });
 
 // Helper function to get property ID by name
-async function getPropertyIdByName(propertyName: string): Promise<number> {
-  const property = await db.query.properties.findFirst({
-    where: eq(properties.name, propertyName)
-  });
-
-  if (!property) {
-    throw new Error(`Propriété non trouvée : ${propertyName}`);
+async function getPropertyIdByName(propertyName: string, schemaName?: string): Promise<number> {
+  if (schemaName) {
+    await db.execute(sql`SET search_path TO ${sql.identifier(schemaName)}, public`);
   }
+  
+  try {
+    const property = await db.query.properties.findFirst({
+      where: eq(properties.name, propertyName)
+    });
 
-  return property.id;
+    if (!property) {
+      throw new Error(`Propriété non trouvée : ${propertyName}`);
+    }
+
+    return property.id;
+  } finally {
+    if (schemaName) {
+      await db.execute(sql`SET search_path TO public`).catch(() => {});
+    }
+  }
 }
 
 // Export PDF - Available to all authenticated users
 router.get('/export/pdf', ensureAuth, async (req, res) => {
   try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const { type, id } = req.query;
     logger.info(`Début de l'export PDF pour ${type} ${id}`);
 
     if (!type || !['properties', 'tenants', 'visits', 'transactions'].includes(type as string)) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'Type de données invalide' });
     }
 
     if (!id) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'ID requis' });
     }
 
     const numericId = parseInt(id as string);
     if (isNaN(numericId)) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: 'ID invalide' });
     }
 
@@ -316,7 +399,10 @@ router.get('/export/pdf', ensureAuth, async (req, res) => {
           break;
         case 'tenants':
           data = await db.query.tenants.findFirst({
-            where: eq(tenants.id, numericId)
+            where: eq(tenants.id, numericId),
+            with: {
+              user: true
+            }
           });
           break;
         case 'visits':
@@ -330,6 +416,9 @@ router.get('/export/pdf', ensureAuth, async (req, res) => {
           });
           break;
       }
+
+      // Réinitialiser le search_path après utilisation
+      await db.execute(sql`SET search_path TO public`);
 
       if (!data) {
         return res.status(404).json({ error: 'Données non trouvées' });
@@ -362,6 +451,8 @@ router.get('/export/pdf', ensureAuth, async (req, res) => {
 
       switch(type) {
         case 'properties': {
+          if (!('name' in data)) break;
+          
           // En-tête
           drawText(data.name, 50, height - 50, 24, true);
           drawText(`Référence: ${data.id}`, 50, height - 80, 14);
@@ -459,6 +550,8 @@ router.get('/export/pdf', ensureAuth, async (req, res) => {
         }
 
         case 'tenants': {
+          if (!('leaseType' in data)) break;
+          
           // En-tête
           drawText(`Fiche Locataire`, 50, height - 50, 24, true);
           drawText(`Référence: ${data.id}`, 50, height - 80, 14);
@@ -501,6 +594,8 @@ router.get('/export/pdf', ensureAuth, async (req, res) => {
         }
 
         case 'visits': {
+          if (!('firstName' in data)) break;
+          
           // En-tête
           drawText(`Fiche de visite`, 50, height - 50, 24, true);
           drawText(`Référence: ${data.id}`, 50, height - 80, 14);
@@ -510,11 +605,11 @@ router.get('/export/pdf', ensureAuth, async (req, res) => {
           y -= 30;
 
           const visitInfo = [
-            `Date: ${new Date(data.date).toLocaleDateString('fr-FR')}`,
+            `Date: ${new Date(data.datetime).toLocaleDateString('fr-FR')}`,
             `Statut: ${data.status}`,
-            `Visiteur: ${data.visitorName || 'N/A'}`,
-            `Email: ${data.visitorEmail || 'N/A'}`,
-            `Téléphone: ${data.visitorPhone || 'N/A'}`
+            `Visiteur: ${data.firstName} ${data.lastName}`,
+            `Email: ${data.email}`,
+            `Téléphone: ${data.phone}`
           ];
 
           visitInfo.forEach(info => {
@@ -522,15 +617,15 @@ router.get('/export/pdf', ensureAuth, async (req, res) => {
             y -= 25;
           });
 
-          if (data.notes) {
+          if (data.message) {
             y -= 20;
             drawSeparator(y);
             y -= 30;
-            drawText('Notes', 50, y, 18, true);
+            drawText('Message', 50, y, 18, true);
             y -= 30;
 
             const maxWidth = width - 100;
-            const words = data.notes.split(' ');
+            const words = data.message.split(' ');
             let line = '';
 
             for (const word of words) {
@@ -616,13 +711,17 @@ router.get('/export/pdf', ensureAuth, async (req, res) => {
       res.send(Buffer.from(pdfBytes));
 
     } catch (error) {
+      // Réinitialiser le search_path en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(() => {});
       logger.error('Erreur lors de la génération du PDF:', error);
       throw new AppError('Erreur lors de la génération du PDF', 500);
     }
 
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
     logger.error('Erreur lors de l\'export PDF:', error);
-    res.status(error.statusCode || 500).json({ error: error.message || 'Erreur lors de l\'export PDF' });
+    res.status(error instanceof AppError ? error.statusCode : 500).json({ error: error instanceof Error ? error.message : 'Erreur lors de l\'export PDF' });
   }
 });
 

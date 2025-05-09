@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from "@db";
-import { eq, inArray, and, isNull } from "drizzle-orm";
+import { eq, inArray, and, isNull, sql } from "drizzle-orm";
 import { ensureAuth } from '../middleware/auth';
 import logger from '../utils/logger';
 import path from 'path';
@@ -23,6 +23,12 @@ router.post("/", ensureAuth, async (req, res) => {
       return res.status(401).json({ error: 'Non autorisé' });
     }
 
+    // Définition du schéma client
+    const clientSchema = `client_${req.user.id}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+
     const { name, parentId } = req.body;
 
     const insertedFolders = await db.insert(folders)
@@ -35,12 +41,17 @@ router.post("/", ensureAuth, async (req, res) => {
       })
       .returning();
 
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+
     if (!insertedFolders.length) {
       throw new Error('Failed to create folder');
     }
 
     res.status(201).json(insertedFolders[0]);
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
     logger.error('Error creating folder:', error);
     res.status(500).json({ error: 'Erreur lors de la création du dossier' });
   }
@@ -49,6 +60,16 @@ router.post("/", ensureAuth, async (req, res) => {
 // Get all folders for the current user
 router.get("/", ensureAuth, async (req, res) => {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+
+    // Définition du schéma client
+    const clientSchema = `client_${req.user.id}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     logger.info("Fetching all folders");
     
     // Récupérer les dossiers
@@ -57,8 +78,13 @@ router.get("/", ensureAuth, async (req, res) => {
       return [];
     });
     
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+    
     res.json(allFolders || []);
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
     logger.error("Error fetching folders:", error);
     // Retourner un tableau vide au lieu d'une erreur 500
     res.json([]);
@@ -71,6 +97,12 @@ router.get("/:id/download", ensureAuth, async (req, res) => {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Non autorisé' });
     }
+
+    // Définition du schéma client
+    const clientSchema = `client_${req.user.id}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     const folderId = parseInt(req.params.id);
     logger.info(`Starting download for folder ID: ${folderId}`);
@@ -85,6 +117,8 @@ router.get("/:id/download", ensureAuth, async (req, res) => {
       ));
 
     if (!foundFolders || foundFolders.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       logger.warn(`Folder not found: ${folderId}`);
       return res.status(404).json({ error: 'Dossier non trouvé' });
     }
@@ -101,9 +135,14 @@ router.get("/:id/download", ensureAuth, async (req, res) => {
       ));
 
     if (!folderDocuments || folderDocuments.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       logger.info(`No documents found in folder: ${folderId}`);
       return res.status(404).json({ error: 'Aucun document dans ce dossier' });
     }
+
+    // Réinitialiser le search_path après avoir récupéré les données
+    await db.execute(sql`SET search_path TO public`);
 
     // Verify uploads directory exists
     const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -161,6 +200,8 @@ router.get("/:id/download", ensureAuth, async (req, res) => {
     await archive.finalize();
 
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
     logger.error('Error downloading folder:', error);
     res.status(500).json({ error: 'Erreur lors du téléchargement du dossier' });
   }
@@ -172,6 +213,12 @@ router.patch("/:id", ensureAuth, async (req, res) => {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Non autorisé' });
     }
+
+    // Définition du schéma client
+    const clientSchema = `client_${req.user.id}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     const { id } = req.params;
     const { name, parentId } = req.body;
@@ -189,12 +236,17 @@ router.patch("/:id", ensureAuth, async (req, res) => {
       ))
       .returning();
 
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+
     if (!updatedFolder.length) {
       return res.status(404).json({ error: 'Dossier non trouvé' });
     }
 
     res.json(updatedFolder[0]);
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
     logger.error('Error updating folder:', error);
     res.status(500).json({ error: 'Erreur lors de la mise à jour du dossier' });
   }
@@ -206,6 +258,12 @@ router.delete("/:id", ensureAuth, async (req, res) => {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Non autorisé' });
     }
+
+    // Définition du schéma client
+    const clientSchema = `client_${req.user.id}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     const { id } = req.params;
     const folderId = parseInt(id);
@@ -240,6 +298,9 @@ router.delete("/:id", ensureAuth, async (req, res) => {
       ))
       .returning();
 
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+
     if (!deletedFolders.length) {
       logger.error(`Failed to delete folder: ${folderId}`);
       return res.status(500).json({ error: 'Erreur lors de la suppression du dossier' });
@@ -249,6 +310,8 @@ router.delete("/:id", ensureAuth, async (req, res) => {
     res.json({ success: true, deletedFolder: deletedFolders[0] });
 
   } catch (error) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
     logger.error('Error deleting folder:', error);
     res.status(500).json({ error: 'Erreur lors de la suppression du dossier' });
   }

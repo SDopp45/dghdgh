@@ -2,12 +2,23 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { db } from '../db';
 import logger from '../utils/logger';
 import { users } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { loginUser, logoutUser, requireAuth, hashPassword, type LoginResult } from '../auth';
-import { setUserSchema, resetToPublicSchema, createClientSchema } from '../db/index';
-import { pool } from '../db';
+import { createClientSchema } from '../db/index';
 
 const router = Router();
+
+// Fonction interne pour configurer le schéma pour un utilisateur
+async function setUserSchema(userId: number) {
+  const clientSchema = `client_${userId}`;
+  logger.info(`Configuration du schéma ${clientSchema} pour l'utilisateur ID ${userId}`);
+  return await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+}
+
+// Fonction pour réinitialiser le schéma à public
+async function resetToPublicSchema() {
+  return await db.execute(sql`SET search_path TO public`);
+}
 
 // Route pour la connexion
 router.post('/login', async (req: Request, res: Response) => {
@@ -103,9 +114,18 @@ router.post('/logout', requireAuth, async (req: Request, res: Response) => {
       });
     }
     
+    // Réinitialiser le schéma à public avant de déconnecter
+    await resetToPublicSchema();
+    
     res.json({ success: true });
   } catch (error) {
     logger.error('Erreur lors de la déconnexion:', error);
+    // Essayer de réinitialiser le schéma même en cas d'erreur
+    try {
+      await resetToPublicSchema();
+    } catch (schemaError) {
+      logger.error('Erreur lors de la réinitialisation du schéma:', schemaError);
+    }
     res.status(500).json({ success: false, message: 'Erreur serveur lors de la déconnexion' });
   }
 });
@@ -153,7 +173,7 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
     
-    // Créer un schéma pour ce nouvel utilisateur
+    // Créer un schéma pour ce nouvel utilisateur avec la fonction standardisée
     await createClientSchema(newUser.id);
     
     // Configurer la session pour le nouvel utilisateur
@@ -242,7 +262,7 @@ if (process.env.NODE_ENV === 'development') {
       // Vérifier la configuration du schéma actuel
       let schemaInfo;
       try {
-        const schemaResult = await pool.query('SHOW search_path');
+        const schemaResult = await db.execute(sql`SHOW search_path`);
         schemaInfo = {
           currentSearchPath: schemaResult.rows[0].search_path,
           status: 'ok'
@@ -308,17 +328,17 @@ router.get('/system-check', async (req: Request, res: Response) => {
     let dbInfo = {};
     try {
       // Vérifier les fonctions de schéma
-      const schemaFunctionsResult = await pool.query(`
+      const schemaFunctionsResult = await db.execute(sql`
         SELECT proname, pronamespace::regnamespace as schema
         FROM pg_proc 
         WHERE proname IN ('setup_user_environment', 'create_client_schema')
       `);
       
       // Vérifier la configuration de schéma actuelle
-      const searchPathResult = await pool.query('SHOW search_path');
+      const searchPathResult = await db.execute(sql`SHOW search_path`);
       
       // Vérifier les schémas existants
-      const schemasResult = await pool.query(`
+      const schemasResult = await db.execute(sql`
         SELECT schema_name 
         FROM information_schema.schemata 
         WHERE schema_name LIKE 'client_%'

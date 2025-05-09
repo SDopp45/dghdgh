@@ -5,19 +5,27 @@ import { eq, and, count, desc, asc, sql, like, or, between, gte, lte, isNull, no
 import logger from "../utils/logger";
 import { AppError } from "../middleware/errorHandler";
 import { calculateAverageRating, buildTenantFilterConditions } from "../utils/tenant-utils";
+import { ensureAuth, getUserId } from "../middleware/auth";
 
 const router = express.Router();
 
 /**
  * Route GET pour récupérer les locataires avec pagination et filtres
  */
-router.get("/paginated", async (req, res, next) => {
+router.get("/paginated", ensureAuth, async (req, res, next) => {
   try {
-    if (!req.isAuthenticated()) {
+    const userId = getUserId(req);
+    if (!userId) {
       throw new AppError("Non authentifié", 401);
     }
 
     logger.info("Fetching paginated tenants with query params:", req.query);
+
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     // Paramètres de pagination
     const page = parseInt(req.query.page as string) || 1;
@@ -214,6 +222,9 @@ router.get("/paginated", async (req, res, next) => {
     // Calculer les métadonnées de pagination
     const totalPages = Math.ceil(finalTotal / pageSize);
     
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+    
     res.json({
       data: filteredTenants,
       meta: {
@@ -226,6 +237,14 @@ router.get("/paginated", async (req, res, next) => {
     
   } catch (error) {
     logger.error("Error in paginated tenants fetch:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    try {
+      await db.execute(sql`SET search_path TO public`);
+    } catch (e) {
+      // Ignorer les erreurs de réinitialisation
+    }
+    
     next(error);
   }
 });

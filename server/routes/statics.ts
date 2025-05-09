@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import logger from '../utils/logger';
 
+// Note: Ce fichier n'a pas besoin d'utiliser les schémas clients car il gère uniquement des fichiers statiques
+// et ne fait pas d'accès à la base de données
+
 const router = express.Router();
 
 // Route pour servir les motifs SVG avec la couleur spécifiée

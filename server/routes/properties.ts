@@ -1,14 +1,13 @@
 import { Router } from "express";
 import { db, pool } from "../db/index";
 import { properties, propertyCoordinates, insertPropertySchema } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import multer from "multer";
 import logger from "../utils/logger";
 import path from "path";
 import fs from "fs";
 import { createDefaultImageEntry } from "../utils/default-images";
-import { ensureAuth } from "../middleware/auth";
-import { getClientDb } from "../db/index";
+import { ensureAuth, getUserId } from "../middleware/auth";
 
 const router = Router();
 
@@ -43,14 +42,19 @@ interface PropertyImage {
 }
 
 router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
-  let clientDbConnection = null;
-  
   try {
-    const user = req.user as any;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
     logger.info("Creating property with data:", req.body);
     
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(user.id);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     // Convert numeric string fields to numbers
     const numericFields = ['units', 'bedrooms', 'floors', 'bathrooms', 'toilets', 'livingArea', 'landArea', 'constructionYear', 'area', 'rooms'];
@@ -106,7 +110,7 @@ router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
     const parsedData = insertPropertySchema.parse({
       ...req.body,
       images: images,
-      userId: user.id
+      userId: userId
     });
 
     // Clean up and transform data
@@ -119,7 +123,7 @@ router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
     logger.info("Final property data to insert:", propertyData);
 
     const propertyResult = await pool.query(`
-      INSERT INTO ${user ? `client_${user.id}` : 'public'}.properties (
+      INSERT INTO properties (
         name, address, description, type, units, bedrooms, floors,
         bathrooms, toilets, energy_class, energy_emissions, living_area,
         land_area, has_parking, has_terrace, has_garage, has_outbuilding,
@@ -181,7 +185,7 @@ router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
       logger.info("Inserting coordinates for property:", newProperty.id);
 
       await pool.query(`
-        INSERT INTO ${user ? `client_${user.id}` : 'public'}.property_coordinates (
+        INSERT INTO property_coordinates (
           property_id, latitude, longitude, created_at, updated_at
         ) VALUES (
           $1, $2, $3, NOW(), NOW()
@@ -197,68 +201,84 @@ router.post("/", ensureAuth, upload.array("images"), async (req, res) => {
 
     logger.info("Property and coordinates created successfully:", newProperty);
 
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+
     res.json(newProperty);
   } catch (error: any) {
     logger.error("Error creating property:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     res.status(500).json({ error: error.message || "Error creating property" });
-  } finally {
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 
 router.get("/", ensureAuth, async (req, res) => {
-  let clientDbConnection = null;
-  
   try {
-    const user = req.user as any;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
     logger.info("Fetching all properties - start");
     
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(user.id);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
     
-    // Utiliser une requête SQL directe avec le schéma approprié
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
+    // Utiliser une requête SQL directe sans spécifier le schéma (search_path est déjà configuré)
     const result = await pool.query(`
-      SELECT * FROM ${user ? `client_${user.id}` : 'public'}.properties
+      SELECT * FROM properties
       ORDER BY created_at DESC
       LIMIT 100
     `);
+    
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
       
     logger.info(`Properties fetched successfully: ${result.rows.length} properties found`);
     res.json(result.rows || []);
   } catch (error) {
     logger.error("Error fetching properties:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     // Retourner un tableau vide au lieu d'une erreur 500
     res.json([]);
-  } finally {
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 
 // Add DELETE endpoint
 router.delete("/:id", ensureAuth, async (req, res) => {
-  let clientDbConnection = null;
-  
   try {
-    const user = req.user as any;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
     const propertyId = Number(req.params.id);
     logger.info(`Deleting property with ID: ${propertyId}`);
     
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(user.id);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     // First, get the property to retrieve its images
     const propertyResult = await pool.query(`
-      SELECT * FROM ${user ? `client_${user.id}` : 'public'}.properties
+      SELECT * FROM properties
       WHERE id = $1
     `, [propertyId]);
 
     if (propertyResult.rows.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(404).json({ error: "Property not found" });
     }
     
@@ -266,7 +286,7 @@ router.delete("/:id", ensureAuth, async (req, res) => {
 
     // Delete associated coordinates first
     await pool.query(`
-      DELETE FROM ${user ? `client_${user.id}` : 'public'}.property_coordinates
+      DELETE FROM property_coordinates
       WHERE property_id = $1
     `, [propertyId]);
     
@@ -290,35 +310,42 @@ router.delete("/:id", ensureAuth, async (req, res) => {
 
     // Delete the property from the database
     await pool.query(`
-      DELETE FROM ${user ? `client_${user.id}` : 'public'}.properties
+      DELETE FROM properties
       WHERE id = $1
     `, [propertyId]);
     
     logger.info(`Successfully deleted property with ID: ${propertyId}`);
 
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+
     res.json({ message: "Property deleted successfully" });
   } catch (error: any) {
     logger.error("Error deleting property:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     res.status(500).json({ error: error.message || "Error deleting property" });
-  } finally {
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 
 // Add PUT endpoint for updating properties
 router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
-  let clientDbConnection = null;
-  
   try {
-    const user = req.user as any;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
     const propertyId = Number(req.params.id);
     logger.info(`Updating property with ID: ${propertyId}`);
     
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(user.id);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     // Convert numeric string fields to numbers
     const numericFields = ['units', 'bedrooms', 'floors', 'bathrooms', 'toilets', 'livingArea', 'landArea', 'constructionYear', 'area', 'rooms'];
@@ -343,11 +370,13 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
 
     // Get existing property to handle image updates
     const existingPropertyResult = await pool.query(`
-      SELECT * FROM ${user ? `client_${user.id}` : 'public'}.properties
+      SELECT * FROM properties
       WHERE id = $1
     `, [propertyId]);
 
     if (existingPropertyResult.rows.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(404).json({ error: "Property not found" });
     }
     
@@ -410,7 +439,7 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
 
       // Vérifier si des coordonnées existent déjà pour cette propriété
       const existingCoordsResult = await pool.query(`
-        SELECT * FROM ${user ? `client_${user.id}` : 'public'}.property_coordinates
+        SELECT * FROM property_coordinates
         WHERE property_id = $1
       `, [propertyId]);
       
@@ -419,14 +448,14 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
       if (existingCoordinates) {
         // Mettre à jour les coordonnées existantes
         await pool.query(`
-          UPDATE ${user ? `client_${user.id}` : 'public'}.property_coordinates
+          UPDATE property_coordinates
           SET latitude = $1, longitude = $2, updated_at = NOW()
           WHERE id = $3
         `, [latitude, longitude, existingCoordinates.id]);
       } else {
         // Créer de nouvelles coordonnées
         await pool.query(`
-          INSERT INTO ${user ? `client_${user.id}` : 'public'}.property_coordinates (property_id, latitude, longitude, created_at, updated_at)
+          INSERT INTO property_coordinates (property_id, latitude, longitude, created_at, updated_at)
           VALUES ($1, $2, $3, NOW(), NOW())
         `, [propertyId, latitude, longitude]);
       }
@@ -502,12 +531,14 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
 
     // S'assurer qu'il y a des champs à mettre à jour
     if (updatePairs.length === 0) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: "No valid fields to update" });
     }
 
     // Construire la requête SQL complète
     const updateQuery = `
-      UPDATE ${user ? `client_${user.id}` : 'public'}.properties
+      UPDATE properties
       SET ${updatePairs.join(', ')}
       WHERE id = $${values.length + 1}
       RETURNING *
@@ -518,41 +549,51 @@ router.put("/:id", ensureAuth, upload.array("images"), async (req, res) => {
 
     const updatedProperty = updateResult.rows[0];
     logger.info("Property updated successfully:", updatedProperty);
+    
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+    
     res.json(updatedProperty);
   } catch (error: any) {
     logger.error("Error updating property:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     res.status(500).json({ error: error.message || "Error updating property" });
-  } finally {
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 
 // Add this new endpoint after the existing PUT endpoint
 // Status update endpoint
 router.patch("/:id/status", ensureAuth, async (req, res) => {
-  let clientDbConnection = null;
-  
   try {
-    const user = req.user as any;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
     const propertyId = Number(req.params.id);
     const { status } = req.body;
 
     logger.info(`Updating status for property ${propertyId} to ${status}`);
     
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(user.id);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     // Validate the status
     if (!["available", "rented", "maintenance", "sold"].includes(status)) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(400).json({ error: "Invalid status value" });
     }
 
     // Update the property status
     const updateResult = await pool.query(`
-      UPDATE ${user ? `client_${user.id}` : 'public'}.properties
+      UPDATE properties
       SET status = $1, updated_at = NOW()
       WHERE id = $2
       RETURNING *
@@ -561,41 +602,51 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
     const updatedProperty = updateResult.rows[0];
 
     if (!updatedProperty) {
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
       return res.status(404).json({ error: "Property not found" });
     }
 
     logger.info(`Successfully updated status for property ${propertyId}`);
+    
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+    
     res.json(updatedProperty);
   } catch (error: any) {
     logger.error("Error updating property status:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     res.status(500).json({ error: error.message || "Error updating property status" });
-  } finally {
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 
 // Endpoint pour récupérer l'historique des propriétés
 router.get("/history", ensureAuth, async (req, res) => {
-  let clientDbConnection = null;
-  
   try {
-    const user = req.user as any;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+    
     const startDateString = req.query.startDate as string;
     const startDate = startDateString ? new Date(startDateString) : new Date(new Date().setFullYear(new Date().getFullYear() - 1));
     
     logger.info(`Getting property history data since ${startDate.toISOString()}`);
     
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(user.id);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
     
     // Récupérer toutes les propriétés
     const propertiesResult = await pool.query(`
       SELECT p.*, pc.latitude, pc.longitude 
-      FROM ${user ? `client_${user.id}` : 'public'}.properties p
-      LEFT JOIN ${user ? `client_${user.id}` : 'public'}.property_coordinates pc ON p.id = pc.property_id
+      FROM properties p
+      LEFT JOIN property_coordinates pc ON p.id = pc.property_id
     `);
     
     const allProperties = propertiesResult.rows;
@@ -623,15 +674,17 @@ router.get("/history", ensureAuth, async (req, res) => {
       }
     }
     
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+    
     res.json(historyData);
   } catch (error) {
     logger.error("Error fetching property history:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     res.status(500).json({ error: "Failed to fetch property history" });
-  } finally {
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 

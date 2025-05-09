@@ -1,14 +1,28 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, sql } from 'drizzle-orm';
 import { transactions, properties, tenants, users } from '@shared/schema';
 import { addMonths } from 'date-fns';
+import logger from '../logger';
 
 const router = Router();
 
 // Endpoint pour les paiements récents
 router.get('/payments/recent', async (req, res) => {
   try {
+    // Récupérer l'ID de l'utilisateur depuis la requête
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const today = new Date();
     const thirtyDaysAgo = addMonths(today, -1);
 
@@ -32,6 +46,9 @@ router.get('/payments/recent', async (req, res) => {
         )
       )
       .orderBy(transactions.date);
+
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
 
     const paymentsWithDetails = recentTransactions.map(transaction => {
       let status: 'paid' | 'pending' | 'late';
@@ -57,7 +74,7 @@ router.get('/payments/recent', async (req, res) => {
 
     res.json(paymentsWithDetails);
   } catch (error) {
-    console.error('Erreur lors de la récupération des paiements récents:', error);
+    logger.error('Erreur lors de la récupération des paiements récents:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -65,6 +82,19 @@ router.get('/payments/recent', async (req, res) => {
 // Endpoint pour les statistiques de paiement
 router.get('/payments/stats', async (req, res) => {
   try {
+    // Récupérer l'ID de l'utilisateur depuis la requête
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    
     const today = new Date();
     const lastMonth = addMonths(today, -1);
     const twoMonthsAgo = addMonths(today, -2);
@@ -82,6 +112,9 @@ router.get('/payments/stats', async (req, res) => {
           eq(transactions.category, 'rent')
         )
       );
+      
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
 
     const thisMonthTransactions = transactionRecords.filter(t => 
       new Date(t.date) > lastMonth
@@ -122,7 +155,7 @@ router.get('/payments/stats', async (req, res) => {
       trend,
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des statistiques de paiement:', error);
+    logger.error('Erreur lors de la récupération des statistiques de paiement:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

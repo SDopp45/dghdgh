@@ -11,7 +11,6 @@ import { fr } from 'date-fns/locale';
 import { calculateAverageRating, generateRentTransactions, findOrphanedFeedbacks, handleTransactions } from "../utils/tenant-utils";
 import { generateUniqueUsername } from "../utils/auth";
 import { ensureAuth, getUserId } from "../middleware/auth";
-import { getClientDb } from "../db/index";
 
 const router = express.Router();
 
@@ -21,7 +20,7 @@ const pool = new Pool({
 });
 
 // Fonction pour obtenir le nom complet d'un utilisateur
-const getFullName = async (userId) => {
+const getFullName = async (userId: number) => {
   try {
     const userResult = await pool.query(
       "SELECT full_name FROM public.users WHERE id = $1",
@@ -36,22 +35,20 @@ const getFullName = async (userId) => {
 
 // Routes pour les locataires
 router.get("/", ensureAuth, async (req, res, next) => {
-  let clientDbConnection = null;
-  
   try {
-    const authenticatedUserId = getUserId(req);
-    if (!authenticatedUserId) {
+    const userId = getUserId(req);
+    if (!userId) {
       return res.status(401).json({ error: 'Non autorisé' });
     }
     
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(authenticatedUserId);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
     
-    const user = req.user as any;
-    const schema = user.role === 'admin' ? 'public' : `client_${user.id}`;
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
     
     // Exécuter la requête dans le schéma client approprié avec join sur tenants_info
-    const tenantsResult = await pool.query(`
+    const tenantsResult = await db.execute(sql`
       SELECT 
         t.id, 
         t.user_id, 
@@ -73,10 +70,10 @@ router.get("/", ensureAuth, async (req, res, next) => {
         ti.email as tenant_email,
         ti.phone_number as tenant_phone_number,
         ti.notes
-      FROM ${schema}.tenants t
-      LEFT JOIN ${schema}.properties p ON t.property_id = p.id
+      FROM tenants t
+      LEFT JOIN properties p ON t.property_id = p.id
       LEFT JOIN public.users u ON t.user_id = u.id
-      LEFT JOIN ${schema}.tenants_info ti ON t.tenant_info_id = ti.id
+      LEFT JOIN tenants_info ti ON t.tenant_info_id = ti.id
       ORDER BY t.created_at DESC
     `);
     
@@ -104,41 +101,41 @@ router.get("/", ensureAuth, async (req, res, next) => {
       }
     }));
     
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+    
     res.json(tenants);
   } catch (error) {
     logger.error("Error retrieving tenants:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     next(error);
-  } finally {
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 
 // Obtenir un locataire spécifique par ID
 router.get("/:id", ensureAuth, async (req, res, next) => {
-  let clientDbConnection = null;
-  
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return next(new AppError("ID de locataire invalide", 400));
     }
     
-    const authenticatedUserId = getUserId(req);
-    if (!authenticatedUserId) {
+    const userId = getUserId(req);
+    if (!userId) {
       return res.status(401).json({ error: 'Non autorisé' });
     }
     
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(authenticatedUserId);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
     
-    const user = req.user as any;
-    const schema = user.role === 'admin' ? 'public' : `client_${user.id}`;
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
     
     // Exécuter la requête dans le schéma client approprié avec join sur tenants_info
-    const tenantResult = await pool.query(`
+    const tenantResult = await db.execute(sql`
       SELECT 
         t.id, 
         t.user_id, 
@@ -160,14 +157,16 @@ router.get("/:id", ensureAuth, async (req, res, next) => {
         ti.email as tenant_email,
         ti.phone_number as tenant_phone_number,
         ti.notes
-      FROM ${schema}.tenants t
-      LEFT JOIN ${schema}.properties p ON t.property_id = p.id
+      FROM tenants t
+      LEFT JOIN properties p ON t.property_id = p.id
       LEFT JOIN public.users u ON t.user_id = u.id
-      LEFT JOIN ${schema}.tenants_info ti ON t.tenant_info_id = ti.id
-      WHERE t.id = $1
-    `, [id]);
+      LEFT JOIN tenants_info ti ON t.tenant_info_id = ti.id
+      WHERE t.id = ${id}
+    `);
     
     if (tenantResult.rows.length === 0) {
+      // Réinitialiser le search_path avant de retourner l'erreur
+      await db.execute(sql`SET search_path TO public`);
       return next(new AppError("Locataire non trouvé", 404));
     }
     
@@ -196,39 +195,33 @@ router.get("/:id", ensureAuth, async (req, res, next) => {
       }
     };
     
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+    
     res.json(tenant);
   } catch (error) {
     logger.error(`Error retrieving tenant ${req.params.id}:`, error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     next(error);
-  } finally {
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 
 // POST: Créer un nouveau locataire
 router.post("/", ensureAuth, async (req, res, next) => {
-  let client = null;
-  let clientDbConnection = null;
-  
   try {
-    const authenticatedUserId = getUserId(req);
-    if (!authenticatedUserId) {
+    const userId = getUserId(req);
+    if (!userId) {
       return res.status(401).json({ error: 'Non autorisé' });
     }
 
-    // Obtenir un client DB configuré pour ce schéma client
-    clientDbConnection = await getClientDb(authenticatedUserId);
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
     
-    const currentUser = req.user as any;
-    const schema = currentUser.role === 'admin' ? 'public' : `client_${currentUser.id}`;
-
-    // Commencer une transaction SQL
-    client = await pool.connect();
-    await client.query('BEGIN');
-    await client.query(`SET search_path TO ${schema}, public`);
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
 
     const {
       fullName,
@@ -247,25 +240,26 @@ router.post("/", ensureAuth, async (req, res, next) => {
 
     // Vérifier si on utilise un ID d'utilisateur existant ou si on crée une nouvelle entrée dans tenants_info
     let tenantInfoId = null;
-    let userId = null;
+    let tenantUserId = null;
 
     if (existingUserId) {
       // Si un utilisateur existant est fourni, on l'utilise
-      userId = existingUserId;
+      tenantUserId = existingUserId;
       
       // Vérifier si l'utilisateur existe
-      const userResult = await client.query('SELECT * FROM public.users WHERE id = $1', [existingUserId]);
+      const userResult = await db.execute(sql`SELECT * FROM public.users WHERE id = ${existingUserId}`);
       if (userResult.rows.length === 0) {
-        await client.query('ROLLBACK');
+        // Réinitialiser le search_path avant de retourner l'erreur
+        await db.execute(sql`SET search_path TO public`);
         return res.status(404).json({ error: 'Utilisateur non trouvé' });
       }
       
       // Vérifier si une entrée tenants_info existe déjà pour cet utilisateur
-      const tenantInfoResult = await client.query(`
-        SELECT id FROM ${schema}.tenants_info 
-        WHERE full_name = $1 OR email = $2
+      const tenantInfoResult = await db.execute(sql`
+        SELECT id FROM tenants_info 
+        WHERE full_name = ${userResult.rows[0].full_name} OR email = ${userResult.rows[0].email}
         LIMIT 1
-      `, [userResult.rows[0].full_name, userResult.rows[0].email]);
+      `);
       
       if (tenantInfoResult.rows.length > 0) {
         // Utiliser l'entrée existante
@@ -273,36 +267,34 @@ router.post("/", ensureAuth, async (req, res, next) => {
         logger.info(`Réutilisation de l'entrée tenants_info existante: ${tenantInfoId}`);
       } else {
         // Créer une nouvelle entrée dans tenants_info
-        const tenantInfoInsertResult = await client.query(`
-          INSERT INTO ${schema}.tenants_info (
+        const tenantInfoInsertResult = await db.execute(sql`
+          INSERT INTO tenants_info (
             full_name, email, phone_number, notes, created_at, updated_at
           ) VALUES (
-            $1, $2, $3, $4, NOW(), NOW()
+            ${userResult.rows[0].full_name},
+            ${userResult.rows[0].email},
+            ${userResult.rows[0].phone_number},
+            ${notes || null},
+            NOW(), NOW()
           ) RETURNING *
-        `, [
-          userResult.rows[0].full_name,
-          userResult.rows[0].email,
-          userResult.rows[0].phone_number,
-          notes || null
-        ]);
+        `);
         
         tenantInfoId = tenantInfoInsertResult.rows[0].id;
         logger.info(`Création d'une nouvelle entrée tenants_info: ${tenantInfoId}`);
       }
     } else {
       // Créer une nouvelle entrée dans tenants_info
-      const tenantInfoInsertResult = await client.query(`
-        INSERT INTO ${schema}.tenants_info (
+      const tenantInfoInsertResult = await db.execute(sql`
+        INSERT INTO tenants_info (
           full_name, email, phone_number, notes, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, NOW(), NOW()
+          ${fullName},
+          ${email},
+          ${phoneNumber},
+          ${notes || null},
+          NOW(), NOW()
         ) RETURNING *
-      `, [
-        fullName,
-        email,
-        phoneNumber,
-        notes || null
-      ]);
+      `);
       
       tenantInfoId = tenantInfoInsertResult.rows[0].id;
       logger.info(`Création d'une nouvelle entrée tenants_info: ${tenantInfoId}`);
@@ -310,44 +302,42 @@ router.post("/", ensureAuth, async (req, res, next) => {
 
     try {
       // Create tenant record
-      const tenantInsertResult = await client.query(`
-        INSERT INTO ${schema}.tenants (
+      const tenantInsertResult = await db.execute(sql`
+        INSERT INTO tenants (
           user_id, property_id, lease_start, lease_end, rent_amount, lease_type, active, lease_status, tenant_info_id
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9
+          ${tenantUserId}, 
+          ${Number(propertyId)},
+          ${new Date(leaseStart)},
+          ${new Date(leaseEnd)},
+          ${rentAmount.toString()},
+          ${leaseType},
+          ${true},
+          ${'actif'},
+          ${tenantInfoId}
         ) RETURNING *
-      `, [
-        userId, // peut être null si on utilise seulement tenants_info
-        Number(propertyId),
-        new Date(leaseStart),
-        new Date(leaseEnd),
-        rentAmount.toString(),
-        leaseType,
-        true,
-        'actif',
-        tenantInfoId
-      ]);
+      `);
       
       const tenant = tenantInsertResult.rows[0];
       logger.info(`Created tenant ID ${tenant.id} with tenant_info_id ${tenantInfoId}`);
 
       // Update property status and rent amount
-      await client.query(`
-        UPDATE ${schema}.properties
+      await db.execute(sql`
+        UPDATE properties
         SET
           status = 'rented',
-          monthly_rent = $1
-        WHERE id = $2
-      `, [rentAmount.toString(), Number(propertyId)]);
+          monthly_rent = ${rentAmount.toString()}
+        WHERE id = ${Number(propertyId)}
+      `);
 
       // Create transactions if requested
       if (createTransactions === "true" || createTransactions === true) {
         logger.info(`Generating rent transactions for tenant ${tenant.id}`);
         
         // Get property information for transaction generation
-        const propertyResult = await client.query(`
-          SELECT name, address FROM ${schema}.properties WHERE id = $1
-        `, [propertyId]);
+        const propertyResult = await db.execute(sql`
+          SELECT name, address FROM properties WHERE id = ${propertyId}
+        `);
         
         const property = propertyResult.rows[0];
         
@@ -355,41 +345,39 @@ router.post("/", ensureAuth, async (req, res, next) => {
           // Generate transaction objects for the lease period
           const transactionObjects = generateRentTransactions(
             tenant.id,
-            rentAmount,
+            parseFloat(rentAmount),
             new Date(leaseStart),
             new Date(leaseEnd),
             property.name,
             property.address
           );
           
-          logger.info(`Generated ${transactionObjects.length} transaction objects`);
+          logger.info(`Generated transaction objects`);
           
           // Insert transactions
-          if (transactionObjects.length > 0) {
+          if (transactionObjects && transactionObjects.length > 0) {
             for (const txObj of transactionObjects) {
-              await client.query(`
-                INSERT INTO ${schema}.transactions (
-                  tenant_id, amount, transaction_date, description, status, 
+              await db.execute(sql`
+                INSERT INTO transactions (
+                  tenant_id, amount, date, description, status, 
                   category, property_id, recurring, frequency, 
                   rent_period_start, rent_period_end
                 ) VALUES (
-                  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+                  ${txObj.tenantId},
+                  ${txObj.amount},
+                  ${txObj.date || txObj.transactionDate},
+                  ${txObj.description},
+                  ${txObj.status},
+                  ${txObj.category},
+                  ${Number(propertyId)},
+                  ${txObj.recurring},
+                  ${txObj.frequency},
+                  ${txObj.rentPeriodStart},
+                  ${txObj.rentPeriodEnd}
                 )
-              `, [
-                txObj.tenantId,
-                txObj.amount,
-                txObj.transactionDate,
-                txObj.description,
-                txObj.status,
-                txObj.category,
-                propertyId,
-                txObj.recurring,
-                txObj.frequency,
-                txObj.rentPeriodStart,
-                txObj.rentPeriodEnd
-              ]);
+              `);
             }
-            logger.info(`Created ${transactionObjects.length} rent transactions for tenant ${tenant.id}`);
+            logger.info(`Created rent transactions for tenant ${tenant.id}`);
           }
         }
       }
@@ -399,9 +387,9 @@ router.post("/", ensureAuth, async (req, res, next) => {
         logger.info(`Associating ${documentIds.length} documents with tenant ${tenant.id}`);
         
         // Filter to only get documents not already associated with this tenant
-        const existingDocsResult = await client.query(`
-          SELECT document_id FROM ${schema}.tenant_documents WHERE tenant_id = $1
-        `, [tenant.id]);
+        const existingDocsResult = await db.execute(sql`
+          SELECT document_id FROM tenant_documents WHERE tenant_id = ${tenant.id}
+        `);
         
         const existingDocIds = existingDocsResult.rows.map(row => row.document_id);
         const newDocIds = documentIds.filter(id => !existingDocIds.includes(Number(id)));
@@ -413,26 +401,26 @@ router.post("/", ensureAuth, async (req, res, next) => {
           logger.info(`Adding ${newDocIds.length} new document associations to tenant ${tenant.id}`);
           
           for (const docId of newDocIds) {
-            await client.query(`
-              INSERT INTO ${schema}.tenant_documents
+            await db.execute(sql`
+              INSERT INTO tenant_documents
               (tenant_id, document_id, document_type)
-              VALUES ($1, $2, $3)
+              VALUES (${tenant.id}, ${docId}, 'lease')
               ON CONFLICT DO NOTHING
-            `, [tenant.id, docId, 'lease']);
+            `);
           }
         }
       }
 
-      // Commit the transaction
-      await client.query('COMMIT');
-
       // Récupérer les infos du locataire pour la réponse
-      const tenantInfoResult = await pool.query(`
-        SELECT * FROM ${schema}.tenants_info WHERE id = $1
-      `, [tenantInfoId]);
+      const tenantInfoResult = await db.execute(sql`
+        SELECT * FROM tenants_info WHERE id = ${tenantInfoId}
+      `);
       
       const tenantInfo = tenantInfoResult.rows[0];
 
+      // Réinitialiser le search_path après utilisation
+      await db.execute(sql`SET search_path TO public`);
+      
       res.status(201).json({
         id: tenant.id,
         userId: tenant.user_id,
@@ -453,20 +441,17 @@ router.post("/", ensureAuth, async (req, res, next) => {
         leaseStatus: tenant.lease_status
       });
     } catch (error) {
-      await client.query('ROLLBACK');
+      // Réinitialiser le search_path en cas d'erreur dans le bloc interne
+      await db.execute(sql`SET search_path TO public`).catch(() => {});
       throw error;
     }
   } catch (error) {
     logger.error("Error during tenant creation:", error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     next(new AppError("Erreur lors de la création du locataire", 500));
-  } finally {
-    if (client) {
-      client.release();
-    }
-    // Libérer la connexion client si elle a été créée
-    if (clientDbConnection) {
-      clientDbConnection.release();
-    }
   }
 });
 

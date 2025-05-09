@@ -31,14 +31,14 @@ const storage = multer.diskStorage({
       cb(null, clientHistoryDir);
     } else {
       // Fallback sur le répertoire legacy si pas d'utilisateur
-      const uploadDir = path.join(process.cwd(), 'uploads', 'tenant-history');
-      // Assurez-vous que le répertoire existe
-      fs.mkdir(uploadDir, { recursive: true })
+    const uploadDir = path.join(process.cwd(), 'uploads', 'tenant-history');
+    // Assurez-vous que le répertoire existe
+    fs.mkdir(uploadDir, { recursive: true })
         .then(() => {
           logger.info('Upload de document d\'historique: utilisation du dossier legacy');
           cb(null, uploadDir);
         })
-        .catch(err => cb(err, uploadDir));
+      .catch(err => cb(err, uploadDir));
     }
   },
   filename: function (req, file, cb) {
@@ -58,7 +58,7 @@ router.get('/tenants', ensureAuth, asyncHandler(async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Non autorisé' });
     }
-    
+
     // Définition du schéma client
     const clientSchema = `client_${userId}`;
     
@@ -221,7 +221,7 @@ router.get('/', ensureAuth, asyncHandler(async (req, res) => {
 
     // Ajouter les conditions de filtrage
     const whereConditions = [];
-    
+
     if (filter && filter !== 'all') {
       whereConditions.push(sql`th.category = ${String(filter)}`);
     }
@@ -538,234 +538,234 @@ router.post('/', uploadMiddleware, asyncHandler(async (req, res) => {
     // Configuration du schéma client pour cette requête
     await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
   
-    // Récupération des données du formulaire
-    const {
-      tenantId,
-      propertyId,
-      rating,
-      feedback,
-      category,
-      tenantFullName,
-      eventType,
-      eventSeverity,
-      eventDetails,
-      bailStatus,
-      bailId,
-      propertyName,
-      selectedFolderId,
-      documentTypes,
-      documentNames,
-      tenant_info_id
-    } = req.body;
+  // Récupération des données du formulaire
+  const {
+    tenantId,
+    propertyId,
+    rating,
+    feedback,
+    category,
+    tenantFullName,
+    eventType,
+    eventSeverity,
+    eventDetails,
+    bailStatus,
+    bailId,
+    propertyName,
+    selectedFolderId,
+    documentTypes,
+    documentNames,
+    tenant_info_id
+  } = req.body;
 
-    // Si un dossier est sélectionné, le logger
-    if (selectedFolderId) {
-      logger.info(`Dossier sélectionné pour les documents: ID=${selectedFolderId}`);
-    }
+  // Si un dossier est sélectionné, le logger
+  if (selectedFolderId) {
+    logger.info(`Dossier sélectionné pour les documents: ID=${selectedFolderId}`);
+  }
 
-    // Si des types de documents sont fournis, les logger
-    if (documentTypes) {
-      try {
-        const docTypesObj = JSON.parse(documentTypes);
-        logger.info(`Types de documents reçus: ${JSON.stringify(docTypesObj)}`);
-      } catch (error) {
-        logger.error('Erreur lors du parsing des types de documents:', error);
-      }
-    }
-
-    // Si des noms personnalisés sont fournis, les logger
-    if (documentNames) {
-      try {
-        const docNamesObj = JSON.parse(documentNames);
-        logger.info(`Noms personnalisés reçus: ${JSON.stringify(docNamesObj)}`);
-      } catch (error) {
-        logger.error('Erreur lors du parsing des noms de documents:', error);
-      }
-    }
-
-    // Création du dossier d'upload si nécessaire
+  // Si des types de documents sont fournis, les logger
+  if (documentTypes) {
     try {
-      await fs.mkdir(uploadsDir, { recursive: true });
+      const docTypesObj = JSON.parse(documentTypes);
+      logger.info(`Types de documents reçus: ${JSON.stringify(docTypesObj)}`);
     } catch (error) {
-      logger.error('Error creating uploads directory:', error);
+      logger.error('Erreur lors du parsing des types de documents:', error);
     }
+  }
 
-    // Traitement des documents uploadés
-    const files = req.files as Express.Multer.File[];
-    const documentPaths = files.map(file => file.path);
-    
-    // Tableau pour stocker les IDs des documents créés
-    const documentIds: number[] = [];
-
-    // Créer des entrées dans la table documents pour chaque fichier
-    if (files.length > 0) {
-      for (const file of files) {
-        try {
-          // Récupérer le type du document s'il existe
-          let docType = 'avis'; // Type par défaut
-          let customTitle = `${tenantFullName ? tenantFullName + ' - ' : ''}Document justificatif (${category || 'historique'})`;
-          
-          // Si des types personnalisés sont fournis, les utiliser
-          if (documentTypes) {
-            try {
-              const docTypesObj = JSON.parse(documentTypes);
-              // Utiliser d'abord le nom du fichier comme clé
-              if (docTypesObj[file.originalname]) {
-                docType = docTypesObj[file.originalname];
-                logger.info(`Type trouvé par originalname: ${docType} pour ${file.originalname}`);
-              }
-              // Essayer avec le nom simple si pas trouvé par originalname
-              else if (docTypesObj[file.filename.split('-').pop() || '']) {
-                docType = docTypesObj[file.filename.split('-').pop() || ''];
-                logger.info(`Type trouvé par nom simple: ${docType} pour ${file.filename.split('-').pop()}`);
-              }
-              // Parcourir toutes les clés et effectuer une comparaison flexible
-              else {
-                for (const [key, value] of Object.entries(docTypesObj)) {
-                  if (file.originalname.includes(key) || key.includes(file.originalname)) {
-                    docType = value as string;
-                    logger.info(`Type trouvé par correspondance partielle: ${docType} pour ${key} <-> ${file.originalname}`);
-                    break;
-                  }
-                }
-              }
-            } catch (error) {
-              logger.error('Erreur lors du parsing des types de documents:', error);
-            }
-          }
-          
-          // Si des noms personnalisés sont fournis, les utiliser - même logique améliorée
-          if (documentNames) {
-            try {
-              const docNamesObj = JSON.parse(documentNames);
-              // Utiliser d'abord le nom du fichier comme clé
-              if (docNamesObj[file.originalname]) {
-                customTitle = docNamesObj[file.originalname];
-                logger.info(`Nom personnalisé trouvé par originalname: ${customTitle} pour ${file.originalname}`);
-              }
-              // Essayer avec le nom simple si pas trouvé par originalname
-              else if (docNamesObj[file.filename.split('-').pop() || '']) {
-                customTitle = docNamesObj[file.filename.split('-').pop() || ''];
-                logger.info(`Nom personnalisé trouvé par nom simple: ${customTitle} pour ${file.filename.split('-').pop()}`);
-              }
-              // Parcourir toutes les clés et effectuer une comparaison flexible
-              else {
-                for (const [key, value] of Object.entries(docNamesObj)) {
-                  if (file.originalname.includes(key) || key.includes(file.originalname)) {
-                    customTitle = value as string;
-                    logger.info(`Nom personnalisé trouvé par correspondance partielle: ${customTitle} pour ${key} <-> ${file.originalname}`);
-                    break;
-                  }
-                }
-              }
-            } catch (error) {
-              logger.error('Erreur lors du parsing des noms de documents:', error);
-            }
-          }
-          
-          // Créer une entrée dans la table documents
-          const [insertedDoc] = await db.insert(documentsTable).values({
-            title: customTitle,
-            type: docType as any,
-            filePath: file.filename,
-            originalName: file.originalname,
-            template: false,
-            userId: userId,
-            folderId: selectedFolderId ? Number(selectedFolderId) : null,
-            formData: {
-              source: 'tenant_history',
-              category: category || 'general',
-              eventType: eventType || 'evaluation',
-              rating: rating ? Number(rating) : undefined
-            },
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }).returning();
-
-          logger.info(`Document créé dans la table documents: ${insertedDoc.id}`);
-          documentIds.push(insertedDoc.id);
-
-          // Si un tenantId est fourni, associer le document au locataire
-          if (tenantId) {
-            await db.insert(tenantDocuments).values({
-              tenantId: Number(tenantId),
-              documentId: insertedDoc.id,
-              documentType: 'other'
-            });
-            logger.info(`Document ${insertedDoc.id} associé au locataire (ID table tenants) ${tenantId}`);
-          }
-        } catch (error) {
-          logger.error(`Erreur lors de la création du document dans la table documents:`, error);
-        }
-      }
+  // Si des noms personnalisés sont fournis, les logger
+  if (documentNames) {
+    try {
+      const docNamesObj = JSON.parse(documentNames);
+      logger.info(`Noms personnalisés reçus: ${JSON.stringify(docNamesObj)}`);
+    } catch (error) {
+      logger.error('Erreur lors du parsing des noms de documents:', error);
     }
+  }
 
-    logger.info(`Creating new tenant history entry: ${JSON.stringify({
-      tenantId: tenantId,
-      propertyId,
-      rating,
-      feedback,
-      category,
-      eventType,
-      tenant_info_id,
-      documentIds: documentIds.length > 0 ? documentIds : undefined
-    })}`);
+  // Création du dossier d'upload si nécessaire
+  try {
+    await fs.mkdir(uploadsDir, { recursive: true });
+  } catch (error) {
+    logger.error('Error creating uploads directory:', error);
+  }
 
-    // Récupérer le nom de la propriété si propertyId est fourni mais pas propertyName
-    let finalPropertyName = propertyName;
-    if (propertyId && !propertyName) {
+  // Traitement des documents uploadés
+  const files = req.files as Express.Multer.File[];
+  const documentPaths = files.map(file => file.path);
+  
+  // Tableau pour stocker les IDs des documents créés
+  const documentIds: number[] = [];
+
+  // Créer des entrées dans la table documents pour chaque fichier
+  if (files.length > 0) {
+    for (const file of files) {
       try {
-        const propertyData = await db.select({
-          name: properties.name
-        })
-        .from(properties)
-        .where(eq(properties.id, Number(propertyId)))
-        .limit(1);
+        // Récupérer le type du document s'il existe
+        let docType = 'avis'; // Type par défaut
+        let customTitle = `${tenantFullName ? tenantFullName + ' - ' : ''}Document justificatif (${category || 'historique'})`;
+        
+        // Si des types personnalisés sont fournis, les utiliser
+        if (documentTypes) {
+          try {
+            const docTypesObj = JSON.parse(documentTypes);
+            // Utiliser d'abord le nom du fichier comme clé
+            if (docTypesObj[file.originalname]) {
+              docType = docTypesObj[file.originalname];
+              logger.info(`Type trouvé par originalname: ${docType} pour ${file.originalname}`);
+            }
+            // Essayer avec le nom simple si pas trouvé par originalname
+            else if (docTypesObj[file.filename.split('-').pop() || '']) {
+              docType = docTypesObj[file.filename.split('-').pop() || ''];
+              logger.info(`Type trouvé par nom simple: ${docType} pour ${file.filename.split('-').pop()}`);
+            }
+            // Parcourir toutes les clés et effectuer une comparaison flexible
+            else {
+              for (const [key, value] of Object.entries(docTypesObj)) {
+                if (file.originalname.includes(key) || key.includes(file.originalname)) {
+                  docType = value as string;
+                  logger.info(`Type trouvé par correspondance partielle: ${docType} pour ${key} <-> ${file.originalname}`);
+                  break;
+                }
+              }
+            }
+          } catch (error) {
+            logger.error('Erreur lors du parsing des types de documents:', error);
+          }
+        }
+        
+        // Si des noms personnalisés sont fournis, les utiliser - même logique améliorée
+        if (documentNames) {
+          try {
+            const docNamesObj = JSON.parse(documentNames);
+            // Utiliser d'abord le nom du fichier comme clé
+            if (docNamesObj[file.originalname]) {
+              customTitle = docNamesObj[file.originalname];
+              logger.info(`Nom personnalisé trouvé par originalname: ${customTitle} pour ${file.originalname}`);
+            }
+            // Essayer avec le nom simple si pas trouvé par originalname
+            else if (docNamesObj[file.filename.split('-').pop() || '']) {
+              customTitle = docNamesObj[file.filename.split('-').pop() || ''];
+              logger.info(`Nom personnalisé trouvé par nom simple: ${customTitle} pour ${file.filename.split('-').pop()}`);
+            }
+            // Parcourir toutes les clés et effectuer une comparaison flexible
+            else {
+              for (const [key, value] of Object.entries(docNamesObj)) {
+                if (file.originalname.includes(key) || key.includes(file.originalname)) {
+                  customTitle = value as string;
+                  logger.info(`Nom personnalisé trouvé par correspondance partielle: ${customTitle} pour ${key} <-> ${file.originalname}`);
+                  break;
+                }
+              }
+            }
+          } catch (error) {
+            logger.error('Erreur lors du parsing des noms de documents:', error);
+          }
+        }
+        
+        // Créer une entrée dans la table documents
+        const [insertedDoc] = await db.insert(documentsTable).values({
+          title: customTitle,
+          type: docType as any,
+          filePath: file.filename,
+          originalName: file.originalname,
+          template: false,
+          userId: userId,
+          folderId: selectedFolderId ? Number(selectedFolderId) : null,
+          formData: {
+            source: 'tenant_history',
+            category: category || 'general',
+            eventType: eventType || 'evaluation',
+            rating: rating ? Number(rating) : undefined
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }).returning();
 
-        if (propertyData.length > 0) {
-          finalPropertyName = propertyData[0].name;
+        logger.info(`Document créé dans la table documents: ${insertedDoc.id}`);
+        documentIds.push(insertedDoc.id);
+
+        // Si un tenantId est fourni, associer le document au locataire
+        if (tenantId) {
+          await db.insert(tenantDocuments).values({
+            tenantId: Number(tenantId),
+            documentId: insertedDoc.id,
+            documentType: 'other'
+          });
+          logger.info(`Document ${insertedDoc.id} associé au locataire (ID table tenants) ${tenantId}`);
         }
       } catch (error) {
-        logger.error('Error fetching property name:', error);
+        logger.error(`Erreur lors de la création du document dans la table documents:`, error);
       }
     }
+  }
 
+  logger.info(`Creating new tenant history entry: ${JSON.stringify({
+    tenantId: tenantId,
+    propertyId,
+    rating,
+    feedback,
+    category,
+    eventType,
+    tenant_info_id,
+    documentIds: documentIds.length > 0 ? documentIds : undefined
+  })}`);
+
+  // Récupérer le nom de la propriété si propertyId est fourni mais pas propertyName
+  let finalPropertyName = propertyName;
+  if (propertyId && !propertyName) {
     try {
-      // Création de l'entrée dans la base de données avec Drizzle ORM
-      const newEntry = await db.insert(tenantHistory).values({
-        rating: rating ? Number(rating) : 0,
-        feedback: feedback || null,
-        category: category || "general",
-        tenantFullName: tenantFullName || null,
-        eventType: eventType || "evaluation",
-        eventSeverity: eventSeverity ? Number(eventSeverity) : 0,
-        eventDetails: eventDetails ? JSON.parse(eventDetails) : {},
-        documents: documentPaths.length > 0 ? documentPaths : [],
-        bailStatus: bailStatus || null,
-        bailId: bailId ? Number(bailId) : null,
-        propertyName: finalPropertyName || null,
-        createdBy: userId,
-        tenantId: tenantId ? Number(tenantId) : null,
-        tenant_info_id: tenant_info_id ? Number(tenant_info_id) : null
-      }).returning();
+      const propertyData = await db.select({
+        name: properties.name
+      })
+      .from(properties)
+      .where(eq(properties.id, Number(propertyId)))
+      .limit(1);
 
-      logger.info(`Successfully created tenant history entry with ID: ${newEntry[0].id}`);
+      if (propertyData.length > 0) {
+        finalPropertyName = propertyData[0].name;
+      }
+    } catch (error) {
+      logger.error('Error fetching property name:', error);
+    }
+  }
+
+  try {
+    // Création de l'entrée dans la base de données avec Drizzle ORM
+    const newEntry = await db.insert(tenantHistory).values({
+      rating: rating ? Number(rating) : 0,
+      feedback: feedback || null,
+      category: category || "general",
+      tenantFullName: tenantFullName || null,
+      eventType: eventType || "evaluation",
+      eventSeverity: eventSeverity ? Number(eventSeverity) : 0,
+      eventDetails: eventDetails ? JSON.parse(eventDetails) : {},
+      documents: documentPaths.length > 0 ? documentPaths : [],
+      bailStatus: bailStatus || null,
+      bailId: bailId ? Number(bailId) : null,
+      propertyName: finalPropertyName || null,
+      createdBy: userId,
+      tenantId: tenantId ? Number(tenantId) : null,
+      tenant_info_id: tenant_info_id ? Number(tenant_info_id) : null
+    }).returning();
+
+    logger.info(`Successfully created tenant history entry with ID: ${newEntry[0].id}`);
       
       // Réinitialiser le search_path après utilisation
       await db.execute(sql`SET search_path TO public`);
       
-      res.status(201).json(newEntry[0]);
+    res.status(201).json(newEntry[0]);
     } catch (error: any) {
-      // Si Drizzle échoue, essayer avec une requête SQL directe
-      logger.warn('Erreur avec Drizzle ORM, tentative avec SQL direct:', error);
+    // Si Drizzle échoue, essayer avec une requête SQL directe
+    logger.warn('Erreur avec Drizzle ORM, tentative avec SQL direct:', error);
 
-      try {
+    try {
         // Recréer la requête SQL avec sql tag
         const result = await db.execute(sql`
           INSERT INTO tenant_history 
-          (rating, feedback, category, tenant_full_name, event_type, event_severity, 
-           event_details, documents, bail_status, bail_id, property_name, 
-           created_by, tenant_id, tenant_info_id, created_at)
+        (rating, feedback, category, tenant_full_name, event_type, event_severity, 
+         event_details, documents, bail_status, bail_id, property_name, 
+         created_by, tenant_id, tenant_info_id, created_at)
           VALUES (
             ${rating ? Number(rating) : 0},
             ${feedback || null},
@@ -783,28 +783,28 @@ router.post('/', uploadMiddleware, asyncHandler(async (req, res) => {
             ${tenant_info_id ? Number(tenant_info_id) : null},
             NOW()
           )
-          RETURNING *
+        RETURNING *
         `);
 
-        logger.info(`Successfully created tenant history entry with SQL direct: ${result.rows[0].id}`);
+      logger.info(`Successfully created tenant history entry with SQL direct: ${result.rows[0].id}`);
         
         // Réinitialiser le search_path après utilisation
         await db.execute(sql`SET search_path TO public`);
         
-        res.status(201).json(result.rows[0]);
+      res.status(201).json(result.rows[0]);
       } catch (sqlError: any) {
-        logger.error('Erreur avec SQL direct aussi:', sqlError);
+      logger.error('Erreur avec SQL direct aussi:', sqlError);
         
         // Réinitialiser le search_path en cas d'erreur
         await db.execute(sql`SET search_path TO public`).catch(() => {});
         
-        res.status(500).json({ 
-          error: 'Erreur lors de la création de l\'entrée d\'historique', 
-          details: error.message,
-          sqlError: sqlError.message 
-        });
-      }
+      res.status(500).json({ 
+        error: 'Erreur lors de la création de l\'entrée d\'historique', 
+        details: error.message,
+        sqlError: sqlError.message 
+      });
     }
+  }
   } catch (error: any) {
     logger.error('Error during tenant history creation:', error);
     

@@ -12,20 +12,33 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { formSubmissions } from '../schema/links';
+import { getClientSchemaName, getClientSubdirectory } from '../utils/storage-helpers';
 
 const router = express.Router();
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'logos');
+    const userId = getUserId(req);
     
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    if (userId) {
+      // Utiliser le dossier spécifique au client pour les uploads de logos
+      const clientSchema = getClientSchemaName(userId);
+      const clientLogosDir = getClientSubdirectory(userId, 'logos');
+      logger.info(`Upload de logo: utilisation du dossier client ${clientSchema}/logos`);
+      cb(null, clientLogosDir);
+    } else {
+      // Fallback sur le répertoire legacy si pas d'utilisateur
+      const uploadDir = path.join(process.cwd(), 'uploads', 'logos');
+      
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      logger.info('Upload de logo: utilisation du dossier legacy');
+      cb(null, uploadDir);
     }
-    
-    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const userId = req.user?.id;
@@ -57,14 +70,26 @@ const logoUpload = multer({
 // Configure multer for background uploads
 const backgroundStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'backgrounds');
+    const userId = getUserId(req);
     
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    if (userId) {
+      // Utiliser le dossier spécifique au client pour les uploads d'arrière-plans
+      const clientSchema = getClientSchemaName(userId);
+      const clientBackgroundsDir = getClientSubdirectory(userId, 'backgrounds');
+      logger.info(`Upload d'arrière-plan: utilisation du dossier client ${clientSchema}/backgrounds`);
+      cb(null, clientBackgroundsDir);
+    } else {
+      // Fallback sur le répertoire legacy si pas d'utilisateur
+      const uploadDir = path.join(process.cwd(), 'uploads', 'backgrounds');
+      
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      logger.info('Upload d\'arrière-plan: utilisation du dossier legacy');
+      cb(null, uploadDir);
     }
-    
-    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const userId = req.user?.id;
@@ -85,14 +110,26 @@ const backgroundUpload = multer({
 // Configure multer for link icon uploads
 const linkImageStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'link-images');
+    const userId = getUserId(req);
     
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    if (userId) {
+      // Utiliser le dossier spécifique au client pour les uploads d'images de liens
+      const clientSchema = getClientSchemaName(userId);
+      const clientLinkImagesDir = getClientSubdirectory(userId, 'link-images');
+      logger.info(`Upload d'image de lien: utilisation du dossier client ${clientSchema}/link-images`);
+      cb(null, clientLinkImagesDir);
+    } else {
+      // Fallback sur le répertoire legacy si pas d'utilisateur
+      const uploadDir = path.join(process.cwd(), 'uploads', 'link-images');
+      
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      logger.info('Upload d\'image de lien: utilisation du dossier legacy');
+      cb(null, uploadDir);
     }
-    
-    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const userId = req.user?.id;
@@ -146,82 +183,107 @@ router.get('/profile', authenticateMiddleware, async (req, res) => {
       });
     }
     
-    // Check if the user already has a link profile
-    const linkProfile = await db.query.linkProfiles.findFirst({
-      where: eq(linkProfiles.userId, userId),
-      with: {
-        links: true
-      }
-    });
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
     
-    if (!linkProfile) {
-      // Create a default profile if none exists
-      const userInfo = await db.query.users.findFirst({
-        where: eq(users.id, userId),
-        columns: {
-          fullName: true
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
+    
+    try {
+      // Check if the user already has a link profile
+      const linkProfile = await db.query.linkProfiles.findFirst({
+        where: eq(linkProfiles.userId, userId),
+        with: {
+          links: true
         }
       });
       
-      const fullName = userInfo?.fullName || 'user';
-      const slugBase = fullName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      
-      // Generate a unique slug
-      let slug = slugBase;
-      let counter = 1;
-      let slugExists = true;
-      
-      while (slugExists) {
-        const existingProfile = await db.query.linkProfiles.findFirst({
-          where: eq(linkProfiles.slug, slug)
+      if (!linkProfile) {
+        // Create a default profile if none exists
+        const userInfo = await db.query.users.findFirst({
+          where: eq(users.id, userId),
+          columns: {
+            fullName: true
+          }
         });
         
-        if (!existingProfile) {
-          slugExists = false;
-        } else {
-          slug = `${slugBase}-${counter}`;
-          counter++;
+        const fullName = userInfo?.fullName || 'user';
+        const slugBase = fullName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        
+        // Generate a unique slug
+        let slug = slugBase;
+        let counter = 1;
+        let slugExists = true;
+        
+        while (slugExists) {
+          const existingProfile = await db.query.linkProfiles.findFirst({
+            where: eq(linkProfiles.slug, slug)
+          });
+          
+          if (!existingProfile) {
+            slugExists = false;
+          } else {
+            slug = `${slugBase}-${counter}`;
+            counter++;
+          }
         }
+        
+        // Create a new profile
+        const newProfile = await db.insert(linkProfiles).values({
+          userId,
+          slug,
+          title: 'Mon Linktree',
+          description: 'Tous mes liens professionnels en un seul endroit',
+          backgroundColor: '#ffffff',
+          textColor: '#000000',
+          accentColor: '#70C7BA',
+          logoUrl: '',
+          views: 0,
+          backgroundSaturation: 100,
+          backgroundHueRotate: 0,
+          backgroundSepia: 0,
+          backgroundGrayscale: 0,
+          backgroundInvert: 0,
+          backgroundColorFilter: null,
+          backgroundColorFilterOpacity: 0.3,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }).returning();
+        
+        // Réinitialiser le search_path avant de quitter
+        await db.execute(sql`SET search_path TO public`);
+        logger.info('Search path réinitialisé à "public"');
+        
+        return res.json({
+          success: true,
+          data: {
+            ...newProfile[0],
+            links: []
+          }
+        });
       }
       
-      // Create a new profile
-      const newProfile = await db.insert(linkProfiles).values({
-        userId,
-        slug,
-        title: 'Mon Linktree',
-        description: 'Tous mes liens professionnels en un seul endroit',
-        backgroundColor: '#ffffff',
-        textColor: '#000000',
-        accentColor: '#70C7BA',
-        logoUrl: '',
-        views: 0,
-        backgroundSaturation: 100,
-        backgroundHueRotate: 0,
-        backgroundSepia: 0,
-        backgroundGrayscale: 0,
-        backgroundInvert: 0,
-        backgroundColorFilter: null,
-        backgroundColorFilterOpacity: 0.3,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning();
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
       
       return res.json({
         success: true,
-        data: {
-          ...newProfile[0],
-          links: []
-        }
+        data: linkProfile
+      });
+    } finally {
+      // S'assurer que le search_path est réinitialisé même en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(err => {
+        logger.error('Erreur lors de la réinitialisation du search_path:', err);
       });
     }
-    
-    return res.json({
-      success: true,
-      data: linkProfile
-    });
-    
   } catch (error) {
     logger.error('Error fetching link profile:', error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du profil de liens'
@@ -241,6 +303,13 @@ router.post('/profile', authenticateMiddleware, async (req, res) => {
       });
     }
     
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
+    
     const profileData = req.body;
     logger.info(`Mise à jour du profil pour l'utilisateur ${userId}`);
     logger.info(`Nombre de liens reçus: ${profileData.links?.length || 0}`);
@@ -253,213 +322,230 @@ router.post('/profile', authenticateMiddleware, async (req, res) => {
       });
     }
     
-    // Check if the profile belongs to the user
-    const existingProfile = await db.query.linkProfiles.findFirst({
-      where: eq(linkProfiles.userId, userId)
-    });
-    
-    if (!existingProfile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profil non trouvé'
-      });
-    }
-    
-    // Check if the slug is unique
-    if (profileData.slug !== existingProfile.slug) {
-      const slugExists = await db.query.linkProfiles.findFirst({
-        where: eq(linkProfiles.slug, profileData.slug)
+    try {
+      // Check if the profile belongs to the user
+      const existingProfile = await db.query.linkProfiles.findFirst({
+        where: eq(linkProfiles.userId, userId)
       });
       
-      if (slugExists) {
-        return res.status(400).json({
+      if (!existingProfile) {
+        // Réinitialiser le search_path avant de quitter
+        await db.execute(sql`SET search_path TO public`);
+        logger.info('Search path réinitialisé à "public"');
+        return res.status(404).json({
           success: false,
-          message: 'Ce lien personnalisé est déjà utilisé'
+          message: 'Profil non trouvé'
         });
       }
-    }
-    
-    // Check if background image was removed and delete the file if needed
-    if (existingProfile.backgroundImage && (!profileData.backgroundImage || profileData.backgroundImage === '')) {
-      const oldBackgroundPath = path.join(process.cwd(), existingProfile.backgroundImage.replace(/^\//, ''));
       
-      if (fs.existsSync(oldBackgroundPath)) {
-        try {
-          fs.unlinkSync(oldBackgroundPath);
-          logger.info(`Deleted background image: ${oldBackgroundPath}`);
-        } catch (err) {
-          logger.error('Error deleting background image:', err);
+      // Check if the slug is unique
+      if (profileData.slug !== existingProfile.slug) {
+        const slugExists = await db.query.linkProfiles.findFirst({
+          where: eq(linkProfiles.slug, profileData.slug)
+        });
+        
+        if (slugExists) {
+          return res.status(400).json({
+            success: false,
+            message: 'Ce lien personnalisé est déjà utilisé'
+          });
         }
       }
-    }
-    
-    // Update the profile
-    await db.update(linkProfiles)
-      .set({
-        slug: profileData.slug,
-        title: profileData.title,
-        description: profileData.description,
-        backgroundColor: profileData.backgroundColor,
-        textColor: profileData.textColor,
-        accentColor: profileData.accentColor,
-        logoUrl: profileData.logoUrl,
-        backgroundImage: profileData.backgroundImage,
-        backgroundPattern: profileData.backgroundPattern,
-        buttonStyle: profileData.buttonStyle,
-        buttonRadius: profileData.buttonRadius,
-        fontFamily: profileData.fontFamily,
-        animation: profileData.animation,
-        customCss: profileData.customCss,
-        customTheme: profileData.customTheme,
-        backgroundSaturation: profileData.backgroundSaturation,
-        backgroundHueRotate: profileData.backgroundHueRotate,
-        backgroundSepia: profileData.backgroundSepia,
-        backgroundGrayscale: profileData.backgroundGrayscale,
-        backgroundInvert: profileData.backgroundInvert,
-        backgroundColorFilter: profileData.backgroundColorFilter,
-        backgroundColorFilterOpacity: profileData.backgroundColorFilterOpacity || 0.3,
-        updatedAt: new Date()
-      })
-      .where(eq(linkProfiles.id, existingProfile.id));
-    
-    // Remplacer la suppression et recréation par une mise à jour intelligente
-    logger.info(`Mise à jour des liens pour le profil ${existingProfile.id}`);
-    
-    // Obtenir tous les liens existants
-    const existingLinks = await db.query.links.findMany({
-      where: eq(links.profileId, existingProfile.id)
-    });
-    
-    // Identifier les IDs des liens existants
-    const existingLinkIds = existingLinks.map(link => link.id);
-    const newLinkIds = profileData.links?.map(link => parseInt(String(link.id), 10)).filter(id => !isNaN(id)) || [];
-    
-    // Trouver les liens à supprimer (ceux qui n'ont pas de soumissions)
-    const linksToDelete = existingLinks.filter(link => !newLinkIds.includes(link.id));
-    
-    // Vérifier si chaque lien à supprimer a des soumissions
-    for (const link of linksToDelete) {
-      // Vérifier s'il y a des soumissions pour ce lien
-      const submissionCount = await db.query.formSubmissions.findMany({
-        where: eq(formSubmissions.linkId, link.id),
-        limit: 1
+      
+      // Check if background image was removed and delete the file if needed
+      if (existingProfile.backgroundImage && (!profileData.backgroundImage || profileData.backgroundImage === '')) {
+        const oldBackgroundPath = path.join(process.cwd(), existingProfile.backgroundImage.replace(/^\//, ''));
+        
+        if (fs.existsSync(oldBackgroundPath)) {
+          try {
+            fs.unlinkSync(oldBackgroundPath);
+            logger.info(`Deleted background image: ${oldBackgroundPath}`);
+          } catch (err) {
+            logger.error('Error deleting background image:', err);
+          }
+        }
+      }
+      
+      // Update the profile
+      await db.update(linkProfiles)
+        .set({
+          slug: profileData.slug,
+          title: profileData.title,
+          description: profileData.description,
+          backgroundColor: profileData.backgroundColor,
+          textColor: profileData.textColor,
+          accentColor: profileData.accentColor,
+          logoUrl: profileData.logoUrl,
+          backgroundImage: profileData.backgroundImage,
+          backgroundPattern: profileData.backgroundPattern,
+          buttonStyle: profileData.buttonStyle,
+          buttonRadius: profileData.buttonRadius,
+          fontFamily: profileData.fontFamily,
+          animation: profileData.animation,
+          customCss: profileData.customCss,
+          customTheme: profileData.customTheme,
+          backgroundSaturation: profileData.backgroundSaturation,
+          backgroundHueRotate: profileData.backgroundHueRotate,
+          backgroundSepia: profileData.backgroundSepia,
+          backgroundGrayscale: profileData.backgroundGrayscale,
+          backgroundInvert: profileData.backgroundInvert,
+          backgroundColorFilter: profileData.backgroundColorFilter,
+          backgroundColorFilterOpacity: profileData.backgroundColorFilterOpacity || 0.3,
+          updatedAt: new Date()
+        })
+        .where(eq(linkProfiles.id, existingProfile.id));
+      
+      // Remplacer la suppression et recréation par une mise à jour intelligente
+      logger.info(`Mise à jour des liens pour le profil ${existingProfile.id}`);
+      
+      // Obtenir tous les liens existants
+      const existingLinks = await db.query.links.findMany({
+        where: eq(links.profileId, existingProfile.id)
       });
       
-      if (submissionCount.length === 0) {
-        // Pas de soumissions, on peut supprimer en toute sécurité
-        try {
-          await db.delete(links)
-            .where(eq(links.id, link.id));
-          logger.info(`Lien ${link.id} supprimé car il n'a pas de soumissions`);
-        } catch (deleteError) {
-          logger.error(`Erreur lors de la suppression du lien ${link.id}:`, deleteError);
-        }
-      } else {
-        // Il y a des soumissions, on désactive le lien au lieu de le supprimer
-        try {
-          await db.update(links)
-            .set({ 
-              enabled: false,
-              updatedAt: new Date() 
-            })
-            .where(eq(links.id, link.id));
-          logger.info(`Lien ${link.id} désactivé car il a des soumissions`);
-        } catch (updateError) {
-          logger.error(`Erreur lors de la désactivation du lien ${link.id}:`, updateError);
-        }
-      }
-    }
-    
-    // Traiter les nouveaux liens et mettre à jour les liens existants
-    if (profileData.links && profileData.links.length > 0) {
-      for (const link of profileData.links) {
-        // Vérifier si c'est un nouveau lien (propriété isNew) ou un lien existant avec un ID
-        const isNewLink = link.isNew === true || !link.id;
-        const linkId = !isNewLink ? parseInt(String(link.id), 10) : NaN;
+      // Identifier les IDs des liens existants
+      const existingLinkIds = existingLinks.map(link => link.id);
+      const newLinkIds = profileData.links?.map(link => parseInt(String(link.id), 10)).filter(id => !isNaN(id)) || [];
+      
+      // Trouver les liens à supprimer (ceux qui n'ont pas de soumissions)
+      const linksToDelete = existingLinks.filter(link => !newLinkIds.includes(link.id));
+      
+      // Vérifier si chaque lien à supprimer a des soumissions
+      for (const link of linksToDelete) {
+        // Vérifier s'il y a des soumissions pour ce lien
+        const submissionCount = await db.query.formSubmissions.findMany({
+          where: eq(formSubmissions.linkId, link.id),
+          limit: 1
+        });
         
-        if (!isNewLink && !isNaN(linkId) && existingLinkIds.includes(linkId)) {
-          // C'est un lien existant à mettre à jour
-        try {
-            logger.info(`Mise à jour du lien ${linkId}: "${link.title}"`);
-            
-            await db.update(links)
-              .set({
-                title: link.title,
-                url: link.url || '',
-                icon: link.icon || null,
-                enabled: link.enabled,
-                position: link.position || 0,
-                featured: link.featured || false,
-                customColor: link.customColor || null,
-                customTextColor: link.customTextColor || null,
-                animation: link.animation || null,
-                type: link.type || 'link',
-                formDefinition: link.formDefinition || null,
-                updatedAt: new Date()
-              })
-              .where(eq(links.id, linkId));
-            
-            logger.info(`Lien ${linkId} mis à jour avec succès`);
-          } catch (updateError) {
-            logger.error(`Erreur lors de la mise à jour du lien ${linkId}:`, updateError);
+        if (submissionCount.length === 0) {
+          // Pas de soumissions, on peut supprimer en toute sécurité
+          try {
+            await db.delete(links)
+              .where(eq(links.id, link.id));
+            logger.info(`Lien ${link.id} supprimé car il n'a pas de soumissions`);
+          } catch (deleteError) {
+            logger.error(`Erreur lors de la suppression du lien ${link.id}:`, deleteError);
           }
         } else {
-          // C'est un nouveau lien à créer
+          // Il y a des soumissions, on désactive le lien au lieu de le supprimer
           try {
-            logger.info(`Ajout d'un nouveau lien: "${link.title}"`);
-            
-            // Supprimer la propriété isNew avant l'insertion si elle existe
-            const linkData = { ...link };
-            delete linkData.isNew;
-          
-          await db.insert(links).values({
-            profileId: existingProfile.id,
-            title: link.title,
-            url: link.url || '',
-            icon: link.icon || null,
-            enabled: link.enabled,
-            clicks: link.clicks || 0,
-            position: link.position || 0,
-            featured: link.featured || false,
-            customColor: link.customColor || null,
-            customTextColor: link.customTextColor || null,
-            animation: link.animation || null,
-            type: link.type || 'link',
-            formDefinition: link.formDefinition || null,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
-          
-            logger.info(`Nouveau lien "${link.title}" ajouté avec succès`);
-          } catch (insertError) {
-            logger.error(`Erreur lors de l'ajout du lien ${link.title}:`, insertError);
+            await db.update(links)
+              .set({ 
+                enabled: false,
+                updatedAt: new Date() 
+              })
+              .where(eq(links.id, link.id));
+            logger.info(`Lien ${link.id} désactivé car il a des soumissions`);
+          } catch (updateError) {
+            logger.error(`Erreur lors de la désactivation du lien ${link.id}:`, updateError);
           }
         }
       }
-    }
-    
-    // Get updated profile
-    const updatedProfile = await db.query.linkProfiles.findFirst({
-      where: eq(linkProfiles.id, existingProfile.id),
-      with: {
-        links: true
+      
+      // Traiter les nouveaux liens et mettre à jour les liens existants
+      if (profileData.links && profileData.links.length > 0) {
+        for (const link of profileData.links) {
+          // Vérifier si c'est un nouveau lien (propriété isNew) ou un lien existant avec un ID
+          const isNewLink = link.isNew === true || !link.id;
+          const linkId = !isNewLink ? parseInt(String(link.id), 10) : NaN;
+          
+          if (!isNewLink && !isNaN(linkId) && existingLinkIds.includes(linkId)) {
+            // C'est un lien existant à mettre à jour
+          try {
+              logger.info(`Mise à jour du lien ${linkId}: "${link.title}"`);
+              
+              await db.update(links)
+                .set({
+                  title: link.title,
+                  url: link.url || '',
+                  icon: link.icon || null,
+                  enabled: link.enabled,
+                  position: link.position || 0,
+                  featured: link.featured || false,
+                  customColor: link.customColor || null,
+                  customTextColor: link.customTextColor || null,
+                  animation: link.animation || null,
+                  type: link.type || 'link',
+                  formDefinition: link.formDefinition || null,
+                  updatedAt: new Date()
+                })
+                .where(eq(links.id, linkId));
+              
+              logger.info(`Lien ${linkId} mis à jour avec succès`);
+            } catch (updateError) {
+              logger.error(`Erreur lors de la mise à jour du lien ${linkId}:`, updateError);
+            }
+          } else {
+            // C'est un nouveau lien à créer
+            try {
+              logger.info(`Ajout d'un nouveau lien: "${link.title}"`);
+              
+              // Supprimer la propriété isNew avant l'insertion si elle existe
+              const linkData = { ...link };
+              delete linkData.isNew;
+            
+            await db.insert(links).values({
+              profileId: existingProfile.id,
+              title: link.title,
+              url: link.url || '',
+              icon: link.icon || null,
+              enabled: link.enabled,
+              clicks: link.clicks || 0,
+              position: link.position || 0,
+              featured: link.featured || false,
+              customColor: link.customColor || null,
+              customTextColor: link.customTextColor || null,
+              animation: link.animation || null,
+              type: link.type || 'link',
+              formDefinition: link.formDefinition || null,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+            
+              logger.info(`Nouveau lien "${link.title}" ajouté avec succès`);
+            } catch (insertError) {
+              logger.error(`Erreur lors de l'ajout du lien ${link.title}:`, insertError);
+            }
+          }
+        }
       }
-    });
-    
-    logger.info(`Profil mis à jour avec ${updatedProfile?.links?.length || 0} liens`);
-    
-    if (updatedProfile?.links) {
-      const linksWithIcons = updatedProfile.links.filter(link => link.icon);
-      logger.info(`Nombre de liens avec icônes après mise à jour: ${linksWithIcons.length}`);
+      
+      // Get updated profile
+      const updatedProfile = await db.query.linkProfiles.findFirst({
+        where: eq(linkProfiles.id, existingProfile.id),
+        with: {
+          links: true
+        }
+      });
+      
+      logger.info(`Profil mis à jour avec ${updatedProfile?.links?.length || 0} liens`);
+      
+      if (updatedProfile?.links) {
+        const linksWithIcons = updatedProfile.links.filter(link => link.icon);
+        logger.info(`Nombre de liens avec icônes après mise à jour: ${linksWithIcons.length}`);
+      }
+      
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
+      
+      return res.json({
+        success: true,
+        data: updatedProfile
+      });
+    } finally {
+      // S'assurer que le search_path est réinitialisé même en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(err => {
+        logger.error('Erreur lors de la réinitialisation du search_path:', err);
+      });
     }
-    
-    return res.json({
-      success: true,
-      data: updatedProfile
-    });
-    
   } catch (error) {
     logger.error('Error updating link profile:', error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du profil de liens'
@@ -471,7 +557,7 @@ router.post('/profile', authenticateMiddleware, async (req, res) => {
 router.get('/profile/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
-    
+    // Note: Les profils publics restent dans le schéma public pour maintenir l'accès sans authentification    
     const linkProfile = await db.query.linkProfiles.findFirst({
       where: eq(linkProfiles.slug, slug),
       with: {
@@ -845,57 +931,78 @@ router.post('/upload-logo', authenticateMiddleware, logoUpload.single('logo'), h
       });
     }
     
-    // Check if file was uploaded
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Aucun fichier n\'a été téléchargé'
-      });
-    }
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
     
-    // Get the uploaded file path
-    const logoUrl = `/uploads/logos/${path.basename(req.file.path)}`;
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
     
-    // Get the user's profile
-    const profile = await db.query.linkProfiles.findFirst({
-      where: eq(linkProfiles.userId, userId)
-    });
-    
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profil non trouvé'
-      });
-    }
-    
-    // Delete old logo if exists
-    if (profile.logoUrl) {
-      const oldLogoPath = path.join(process.cwd(), profile.logoUrl.replace(/^\//, ''));
+    try {
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'Aucun fichier n\'a été téléchargé'
+        });
+      }
       
-      if (fs.existsSync(oldLogoPath)) {
-        try {
-          fs.unlinkSync(oldLogoPath);
-        } catch (err) {
-          logger.error('Error deleting old logo:', err);
+      // Get the uploaded file path
+      const logoUrl = `/uploads/${clientSchema}/logos/${path.basename(req.file.path)}`;
+      
+      // Get the user's profile
+      const profile = await db.query.linkProfiles.findFirst({
+        where: eq(linkProfiles.userId, userId)
+      });
+      
+      if (!profile) {
+        return res.status(404).json({
+          success: false,
+          message: 'Profil non trouvé'
+        });
+      }
+      
+      // Delete old logo if exists
+      if (profile.logoUrl) {
+        const oldLogoPath = path.join(process.cwd(), profile.logoUrl.replace(/^\//, ''));
+        
+        if (fs.existsSync(oldLogoPath)) {
+          try {
+            fs.unlinkSync(oldLogoPath);
+          } catch (err) {
+            logger.error('Error deleting old logo:', err);
+          }
         }
       }
+      
+      // Update the profile with new logo URL
+      await db.update(linkProfiles)
+        .set({
+          logoUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(linkProfiles.id, profile.id));
+      
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
+      
+      return res.json({
+        success: true,
+        logoUrl
+      });
+    } finally {
+      // S'assurer que le search_path est réinitialisé même en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(err => {
+        logger.error('Erreur lors de la réinitialisation du search_path:', err);
+      });
     }
-    
-    // Update the profile with new logo URL
-    await db.update(linkProfiles)
-      .set({
-        logoUrl,
-        updatedAt: new Date()
-      })
-      .where(eq(linkProfiles.id, profile.id));
-    
-    return res.json({
-      success: true,
-      logoUrl
-    });
-    
   } catch (error) {
     logger.error('Error uploading logo:', error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'upload du logo'
@@ -915,57 +1022,78 @@ router.post('/upload-background', authenticateMiddleware, backgroundUpload.singl
       });
     }
     
-    // Check if file was uploaded
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Aucun fichier n\'a été téléchargé'
-      });
-    }
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
     
-    // Get the uploaded file path
-    const backgroundUrl = `/uploads/backgrounds/${path.basename(req.file.path)}`;
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
     
-    // Get the user's profile
-    const profile = await db.query.linkProfiles.findFirst({
-      where: eq(linkProfiles.userId, userId)
-    });
-    
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profil non trouvé'
-      });
-    }
-    
-    // Delete old background if exists
-    if (profile.backgroundImage) {
-      const oldBackgroundPath = path.join(process.cwd(), profile.backgroundImage.replace(/^\//, ''));
+    try {
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'Aucun fichier n\'a été téléchargé'
+        });
+      }
       
-      if (fs.existsSync(oldBackgroundPath)) {
-        try {
-          fs.unlinkSync(oldBackgroundPath);
-        } catch (err) {
-          logger.error('Error deleting old background:', err);
+      // Get the uploaded file path
+      const backgroundUrl = `/uploads/${clientSchema}/backgrounds/${path.basename(req.file.path)}`;
+      
+      // Get the user's profile
+      const profile = await db.query.linkProfiles.findFirst({
+        where: eq(linkProfiles.userId, userId)
+      });
+      
+      if (!profile) {
+        return res.status(404).json({
+          success: false,
+          message: 'Profil non trouvé'
+        });
+      }
+      
+      // Delete old background if exists
+      if (profile.backgroundImage) {
+        const oldBackgroundPath = path.join(process.cwd(), profile.backgroundImage.replace(/^\//, ''));
+        
+        if (fs.existsSync(oldBackgroundPath)) {
+          try {
+            fs.unlinkSync(oldBackgroundPath);
+          } catch (err) {
+            logger.error('Error deleting old background:', err);
+          }
         }
       }
+      
+      // Update the profile with new background URL
+      await db.update(linkProfiles)
+        .set({
+          backgroundImage: backgroundUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(linkProfiles.id, profile.id));
+      
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
+      
+      return res.json({
+        success: true,
+        backgroundUrl
+      });
+    } finally {
+      // S'assurer que le search_path est réinitialisé même en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(err => {
+        logger.error('Erreur lors de la réinitialisation du search_path:', err);
+      });
     }
-    
-    // Update the profile with new background URL
-    await db.update(linkProfiles)
-      .set({
-        backgroundImage: backgroundUrl,
-        updatedAt: new Date()
-      })
-      .where(eq(linkProfiles.id, profile.id));
-    
-    return res.json({
-      success: true,
-      backgroundUrl
-    });
-    
   } catch (error) {
     logger.error('Error uploading background:', error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'upload de l\'image de fond'
@@ -987,29 +1115,50 @@ router.post('/upload-link-image', authenticateMiddleware, linkImageUpload.single
       });
     }
     
-    // Check if file was uploaded
-    if (!req.file) {
-      logger.error('Upload image - Aucun fichier téléchargé');
-      return res.status(400).json({
-        success: false,
-        message: 'Aucun fichier n\'a été téléchargé'
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
+    
+    try {
+      // Check if file was uploaded
+      if (!req.file) {
+        logger.error('Upload image - Aucun fichier téléchargé');
+        return res.status(400).json({
+          success: false,
+          message: 'Aucun fichier n\'a été téléchargé'
+        });
+      }
+      
+      logger.info(`Fichier téléchargé: ${req.file.path}`);
+      
+      // Get the uploaded file path
+      const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
+      logger.info(`URL de l'image: ${imageUrl}`);
+      
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
+      
+      // Return the image URL
+      return res.json({
+        success: true,
+        imageUrl
+      });
+    } finally {
+      // S'assurer que le search_path est réinitialisé même en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(err => {
+        logger.error('Erreur lors de la réinitialisation du search_path:', err);
       });
     }
-    
-    logger.info(`Fichier téléchargé: ${req.file.path}`);
-    
-    // Get the uploaded file path
-    const imageUrl = `/uploads/link-images/${path.basename(req.file.path)}`;
-    logger.info(`URL de l'image: ${imageUrl}`);
-    
-    // Return the image URL
-    return res.json({
-      success: true,
-      imageUrl
-    });
-    
   } catch (error) {
     logger.error('Error uploading link image:', error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'upload de l\'image'
@@ -1030,25 +1179,46 @@ router.post('/upload-link-icon', authenticateMiddleware, linkImageUpload.single(
       });
     }
     
-    // Check if file was uploaded
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Aucun fichier n\'a été téléchargé'
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
+    
+    try {
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'Aucun fichier n\'a été téléchargé'
+        });
+      }
+      
+      // Get the uploaded file path
+      const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
+      
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
+      
+      // Return the URL as iconUrl for backward compatibility
+      return res.json({
+        success: true,
+        iconUrl: imageUrl // Keep old property name for compatibility
+      });
+    } finally {
+      // S'assurer que le search_path est réinitialisé même en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(err => {
+        logger.error('Erreur lors de la réinitialisation du search_path:', err);
       });
     }
-    
-    // Get the uploaded file path
-    const imageUrl = `/uploads/link-images/${path.basename(req.file.path)}`;
-    
-    // Return the URL as iconUrl for backward compatibility
-    return res.json({
-      success: true,
-      iconUrl: imageUrl // Keep old property name for compatibility
-    });
-    
   } catch (error) {
     logger.error('Error uploading link icon (legacy endpoint):', error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'upload de l\'image'
@@ -1059,6 +1229,22 @@ router.post('/upload-link-icon', authenticateMiddleware, linkImageUpload.single(
 // Get form submissions for a link
 router.get('/form-submissions/:linkId', authenticateMiddleware, async (req, res) => {
   try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Utilisateur non authentifié'
+      });
+    }
+    
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
+    
     // Récupérer les soumissions sans filtrage
     try {
       // Connexion directe à la base de données
@@ -1072,11 +1258,11 @@ router.get('/form-submissions/:linkId', authenticateMiddleware, async (req, res)
       console.log("TOUTES LES SOUMISSIONS:", JSON.stringify(allSubmissionsResult.rows, null, 2));
       
       // Aussi, récupérer les soumissions pour le lien demandé
-    const linkId = parseInt(req.params.linkId);
+      const linkId = parseInt(req.params.linkId);
       console.log("RECHERCHE POUR LINKID:", linkId);
       
       // Transformer les résultats
-      const submissions = allSubmissionsResult.rows.map(row => ({
+      const submissions = allSubmissionsResult.rows.map((row: any) => ({
         id: row.id,
         linkId: row.link_id,
         formData: row.form_data,
@@ -1085,23 +1271,33 @@ router.get('/form-submissions/:linkId', authenticateMiddleware, async (req, res)
       
       // Filtrer côté serveur pour éviter les problèmes SQL
       const filteredSubmissions = linkId 
-        ? submissions.filter(sub => sub.linkId === linkId)
+        ? submissions.filter((sub: any) => sub.linkId === linkId)
         : submissions;
       
       console.log("SOUMISSIONS FILTRÉES:", JSON.stringify(filteredSubmissions, null, 2));
+      
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
         
-        return res.json({
-          success: true,
+      return res.json({
+        success: true,
         data: filteredSubmissions
-        });
-    } catch (error) {
-      console.error('Erreur complète:', error);
+      });
+    } catch (dbError: any) {
+      // Réinitialiser le search_path en cas d'erreur
+      await db.execute(sql`SET search_path TO public`).catch(() => {});
+      
+      console.error('Erreur complète:', dbError);
       return res.status(500).json({
         success: false,
         message: 'Erreur lors de la récupération des soumissions'
       });
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    
     console.error('Erreur générale:', error);
     return res.status(500).json({
       success: false,

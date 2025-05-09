@@ -106,6 +106,7 @@ interface LinkProfile {
   backgroundInvert?: number;
   backgroundColorFilter?: string;
   backgroundColorFilterOpacity?: number;
+  is_paused?: boolean; // New field for pause status
 }
 
 const defaultProfile: LinkProfile = {
@@ -1395,6 +1396,48 @@ export default function LinksPage() {
     );
   }
 
+  // Mutation pour activer/désactiver le mode pause
+  const togglePauseMutation = useMutation({
+    mutationFn: async (isPaused: boolean) => {
+      const response = await apiRequest('/api/links/profile/toggle-pause', {
+        method: 'PATCH',
+        body: JSON.stringify({ isPaused })
+      });
+      return response;
+    },
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['linkProfile'] });
+      const { isPaused } = response.data;
+      
+      // Mise à jour du profil local
+      setProfile(prev => ({
+        ...prev,
+        is_paused: isPaused
+      }));
+      
+      toast({
+        title: isPaused ? "Profil en pause" : "Profil activé",
+        description: isPaused 
+          ? "Votre profil n'est plus accessible publiquement."
+          : "Votre profil est maintenant accessible publiquement.",
+        variant: "default"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier l'état de pause du profil.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Gestionnaire pour toggle pause
+  const handleTogglePause = () => {
+    const newPauseState = !(profile.is_paused || false);
+    togglePauseMutation.mutate(newPauseState);
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="flex flex-col space-y-6">
@@ -1783,18 +1826,55 @@ export default function LinksPage() {
                             </div>
                             
                             <div className="space-y-2">
-                              <Label htmlFor="profileSlug">URL personnalisée</Label>
-                              <div className="flex items-center gap-2">
-                                <div className="bg-muted px-3 py-2 rounded-l-md text-sm text-muted-foreground border border-r-0 border-muted-foreground/20">
+                              <Label htmlFor="profileSlug">Nom d'utilisateur / Slug</Label>
+                              <div className="flex items-center">
+                                <span className="bg-muted/50 px-3 py-2 rounded-l-md border-y border-l border-muted-foreground/20 text-muted-foreground text-sm">
                                   {window.location.origin}/u/
-                                </div>
+                                </span>
                                 <Input
                                   id="profileSlug"
                                   value={profile.slug}
                                   onChange={(e) => handleSlugChange(e.target.value)}
-                                  placeholder="mon-nom"
-                                  className="rounded-l-none bg-background/50 border-muted-foreground/20"
+                                  placeholder="votreidentifiant"
+                                  className="bg-background/50 border-muted-foreground/20 rounded-l-none"
                                 />
+                              </div>
+                              <p className="text-xs text-muted-foreground">L'URL de votre profil public</p>
+                            </div>
+                            
+                            <div className="space-y-2 pt-4 border-t border-muted-foreground/10">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <Label className="text-lg">État du profil</Label>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {profile.is_paused ? 
+                                      "Votre profil n'est actuellement pas visible publiquement." : 
+                                      "Votre profil est actuellement visible publiquement."}
+                                  </p>
+                                </div>
+                                <Button 
+                                  variant={profile.is_paused ? "default" : "outline"}
+                                  className={profile.is_paused ? "bg-emerald-600 hover:bg-emerald-700" : "border-amber-500 text-amber-600 hover:bg-amber-50"}
+                                  onClick={handleTogglePause}
+                                  disabled={togglePauseMutation.isPending}
+                                >
+                                  {togglePauseMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Chargement...
+                                    </>
+                                  ) : profile.is_paused ? (
+                                    <>
+                                      <Unlock className="mr-2 h-4 w-4" />
+                                      Activer le profil
+                                    </>
+                                  ) : (
+                                    <>
+                                      <AlertTriangle className="mr-2 h-4 w-4" />
+                                      Mettre en pause
+                                    </>
+                                  )}
+                                </Button>
                               </div>
                             </div>
                           </div>

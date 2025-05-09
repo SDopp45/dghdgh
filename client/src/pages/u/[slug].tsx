@@ -383,13 +383,28 @@ export default function UserLinkPage() {
                   
                   {expandedFormId === link.id && (
                     <div 
-                      className="p-4 border-t transition-all"
+                      className="p-4 border-t transition-all form-container-optimized"
                       style={{
-                      borderColor: link.customColor || profile.accentColor || '#70C7BA',
-                        backgroundColor: profile.backgroundColor || '#ffffff',
+                        borderColor: link.customColor || profile.accentColor || '#70C7BA',
+                        backgroundColor: profile.buttonStyle === 'glassmorphism' 
+                          ? 'rgba(255, 255, 255, 0.1)' 
+                          : profile.backgroundColor || '#ffffff',
+                        borderRadius: `0 0 ${profile.buttonRadius || 8}px ${profile.buttonRadius || 8}px`,
+                        boxShadow: profile.buttonStyle === 'shadow' 
+                          ? `0 4px 6px ${profile.buttonShadowColor || 'rgba(0, 0, 0, 0.1)'}` 
+                          : profile.buttonStyle === 'neon'
+                          ? `0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 20px ${link.customColor || profile.accentColor || '#70C7BA'}50`
+                          : 'none',
+                        backdropFilter: profile.buttonStyle === 'glassmorphism' 
+                          ? `blur(${profile.buttonGlassBlur || 10}px)` 
+                          : 'none',
                         fontFamily: profile.fontFamily || 'Inter',
                         position: 'relative',
                         zIndex: 20,
+                        color: link.customTextColor || profile.textColor || '#000000',
+                        animation: (link.animation || profile.animation) && (link.animation || profile.animation) !== 'none' 
+                          ? `${link.animation || profile.animation}Animation 0.5s ease forwards` 
+                          : undefined,
                       }}
                     >
                       <form
@@ -597,28 +612,29 @@ export default function UserLinkPage() {
                         
                         <button
                           type="submit"
-                          className={`w-full p-3 rounded-md text-center font-medium transition-all ${
-                            profile.buttonStyle ? profile.buttonStyle : ''
+                          className={`w-full p-3 rounded-md border transition-all hover:opacity-90 ${
+                            profile.buttonStyle ? `button-style-${profile.buttonStyle}` : ''
                           }`}
                           style={{
-                            backgroundColor: profile.buttonStyle === 'gradient' 
-                              ? undefined 
-                              : link.customColor || profile.accentColor || '#70C7BA',
-                            backgroundImage: profile.buttonStyle === 'gradient' 
-                              ? `linear-gradient(to right, ${link.customColor || profile.accentColor || '#70C7BA'}, ${profile.backgroundColor})` 
-                              : undefined,
-                            color: link.customTextColor || profile.textColor || '#000000',
-                            borderRadius: profile.buttonRadius ? `${profile.buttonRadius}px` : '8px',
+                            backgroundColor: link.customColor || profile.accentColor || '#70C7BA',
+                            borderColor: link.customColor || profile.accentColor || '#70C7BA',
+                            color: link.customTextColor || '#ffffff',
+                            borderRadius: profile.buttonStyle === 'pill' 
+                              ? '9999px' 
+                              : profile.buttonStyle === 'square'
+                              ? '0'
+                              : profile.buttonRadius 
+                              ? `${profile.buttonRadius}px` 
+                              : '8px',
                             boxShadow: profile.buttonStyle === 'shadow' 
                               ? `0 4px 6px ${profile.buttonShadowColor || 'rgba(0, 0, 0, 0.1)'}` 
                               : profile.buttonStyle === 'neon'
                               ? `0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 20px ${link.customColor || profile.accentColor || '#70C7BA'}50`
                               : 'none',
                             borderWidth: profile.buttonStyle === 'outline' ? '2px' : '1px',
-                            borderColor: link.customColor || profile.accentColor || '#70C7BA',
-                            fontFamily: profile.fontFamily || 'Inter',
-                            transform: profile.buttonHoverTransform || 'scale(1)',
-                            transition: profile.buttonHoverTransition || 'all 0.2s ease',
+                            background: profile.buttonStyle === 'gradient' && profile.buttonGradientStart && profile.buttonGradientEnd
+                              ? `linear-gradient(${profile.buttonGradientDirection || '45deg'}, ${profile.buttonGradientStart}, ${profile.buttonGradientEnd})`
+                              : undefined,
                             backdropFilter: profile.buttonStyle === 'glassmorphism' 
                               ? `blur(${profile.buttonGlassBlur || 10}px)` 
                               : 'none',
@@ -628,6 +644,11 @@ export default function UserLinkPage() {
                             position: 'relative', 
                             zIndex: 25,
                             pointerEvents: 'auto',
+                            fontFamily: profile.fontFamily || 'Inter',
+                            fontWeight: 'bold',
+                            transform: 'translateZ(0)',
+                            transition: 'all 0.2s ease',
+                            marginTop: '8px'
                           }}
                         >
                           Envoyer

@@ -176,6 +176,32 @@ router.post('/register', async (req: Request, res: Response) => {
     // Créer un schéma pour ce nouvel utilisateur avec la fonction standardisée
     await createClientSchema(newUser.id);
     
+    // Créer automatiquement un profil de liens pour le nouvel utilisateur
+    try {
+      const clientSchema = `client_${newUser.id}`;
+      // Définir le search_path pour ce client
+      await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+      
+      // Créer un slug à partir du nom d'utilisateur
+      const slug = username.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      
+      // Insérer le profil initial de liens
+      await db.execute(sql`
+        INSERT INTO link_profiles
+        (user_id, slug, title, description, created_at, updated_at)
+        VALUES
+        (${newUser.id}, ${slug}, 'Mon Profil', 'Tous mes liens professionnels en un seul endroit', NOW(), NOW())
+      `);
+      
+      logger.info(`Profil de liens initial créé pour l'utilisateur ${newUser.id} avec slug ${slug}`);
+      
+      // Réinitialiser le search_path
+      await db.execute(sql`SET search_path TO public`);
+    } catch (profileError) {
+      logger.error(`Erreur lors de la création du profil de liens pour l'utilisateur ${newUser.id}:`, profileError);
+      // Ne pas bloquer la création du compte si le profil de liens ne peut pas être créé
+    }
+    
     // Configurer la session pour le nouvel utilisateur
     req.session.userId = newUser.id;
     req.session.username = newUser.username;

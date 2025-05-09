@@ -5,12 +5,12 @@ import { Pool } from 'pg';
 import { tenantHistory, tenants, properties, users, documents as documentsTable, tenantDocuments } from '@shared/schema';
 import logger from '../utils/logger';
 import { asyncHandler } from '../utils/asyncHandler';
-import { getUserFromSession, getUserId } from '../utils/session';
+import { getUserFromSession } from '../utils/session';
+import { ensureAuth, getUserId } from '../middleware/auth';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
 import { AppError } from '../middleware/errorHandler';
-import { ensureAuth } from '../middleware/auth';
 import { getClientSchemaName, getClientSubdirectory } from '../utils/storage-helpers';
 
 // Accès à la base de données

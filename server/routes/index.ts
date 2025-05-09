@@ -3,6 +3,9 @@ import path from "path";
 import fs from "fs";
 import logger from "../utils/logger";
 import { authenticateMiddleware } from "../middleware/auth";
+import { Request, Response } from "express";
+import { requireAdmin } from "../middleware/auth";
+import { asyncHandler } from "../utils/asyncHandler";
 
 // Middleware pour les uploads
 import multer from "multer";
@@ -28,6 +31,9 @@ import contractsRoutes from "./contracts";
 import linksRoutes from "./links";
 import staticsRoutes from "./statics";
 import storageRoutes from "./storage";
+
+// Importer la fonction de synchronisation
+import { syncClientDirectoriesWithSchemas } from '../utils/storage-helpers';
 
 // Fonction pour configurer les routes API
 export function setupRoutes(app: Express) {
@@ -95,6 +101,27 @@ export function setupRoutes(app: Express) {
   apiRouter.use("/links", linksRoutes);
   apiRouter.use("/statics", staticsRoutes);
   apiRouter.use("/storage", storageRoutes);
+  
+  // Route pour synchroniser manuellement les dossiers clients avec les schémas
+  apiRouter.post('/system/sync-client-dirs', requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+    logger.info('Demande de synchronisation manuelle des dossiers clients');
+    
+    try {
+      await syncClientDirectoriesWithSchemas();
+      
+      return res.json({
+        success: true,
+        message: 'Synchronisation des dossiers clients terminée avec succès'
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la synchronisation des dossiers clients:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la synchronisation des dossiers clients',
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
+      });
+    }
+  }));
   
   // Montage du routeur sur /api
   app.use("/api", apiRouter);

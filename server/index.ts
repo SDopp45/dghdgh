@@ -17,6 +17,7 @@ import './schema/links';
 import { repairDatabaseFunctions } from './db/repair-functions';
 import { debugMiddleware } from './debug-middleware';
 import { pool } from './db';
+import { syncClientDirectoriesWithSchemas } from './utils/storage-helpers';
 
 // Configuration des répertoires
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
@@ -139,6 +140,14 @@ async function startServer() {
       initCronJobs();
       
       await checkAndCreateMissingTables();
+      
+      // Synchroniser les dossiers clients avec les schémas existants
+      try {
+        await syncClientDirectoriesWithSchemas();
+        logger.info('Synchronisation des dossiers clients terminée');
+      } catch (error) {
+        logger.error('Erreur lors de la synchronisation des dossiers clients:', error);
+      }
     });
   } catch (error) {
     logger.error('Erreur lors du démarrage du serveur:', error);

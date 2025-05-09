@@ -3,8 +3,50 @@ import { db } from '../db';
 import { contracts, contractParties, users, properties } from '../../shared/schema';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import logger from '../utils/logger';
+import multer from 'multer';
+import path from 'path';
+import { ensureAuth, getUserId } from '../middleware/auth';
+import { getClientSchemaName, getClientSubdirectory } from '../utils/storage-helpers';
+import fs from 'fs';
 
 const router = express.Router();
+
+// Configuration de multer pour les uploads de contrats
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const userId = getUserId(req);
+    
+    if (userId) {
+      // Utiliser le dossier spécifique au client pour les uploads de contrats
+      const clientSchema = getClientSchemaName(userId);
+      const clientContractsDir = getClientSubdirectory(userId, 'contracts');
+      logger.info(`Upload de contrat: utilisation du dossier client ${clientSchema}/contracts`);
+      cb(null, clientContractsDir);
+    } else {
+      // Fallback sur le répertoire legacy si pas d'utilisateur
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      const contractsDir = path.join(uploadsDir, 'contracts');
+      
+      // Créer le dossier s'il n'existe pas
+      try {
+        if (!fs.existsSync(contractsDir)) {
+          fs.mkdirSync(contractsDir, { recursive: true });
+        }
+      } catch (error) {
+        logger.error('Erreur lors de la création du répertoire contracts:', error);
+      }
+      
+      logger.info('Upload de contrat: utilisation du dossier legacy');
+      cb(null, contractsDir);
+    }
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'contract-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage });
 
 // Récupérer tous les contrats
 router.get('/', async (req, res) => {

@@ -8,17 +8,30 @@ import path from "path";
 import fs from "fs";
 import { createDefaultImageEntry } from "../utils/default-images";
 import { ensureAuth, getUserId } from "../middleware/auth";
+import { getClientSchemaName, getClientSubdirectory } from '../utils/storage-helpers';
 
 const router = Router();
 
 // Configure multer for handling file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'properties');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    const userId = getUserId(req);
+    
+    if (userId) {
+      // Utiliser le dossier spécifique au client pour les uploads
+      const clientSchema = getClientSchemaName(userId);
+      const clientPropertiesDir = getClientSubdirectory(userId, 'properties');
+      logger.info(`Upload d'image de propriété: utilisation du dossier client ${clientSchema}/properties`);
+      cb(null, clientPropertiesDir);
+    } else {
+      // Fallback sur le répertoire legacy si pas d'utilisateur
+      const uploadDir = path.join(process.cwd(), 'uploads', 'properties');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      logger.info('Upload d\'image de propriété: utilisation du dossier legacy');
+      cb(null, uploadDir);
     }
-    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

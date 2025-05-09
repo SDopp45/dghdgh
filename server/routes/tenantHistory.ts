@@ -5,12 +5,13 @@ import { Pool } from 'pg';
 import { tenantHistory, tenants, properties, users, documents as documentsTable, tenantDocuments } from '@shared/schema';
 import logger from '../utils/logger';
 import { asyncHandler } from '../utils/asyncHandler';
-import { getUserFromSession } from '../utils/session';
+import { getUserFromSession, getUserId } from '../utils/session';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
 import { AppError } from '../middleware/errorHandler';
-import { ensureAuth, getUserId } from '../middleware/auth';
+import { ensureAuth } from '../middleware/auth';
+import { getClientSchemaName, getClientSubdirectory } from '../utils/storage-helpers';
 
 // Accès à la base de données
 const pool = new Pool({
@@ -20,11 +21,25 @@ const pool = new Pool({
 // Configuration pour multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'tenant-history');
-    // Assurez-vous que le répertoire existe
-    fs.mkdir(uploadDir, { recursive: true })
-      .then(() => cb(null, uploadDir))
-      .catch(err => cb(err, uploadDir));
+    const userId = getUserId(req);
+
+    if (userId) {
+      // Utiliser le dossier spécifique au client pour l'historique locataire
+      const clientSchema = getClientSchemaName(userId);
+      const clientHistoryDir = getClientSubdirectory(userId, 'tenant-history');
+      logger.info(`Upload de document d'historique: utilisation du dossier client ${clientSchema}/tenant-history`);
+      cb(null, clientHistoryDir);
+    } else {
+      // Fallback sur le répertoire legacy si pas d'utilisateur
+      const uploadDir = path.join(process.cwd(), 'uploads', 'tenant-history');
+      // Assurez-vous que le répertoire existe
+      fs.mkdir(uploadDir, { recursive: true })
+        .then(() => {
+          logger.info('Upload de document d\'historique: utilisation du dossier legacy');
+          cb(null, uploadDir);
+        })
+        .catch(err => cb(err, uploadDir));
+    }
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

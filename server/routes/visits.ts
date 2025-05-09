@@ -5,10 +5,52 @@ import { eq, and, gte, lt } from "drizzle-orm";
 import logger from "../utils/logger";
 import { ZodError } from "zod";
 import { formatInTimeZone } from 'date-fns-tz';
-import { ensureAuth } from "../middleware/auth";
+import { ensureAuth, getUserId } from "../middleware/auth";
 import { sql } from "drizzle-orm";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { getClientSchemaName, getClientSubdirectory } from '../utils/storage-helpers';
 
 const router = Router();
+
+// Configuration de multer pour les rapports de visite
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const userId = getUserId(req);
+    
+    if (userId) {
+      // Utiliser le dossier spécifique au client pour les rapports de visite
+      const clientSchema = getClientSchemaName(userId);
+      const clientVisitReportsDir = getClientSubdirectory(userId, 'visit-reports');
+      logger.info(`Upload de rapport de visite: utilisation du dossier client ${clientSchema}/visit-reports`);
+      cb(null, clientVisitReportsDir);
+    } else {
+      // Fallback sur le répertoire legacy si pas d'utilisateur
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      const visitReportsDir = path.join(uploadsDir, 'visit-reports');
+      
+      // Créer le dossier s'il n'existe pas
+      try {
+        if (!fs.existsSync(visitReportsDir)) {
+          fs.mkdirSync(visitReportsDir, { recursive: true });
+        }
+      } catch (error) {
+        logger.error('Erreur lors de la création du répertoire visit-reports:', error);
+      }
+      
+      logger.info('Upload de rapport de visite: utilisation du dossier legacy');
+      cb(null, visitReportsDir);
+    }
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const safeOriginalName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    cb(null, 'visit-report-' + uniqueSuffix + path.extname(safeOriginalName));
+  }
+});
+
+const uploadVisitReport = multer({ storage });
 
 // Route for creating a new visit
 router.post("/", ensureAuth, async (req, res) => {

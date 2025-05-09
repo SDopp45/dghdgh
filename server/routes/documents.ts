@@ -10,14 +10,15 @@ import fs from 'fs';
 import logger from '../utils/logger';
 import { ensureAuth, getUserId } from '../middleware/auth';
 import * as storageService from '../services/storage-service';
+import { getClientSchemaName, getClientSubdirectory } from '../utils/storage-helpers';
 
 const router = Router();
 
-// Configure upload directories
+// Configure upload directories (pour compatibilité)
 const uploadDir = path.resolve(process.cwd(), 'uploads');
 const documentsDir = path.resolve(uploadDir, 'documents');
 
-// Ensure directories exist with proper permissions
+// Ensure legacy directories exist with proper permissions
 [uploadDir, documentsDir].forEach(dir => {
   try {
     if (!fs.existsSync(dir)) {
@@ -30,11 +31,22 @@ const documentsDir = path.resolve(uploadDir, 'documents');
   }
 });
 
-// Configure multer for file uploads
+// Configure multer for file uploads with client-specific directories
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    logger.info('Processing upload to directory:', documentsDir);
-    cb(null, documentsDir);
+    const userId = getUserId(req);
+    if (!userId) {
+      // Fallback sur le répertoire legacy si pas d'utilisateur
+      logger.info('Processing upload to legacy directory:', documentsDir);
+      cb(null, documentsDir);
+      return;
+    }
+    
+    // Utiliser le dossier spécifique au client
+    const clientSchema = getClientSchemaName(userId);
+    const clientDocDir = getClientSubdirectory(userId, 'documents');
+    logger.info(`Processing upload to client directory: ${clientDocDir} (schema: ${clientSchema})`);
+    cb(null, clientDocDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -191,10 +203,17 @@ router.post("/", ensureAuth, async (req, res) => {
           formData: insertedDoc.formData
         });
 
-        // Final verification
-        const finalPath = path.join(documentsDir, insertedDoc.filePath);
+        // Final verification - vérifier le chemin correct en fonction du client
+        let finalPath;
+        const userClientDir = getClientSubdirectory(userId, 'documents');
+        finalPath = path.join(userClientDir, insertedDoc.filePath);
+        
+        // Si le fichier n'est pas trouvé dans le dossier client, vérifier dans le dossier legacy
         if (!fs.existsSync(finalPath)) {
-          throw new Error('Le fichier final n\'existe pas');
+          finalPath = path.join(documentsDir, insertedDoc.filePath);
+          if (!fs.existsSync(finalPath)) {
+            throw new Error('Le fichier final n\'existe pas');
+          }
         }
 
         // Mettre à jour l'utilisation du stockage
@@ -580,21 +599,57 @@ router.get("/:id/preview", ensureAuth, async (req, res) => {
   }
 });
 
-// Serve document files
-router.get("/files/:filename", ensureAuth, async (req, res) => {
+// GET a specific document file
+router.get('/files/:filename', ensureAuth, async (req, res) => {
   try {
-    const { filename } = req.params;
-    const filePath = path.join(documentsDir, filename);
-    
-    if (!fs.existsSync(filePath)) {
-      logger.error(`File not found: ${filePath}`);
-      return res.status(404).json({ error: 'Fichier non trouvé' });
+    const filename = req.params.filename;
+    const userId = getUserId(req);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
     }
+
+    // Définition du schéma client
+    const clientSchema = getClientSchemaName(userId);
     
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+
+    // Vérifier si le document existe dans la base de données
+    const document = await db.select().from(documentsTable).where(eq(documentsTable.filePath, filename)).limit(1);
+    
+    if (!document || document.length === 0) {
+      // Réinitialiser le search_path en cas d'erreur
+      await db.execute(sql`SET search_path TO public`);
+      return res.status(404).json({ error: 'Document introuvable' });
+    }
+
+    // Chercher d'abord dans le répertoire du client
+    const userClientDir = getClientSubdirectory(userId, 'documents');
+    let filePath = path.join(userClientDir, filename);
+
+    // Si le fichier n'existe pas dans le répertoire client, essayer le répertoire legacy
+    if (!fs.existsSync(filePath)) {
+      filePath = path.join(documentsDir, filename);
+      if (!fs.existsSync(filePath)) {
+        // Réinitialiser le search_path en cas d'erreur
+        await db.execute(sql`SET search_path TO public`);
+        return res.status(404).json({ error: 'Fichier introuvable' });
+      }
+    }
+
+    // Réinitialiser le search_path après utilisation
+    await db.execute(sql`SET search_path TO public`);
+
+    // Servir le fichier
+    logger.info(`Serving document file: ${filename}`);
+    res.contentType('application/pdf');
     res.sendFile(filePath);
   } catch (error) {
-    logger.error('Error serving document file:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération du fichier' });
+    // Réinitialiser le search_path en cas d'erreur
+    await db.execute(sql`SET search_path TO public`).catch(() => {});
+    logger.error('Error retrieving document file:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération du document' });
   }
 });
 

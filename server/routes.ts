@@ -41,6 +41,8 @@ import marketplaceRouter from './routes/marketplace';
 import linksRouter from './routes/links';
 import staticsRouter from './routes/statics';
 import authRoutes from './routes/auth-routes';
+import usersRouter from './routes/users';
+import formsRouter from './routes/forms';
 
 // Initialiser la structure de dossiers uploads
 initializeUploadDirectories();
@@ -185,6 +187,14 @@ export function setupRoutes(app: Express) {
   
   // Auth routes (already mounted in configureAuth)
   apiRouter.use('/auth', authRoutes);
+
+  // Additional routes
+  apiRouter.use('/users', usersRouter);
+  apiRouter.use('/forms', formsRouter);
+
+  if (process.env.NODE_ENV === 'development') {
+    // apiRouter.use('/debug', debugRouter);
+  }
 }
 
 export function registerRoutes(app: Express) {

@@ -81,11 +81,16 @@ export function FormResponsesWidget() {
         
         for (const link of formLinks) {
           try {
-            const response = await apiRequest(`/api/links/form-submissions/${link.id}?userOnly=true`);
+            const response = await apiRequest(`/api/forms/${link.id}/responses`);
             
             if (response && response.success && Array.isArray(response.data)) {
-              // Trier les soumissions par date décroissante
-              const submissions = response.data.sort((a: FormSubmission, b: FormSubmission) => 
+              // Convertir les données au format attendu par le composant
+              const submissions = response.data.map((item: any) => ({
+                id: item.id,
+                linkId: item.link_id || item.form_id,
+                formData: item.response_data || {},
+                createdAt: item.created_at
+              })).sort((a: FormSubmission, b: FormSubmission) => 
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               );
               
@@ -358,7 +363,7 @@ export function FormResponsesWidget() {
                         {currentLink?.title || "Formulaire"}
                       </p>
                       
-                      {currentSubmission.formData && Object.entries(currentSubmission.formData).slice(0, 3).map(([key, value], idx) => {
+                      {currentSubmission && currentSubmission.formData && Object.entries(currentSubmission.formData).slice(0, 3).map(([key, value], idx) => {
                         const fieldDef = currentLink?.formDefinition?.find(field => field.id === key);
                         return (
                           <p key={idx} className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
@@ -371,12 +376,14 @@ export function FormResponsesWidget() {
 
                   <div className="flex flex-col items-end gap-1 max-w-[40%]">
                     <div>
-                      <div className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 truncate">
-                        {formatDistanceToNow(parseISO(currentSubmission.createdAt), { 
-                          addSuffix: true, 
-                          locale: fr 
-                        })}
-                      </div>
+                      {currentSubmission && (
+                        <div className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 truncate">
+                          {formatDistanceToNow(parseISO(currentSubmission.createdAt), { 
+                            addSuffix: true, 
+                            locale: fr 
+                          })}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -389,7 +396,11 @@ export function FormResponsesWidget() {
                         size="icon" 
                         className="h-7 w-7 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-full" 
                         title="Voir le détail"
-                        onClick={() => window.location.href = `/links/form/${currentLink?.id}/submissions/${currentSubmission.id}`}
+                        onClick={() => { 
+                          if (currentSubmission) {
+                            window.location.href = `/links/form/${currentLink?.id}/submissions/${currentSubmission.id}`;
+                          }
+                        }}
                       >
                         <FileText className="h-4 w-4 text-blue-500" />
                       </Button>

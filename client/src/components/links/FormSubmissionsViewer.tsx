@@ -103,7 +103,7 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
     
     try {
       console.log(`Récupération des réponses pour le formulaire ${linkId}...`);
-      const response = await apiRequest(`/api/links/form-submissions/${linkId}`);
+      const response = await apiRequest(`/api/forms/${linkId}/responses`);
       
       console.log('Réponse brute reçue:', JSON.stringify(response));
       
@@ -114,23 +114,25 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
           .map((item: any) => {
             console.log('Traitement de la soumission:', JSON.stringify(item));
             
-            // Vérifier si formData est un objet ou une chaîne JSON
-            let formDataObj = item.formData;
-            if (typeof item.formData === 'string') {
+            // Vérifier si response_data est un objet ou une chaîne JSON
+            let formDataObj = item.response_data;
+            if (typeof item.response_data === 'string') {
               try {
-                formDataObj = JSON.parse(item.formData);
-                console.log('FormData était une chaîne, convertie en objet:', formDataObj);
+                formDataObj = JSON.parse(item.response_data);
+                console.log('response_data était une chaîne, convertie en objet:', formDataObj);
               } catch(e) {
-                console.error('Erreur lors du parsing de formData:', e);
+                console.error('Erreur lors du parsing de response_data:', e);
                 formDataObj = {};
               }
             }
             
             return {
               id: item.id,
-              linkId: item.linkId,
+              linkId: item.link_id,
               formData: formDataObj || {},
-              createdAt: item.createdAt || new Date().toISOString()
+              ipAddress: item.ip_address,
+              userAgent: item.user_agent,
+              createdAt: item.created_at || new Date().toISOString()
             };
           });
         
@@ -141,25 +143,10 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
         setError('Format de réponse invalide. Veuillez réessayer.');
         setSubmissions([]);
       }
-    } catch (err) {
-      console.error('Erreur lors de la récupération des réponses:', err);
-      
-      // Message d'erreur plus descriptif
-      let errorMessage = 'Erreur lors de la récupération des réponses';
-      if (err instanceof Error) {
-        errorMessage += `: ${err.message}`;
-      }
-      
-      setError(errorMessage);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des réponses:', error);
+      setError('Erreur lors de la récupération des réponses. Veuillez réessayer.');
       setSubmissions([]);
-      
-      // Retry après 3 secondes en cas d'erreur 500 (peut être un problème temporaire)
-      if (err instanceof Error && err.message.includes('500')) {
-        setTimeout(() => {
-          console.log('Nouvelle tentative de récupération après erreur 500...');
-          fetchSubmissions(linkId);
-        }, 3000);
-      }
     } finally {
       setIsLoading(false);
     }
@@ -361,7 +348,7 @@ export function FormSubmissionsViewer({ links, profile }: FormSubmissionsViewerP
     
     try {
       console.log(`Suppression de la réponse ${submissionToDelete.id}...`);
-      const response = await apiRequest(`/api/links/form-submissions/${submissionToDelete.id}`, {
+      const response = await apiRequest(`/api/forms/responses/${submissionToDelete.id}`, {
         method: 'DELETE'
       });
       

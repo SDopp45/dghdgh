@@ -1,4 +1,5 @@
-import { pgTable, index, sql, text, timestamp, integer, decimal, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, index, text, timestamp, integer, decimal, boolean, jsonb, serial } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 export const transactions = pgTable('transactions', {
   id: integer('id').primaryKey().notNull(),
@@ -40,4 +41,26 @@ export const transactions = pgTable('transactions', {
     .on(sql`date_trunc('month', ${table.date})`, table.type),
   monthPropertyIdx: index('transactions_month_property_idx')
     .on(sql`date_trunc('month', ${table.date})`, table.propertyId)
+}));
+
+export const formDefinitions = pgTable('form_definitions', {
+  id: integer('id').primaryKey().notNull(),
+  linkId: integer('link_id').notNull(),
+  fields: jsonb('fields').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+}, (table) => ({
+  linkIdIdx: index('form_definitions_link_id_idx').on(table.linkId)
+}));
+
+export const formResponses = pgTable('form_responses', {
+  id: serial('id').primaryKey(),
+  linkId: integer('link_id').notNull(),
+  responseData: jsonb('response_data').notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow()
+}, (table) => ({
+  linkIdIdx: index('form_responses_link_id_idx').on(table.linkId),
+  createdAtIdx: index('form_responses_created_at_idx').on(table.createdAt)
 })); 

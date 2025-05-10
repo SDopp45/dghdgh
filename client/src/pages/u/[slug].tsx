@@ -4,6 +4,7 @@ import { Link2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiRequest } from '@/lib/queryClient';
+import DynamicForm from '@/components/DynamicForm';
 
 interface FormField {
   id: string;
@@ -407,253 +408,26 @@ export default function UserLinkPage() {
                           : undefined,
                       }}
                     >
-                      <form
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          const form = e.currentTarget;
-                          const formData = new FormData(form);
-                          const data: Record<string, string> = {};
-                          formData.forEach((value, key) => {
-                            data[key] = value.toString();
-                          });
-                          
-                          try {
-                            console.log('Soumission du formulaire:', {
-                              url: `/api/links/form-submit/${link.id}`, 
-                              data
-                            });
-                            
-                            const response = await apiRequest(`/api/links/form-submit/${link.id}`, {
-                              method: 'POST',
-                              body: JSON.stringify({ data }),
-                            });
-                            
-                            console.log('Réponse du serveur:', response);
-                            
-                            form.reset();
+                      <DynamicForm 
+                        formId={link.id}
+                        fields={link.formDefinition || []}
+                        slug={slug}
+                        primaryColor={link.customColor || profile.accentColor || '#70C7BA'}
+                        textColor={link.customTextColor || profile.textColor || '#000000'}
+                        styleVariant={
+                          profile.buttonStyle === 'glassmorphism' ? 'glass' :
+                          profile.buttonStyle === 'neon' ? 'neon' :
+                          profile.buttonStyle === 'gradient' ? 'gradient' :
+                          profile.buttonStyle === 'outline' ? 'clean' : 'default'
+                        }
+                        onSuccess={() => {
+                          setTimeout(() => {
                             setExpandedFormId(null);
                             
-                            alert('Formulaire envoyé avec succès !');
-                          } catch (error) {
-                            console.error('Erreur détaillée lors de la soumission:', error);
-                            
-                            if (error instanceof Error) {
-                              alert(`Erreur lors de l'envoi du formulaire: ${error.message}`);
-                            } else {
-                              alert('Erreur lors de l\'envoi du formulaire. Veuillez réessayer.');
-                            }
-                          }
+                            handleLinkClick(link.id);
+                          }, 2000);
                         }}
-                        className="space-y-4"
-                      >
-                        {link.formDefinition?.map((field) => (
-                          <div key={field.id} className="space-y-2">
-                            <label
-                              htmlFor={field.id}
-                              className="block text-sm font-medium"
-                              style={{
-                                color: link.customTextColor || profile.textColor || '#000000',
-                                fontFamily: profile.fontFamily || 'Inter',
-                              }}
-                            >
-                              {field.label}
-                              {field.required && <span className="text-red-500 ml-1">*</span>}
-                            </label>
-                            
-                            {field.type === 'textarea' ? (
-                              <textarea
-                                id={field.id}
-                                name={field.id}
-                                required={field.required}
-                                className={`w-full p-3 rounded-md border transition-all ${
-                                  profile.buttonStyle ? profile.buttonStyle : ''
-                                }`}
-                                style={{
-                                  borderColor: link.customColor || profile.accentColor || '#70C7BA',
-                                  backgroundColor: profile.buttonStyle === 'glassmorphism' 
-                                    ? 'rgba(255, 255, 255, 0.1)' 
-                                    : 'transparent',
-                                  color: link.customTextColor || profile.textColor || '#000000',
-                                  borderRadius: profile.buttonStyle === 'pill' 
-                                    ? '9999px' 
-                                    : profile.buttonStyle === 'square'
-                                    ? '0'
-                                    : profile.buttonRadius 
-                                    ? `${profile.buttonRadius}px` 
-                                    : '8px',
-                                  boxShadow: profile.buttonStyle === 'shadow' 
-                                    ? `0 4px 6px ${profile.buttonShadowColor || 'rgba(0, 0, 0, 0.1)'}` 
-                                    : profile.buttonStyle === 'neon'
-                                    ? `0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 20px ${link.customColor || profile.accentColor || '#70C7BA'}50`
-                                    : 'none',
-                                  borderWidth: profile.buttonStyle === 'outline' ? '2px' : '1px',
-                                  backdropFilter: profile.buttonStyle === 'glassmorphism' 
-                                    ? `blur(${profile.buttonGlassBlur || 10}px)` 
-                                    : 'none',
-                                  fontFamily: profile.fontFamily || 'Inter',
-                                  textShadow: profile.buttonStyle === 'neon'
-                                    ? `0 0 5px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}`
-                                    : 'none',
-                                  position: 'relative', 
-                                  zIndex: 25,
-                                  pointerEvents: 'auto',
-                                }}
-                                rows={4}
                               />
-                            ) : field.type === 'select' ? (
-                              <select
-                                id={field.id}
-                                name={field.id}
-                                required={field.required}
-                                className={`w-full p-3 rounded-md border transition-all ${
-                                  profile.buttonStyle ? profile.buttonStyle : ''
-                                }`}
-                                style={{
-                                  borderColor: link.customColor || profile.accentColor || '#70C7BA',
-                                  backgroundColor: profile.buttonStyle === 'glassmorphism' 
-                                    ? 'rgba(255, 255, 255, 0.1)' 
-                                    : 'transparent',
-                                  color: link.customTextColor || profile.textColor || '#000000',
-                                  borderRadius: profile.buttonStyle === 'pill' 
-                                    ? '9999px' 
-                                    : profile.buttonStyle === 'square'
-                                    ? '0'
-                                    : profile.buttonRadius 
-                                    ? `${profile.buttonRadius}px` 
-                                    : '8px',
-                                  boxShadow: profile.buttonStyle === 'shadow' 
-                                    ? `0 4px 6px ${profile.buttonShadowColor || 'rgba(0, 0, 0, 0.1)'}` 
-                                    : profile.buttonStyle === 'neon'
-                                    ? `0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 20px ${link.customColor || profile.accentColor || '#70C7BA'}50`
-                                    : 'none',
-                                  borderWidth: profile.buttonStyle === 'outline' ? '2px' : '1px',
-                                  backdropFilter: profile.buttonStyle === 'glassmorphism' 
-                                    ? `blur(${profile.buttonGlassBlur || 10}px)` 
-                                    : 'none',
-                                  fontFamily: profile.fontFamily || 'Inter',
-                                  textShadow: profile.buttonStyle === 'neon'
-                                    ? `0 0 5px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}`
-                                    : 'none',
-                                  position: 'relative', 
-                                  zIndex: 25,
-                                  pointerEvents: 'auto',
-                                }}
-                              >
-                                <option value="">Sélectionner...</option>
-                                {field.options?.map((option, i) => (
-                                  <option key={i} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : field.type === 'checkbox' ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  id={field.id}
-                                  name={field.id}
-                                  required={field.required}
-                                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                  style={{
-                                    borderColor: link.customColor || profile.accentColor || '#70C7BA',
-                                    position: 'relative', 
-                                    zIndex: 25,
-                                    pointerEvents: 'auto',
-                                  }}
-                                />
-                                <span className="text-sm" style={{
-                                  color: link.customTextColor || profile.textColor || '#000000',
-                                  fontFamily: profile.fontFamily || 'Inter',
-                                }}>Oui</span>
-                              </div>
-                            ) : (
-                              <input
-                                type={field.type}
-                                id={field.id}
-                                name={field.id}
-                                required={field.required}
-                                className={`w-full p-3 rounded-md border transition-all ${
-                                  profile.buttonStyle ? profile.buttonStyle : ''
-                                }`}
-                                style={{
-                                  borderColor: link.customColor || profile.accentColor || '#70C7BA',
-                                  backgroundColor: profile.buttonStyle === 'glassmorphism' 
-                                    ? 'rgba(255, 255, 255, 0.1)' 
-                                    : 'transparent',
-                                  color: link.customTextColor || profile.textColor || '#000000',
-                                  borderRadius: profile.buttonStyle === 'pill' 
-                                    ? '9999px' 
-                                    : profile.buttonStyle === 'square'
-                                    ? '0'
-                                    : profile.buttonRadius 
-                                    ? `${profile.buttonRadius}px` 
-                                    : '8px',
-                                  boxShadow: profile.buttonStyle === 'shadow' 
-                                    ? `0 4px 6px ${profile.buttonShadowColor || 'rgba(0, 0, 0, 0.1)'}` 
-                                    : profile.buttonStyle === 'neon'
-                                    ? `0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 20px ${link.customColor || profile.accentColor || '#70C7BA'}50`
-                                    : 'none',
-                                  borderWidth: profile.buttonStyle === 'outline' ? '2px' : '1px',
-                                  backdropFilter: profile.buttonStyle === 'glassmorphism' 
-                                    ? `blur(${profile.buttonGlassBlur || 10}px)` 
-                                    : 'none',
-                                  fontFamily: profile.fontFamily || 'Inter',
-                                  textShadow: profile.buttonStyle === 'neon'
-                                    ? `0 0 5px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}`
-                                    : 'none',
-                                  position: 'relative', 
-                                  zIndex: 25,
-                                  pointerEvents: 'auto',
-                                }}
-                              />
-                            )}
-                          </div>
-                        ))}
-                        
-                        <button
-                          type="submit"
-                          className={`w-full p-3 rounded-md border transition-all hover:opacity-90 ${
-                            profile.buttonStyle ? `button-style-${profile.buttonStyle}` : ''
-                          }`}
-                          style={{
-                            backgroundColor: link.customColor || profile.accentColor || '#70C7BA',
-                            borderColor: link.customColor || profile.accentColor || '#70C7BA',
-                            color: link.customTextColor || '#ffffff',
-                            borderRadius: profile.buttonStyle === 'pill' 
-                              ? '9999px' 
-                              : profile.buttonStyle === 'square'
-                              ? '0'
-                              : profile.buttonRadius 
-                              ? `${profile.buttonRadius}px` 
-                              : '8px',
-                            boxShadow: profile.buttonStyle === 'shadow' 
-                              ? `0 4px 6px ${profile.buttonShadowColor || 'rgba(0, 0, 0, 0.1)'}` 
-                              : profile.buttonStyle === 'neon'
-                              ? `0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 20px ${link.customColor || profile.accentColor || '#70C7BA'}50`
-                              : 'none',
-                            borderWidth: profile.buttonStyle === 'outline' ? '2px' : '1px',
-                            background: profile.buttonStyle === 'gradient' && profile.buttonGradientStart && profile.buttonGradientEnd
-                              ? `linear-gradient(${profile.buttonGradientDirection || '45deg'}, ${profile.buttonGradientStart}, ${profile.buttonGradientEnd})`
-                              : undefined,
-                            backdropFilter: profile.buttonStyle === 'glassmorphism' 
-                              ? `blur(${profile.buttonGlassBlur || 10}px)` 
-                              : 'none',
-                            textShadow: profile.buttonStyle === 'neon'
-                              ? `0 0 5px ${link.customColor || profile.accentColor || '#70C7BA'}, 0 0 10px ${link.customColor || profile.accentColor || '#70C7BA'}`
-                              : 'none',
-                            position: 'relative', 
-                            zIndex: 25,
-                            pointerEvents: 'auto',
-                            fontFamily: profile.fontFamily || 'Inter',
-                            fontWeight: 'bold',
-                            transform: 'translateZ(0)',
-                            transition: 'all 0.2s ease',
-                            marginTop: '8px'
-                          }}
-                        >
-                          Envoyer
-                        </button>
-                      </form>
                     </div>
                   )}
                 </div>

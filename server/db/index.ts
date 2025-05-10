@@ -513,14 +513,14 @@ async function getClientDb(userId: number) {
   }
 }
 
-// Regrouper tous les exports à la fin
+// Garder uniquement les exports à la fin
 export {
-  db, // Instance Drizzle
-  dbPool as pool, // Pool de connexions pg
+  db,
+  dbPool as pool,
   setUserSchema,
   resetToPublicSchema,
   createClientSchema,
-  ensurePropertyCoordinatesTable, // Exporter la nouvelle fonction
-  ensureClientDirectories, // Exporter la nouvelle fonction pour les répertoires
-  getClientDb // Nouvelle fonction pour obtenir un client Drizzle spécifique à un schéma
+  ensurePropertyCoordinatesTable,
+  ensureClientDirectories,
+  getClientDb
 }; 

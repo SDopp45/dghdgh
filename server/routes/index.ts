@@ -29,6 +29,7 @@ import adminAiRoutes from "./admin-ai";
 import feedbacksRoutes from "./feedbacks";
 import contractsRoutes from "./contracts";
 import linksRoutes from "./links";
+import formsRoutes from "./forms";
 import staticsRoutes from "./statics";
 import storageRoutes from "./storage";
 
@@ -99,6 +100,7 @@ export function setupRoutes(app: Express) {
   apiRouter.use("/feedbacks", feedbacksRoutes);
   apiRouter.use("/contracts", contractsRoutes);
   apiRouter.use("/links", linksRoutes);
+  apiRouter.use("/forms", formsRoutes);
   apiRouter.use("/statics", staticsRoutes);
   apiRouter.use("/storage", storageRoutes);
   

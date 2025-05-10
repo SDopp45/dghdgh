@@ -77,7 +77,7 @@ export const apiRequest = async (url: string, options: RequestInit = {}) => {
   }
   
   // Ajouter les paramètres dev pour les routes de formulaires en mode développement
-  if (process.env.NODE_ENV === 'development' && url.includes('/api/links/form-submissions/')) {
+  if (process.env.NODE_ENV === 'development' && url.includes('/api/forms/')) {
     const separator = url.includes('?') ? '&' : '?';
     url = `${url}${separator}dev=true`;
   }
@@ -127,7 +127,7 @@ export const apiRequest = async (url: string, options: RequestInit = {}) => {
     // Si nous sommes en mode développement et que c'est une route d'API de formulaire,
     // retourner un tableau vide au lieu de propager l'erreur pour faciliter le débogage
     if (process.env.NODE_ENV === 'development' && 
-        url.includes('/api/links/form-submissions/')) {
+        url.includes('/api/forms/')) {
       console.warn('Retourne un résultat vide pour faciliter le développement');
       return { success: true, data: [] };
     }

@@ -69,14 +69,29 @@ export const links = pgTable('links', {
   updatedAt: timestamp('updated_at').defaultNow()
 });
 
-// Table for storing form submissions
-export const formSubmissions = pgTable('form_submissions', {
+// Table for storing form responses (remplace form_submissions)
+export const formResponses = pgTable('form_responses', {
   id: serial('id').primaryKey(),
   linkId: integer('link_id').references(() => links.id).notNull(),
-  formData: json('form_data').$type<Record<string, any>>().notNull(),
-  ipAddress: varchar('ip_address', { length: 50 }),
+  responseData: json('response_data').$type<Record<string, any>>().notNull(),
+  ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Table for storing form definitions
+export const formDefinitions = pgTable('form_definitions', {
+  id: serial('id').primaryKey(),
+  linkId: integer('link_id').references(() => links.id).notNull(),
+  fields: json('fields').$type<Array<{
+    id: string;
+    type: string;
+    label: string;
+    required: boolean;
+    options?: string[];
+  }>>().notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
 });
 
 // Define relations
@@ -93,12 +108,16 @@ export const linksRelations = relations(links, ({ one, many }) => ({
     fields: [links.profileId],
     references: [linkProfiles.id]
   }),
-  submissions: many(formSubmissions)
+  responses: many(formResponses),
+  formDefinition: one(formDefinitions, {
+    fields: [links.id],
+    references: [formDefinitions.linkId]
+  })
 }));
 
-export const formSubmissionsRelations = relations(formSubmissions, ({ one }) => ({
+export const formResponsesRelations = relations(formResponses, ({ one }) => ({
   link: one(links, {
-    fields: [formSubmissions.linkId],
+    fields: [formResponses.linkId],
     references: [links.id]
   })
 })); 

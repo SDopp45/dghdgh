@@ -3,6 +3,9 @@ import { UserQuotaService, AIModelType } from '../services/user-quota';
 import { LanguageModelService } from '../services/language-model';
 import { requireAuth } from '../auth';
 import { z } from 'zod';
+import { db } from '@server/db';
+import { sql } from 'drizzle-orm';
+import logger from '@server/utils/logger';
 
 const router = express.Router();
 
@@ -16,7 +19,7 @@ const updateModelSchema = z.object({
 /**
  * Obtenir les paramètres d'IA de l'utilisateur courant
  */
-router.get('/user/ai-settings', requireAuth, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     
@@ -24,18 +27,24 @@ router.get('/user/ai-settings', requireAuth, async (req, res) => {
       return res.status(401).json({ message: 'Utilisateur non authentifié' });
     }
     
+    // Récupérer le modèle préféré de l'utilisateur directement dans public.users
+    const result = await db.execute(sql`
+      SELECT preferred_ai_model FROM public.users WHERE id = ${userId}
+    `);
+    
+    const preferredModel = result.rows && result.rows.length > 0 
+      ? result.rows[0].preferred_ai_model || 'openai-gpt-3.5'
+      : 'openai-gpt-3.5';
+    
     // Récupérer le quota de l'utilisateur
     const quotaInfo = await UserQuotaService.checkUserQuota(userId);
-    
-    // Récupérer le modèle préféré de l'utilisateur
-    const preferredModel = await LanguageModelService.getUserPreferredModel(userId);
     
     res.json({
       preferredModel,
       quotaInfo
     });
   } catch (error) {
-    console.error('Error fetching user AI settings:', error);
+    logger.error('Error fetching user AI settings:', error);
     res.status(500).json({ message: 'Erreur lors de la récupération des paramètres d\'IA' });
   }
 });
@@ -43,7 +52,7 @@ router.get('/user/ai-settings', requireAuth, async (req, res) => {
 /**
  * Mettre à jour le modèle d'IA préféré de l'utilisateur
  */
-router.post('/user/ai-settings', requireAuth, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     
@@ -63,18 +72,24 @@ router.post('/user/ai-settings', requireAuth, async (req, res) => {
     
     const { preferredModel } = validationResult.data;
     
-    // Mettre à jour le modèle préféré
-    await LanguageModelService.setUserPreferredModel(userId, preferredModel);
+    // Mettre à jour le modèle préféré directement dans public.users
+    await db.execute(sql`
+      UPDATE public.users 
+      SET preferred_ai_model = ${preferredModel} 
+      WHERE id = ${userId}
+    `);
     
     // Récupérer les données mises à jour
     const quotaInfo = await UserQuotaService.checkUserQuota(userId);
     
     res.json({
       preferredModel,
-      quotaInfo
+      quotaInfo,
+      success: true,
+      message: 'Préférences IA mises à jour'
     });
   } catch (error) {
-    console.error('Error updating user AI model:', error);
+    logger.error('Error updating user AI model:', error);
     res.status(500).json({ message: 'Erreur lors de la mise à jour du modèle d\'IA' });
   }
 });

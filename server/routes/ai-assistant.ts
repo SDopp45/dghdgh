@@ -1,8 +1,11 @@
 import express from 'express';
 import { AIAssistantService } from '@server/services/ai-assistant';
+import { AITokenService } from '@server/services/ai-token-service';
 import languageModelProviderService from '@server/services/language-model-provider';
 import { z } from 'zod';
 import { ensureAuth } from '@server/middleware/auth';
+import { getClientSchema } from '@server/utils/auth-helpers';
+import logger from '@server/utils/logger';
 
 const router = express.Router();
 
@@ -20,10 +23,108 @@ router.get('/provider-info', (req, res) => {
       ...providerInfo
     });
   } catch (error) {
-    console.error('Error fetching provider info:', error);
+    logger.error('Error fetching provider info:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch provider information' 
+    });
+  }
+});
+
+/**
+ * Obtenir le solde de tokens de l'utilisateur
+ */
+router.get('/tokens/balance', async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const clientSchema = await getClientSchema(userId);
+    
+    const balance = await AITokenService.getUserTokenBalance(userId, clientSchema);
+    
+    res.json({
+      success: true,
+      balance
+    });
+  } catch (error) {
+    logger.error('Error fetching token balance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch token balance'
+    });
+  }
+});
+
+/**
+ * Obtenir l'historique d'utilisation des tokens
+ */
+router.get('/tokens/usage', async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const clientSchema = await getClientSchema(userId);
+    
+    const usage = await AITokenService.getUserUsageHistory(userId, clientSchema);
+    
+    res.json({
+      success: true,
+      usage
+    });
+  } catch (error) {
+    logger.error('Error fetching token usage history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch token usage history'
+    });
+  }
+});
+
+/**
+ * Ajouter des tokens au compte de l'utilisateur (admin seulement)
+ */
+router.post('/tokens/add', async (req, res) => {
+  try {
+    // Vérifier si l'utilisateur est admin
+    if (req.user!.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized. Admin role required.'
+      });
+    }
+    
+    const schema = z.object({
+      userId: z.number().int().positive(),
+      amount: z.number().int().positive(),
+    });
+
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Validation error', 
+        details: result.error.format() 
+      });
+    }
+
+    const { userId, amount } = result.data;
+    const clientSchema = await getClientSchema(userId);
+    
+    const success = await AITokenService.addTokens(userId, amount, clientSchema);
+    
+    if (success) {
+      res.json({
+        success: true,
+        message: `Added ${amount} tokens to user ${userId}`
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to add tokens'
+      });
+    }
+  } catch (error) {
+    logger.error('Error adding tokens:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add tokens'
     });
   }
 });
@@ -48,6 +149,18 @@ router.post('/message', async (req, res) => {
 
     const { content, conversationId } = result.data;
     const userId = req.user!.id;
+    const clientSchema = await getClientSchema(userId);
+    
+    // Vérifier le solde de tokens avant de traiter le message
+    const estimatedTokens = Math.ceil(content.length / 4) + 600; // Estimation approximative
+    const canUseAI = await AITokenService.canUseAI(userId, estimatedTokens, clientSchema);
+    
+    if (!canUseAI) {
+      return res.status(402).json({
+        error: 'Insufficient token balance',
+        message: 'Your AI token balance is too low for this request'
+      });
+    }
     
     let conversation;
     let message;
@@ -80,7 +193,7 @@ router.post('/message', async (req, res) => {
       conversation: conversation || undefined
     });
   } catch (error) {
-    console.error('Error processing message:', error);
+    logger.error('Error processing message:', error);
     res.status(500).json({ error: 'Failed to process message' });
   }
 });

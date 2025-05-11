@@ -1,10 +1,17 @@
 import { db } from '@server/db';
+import { Prisma } from '@prisma/client';
+import { getClientSchema } from '@server/utils/auth-helpers';
+import { AITokenService } from './ai-token-service';
+import { LanguageModelService } from './language-model';
+import { users } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
+import logger from '@server/utils/logger';
+import { sql } from 'drizzle-orm';
 import { 
   aiConversations, 
   aiMessages, 
   aiSuggestions
 } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
 import type { 
   ConversationWithMessages, 
   CreateConversationParams, 
@@ -14,7 +21,6 @@ import type {
   ConversationCategory, 
   ConversationStatus 
 } from '@shared/types/ai-assistant';
-import { LanguageModelService } from './language-model';
 
 export class AIAssistantService {
   /**
@@ -22,20 +28,28 @@ export class AIAssistantService {
    */
   static async createConversation(params: CreateConversationParams) {
     try {
-      const [conversation] = await db
-        .insert(aiConversations)
-        .values({
-          userId: params.userId,
-          title: params.title,
-          category: params.category || 'general',
-          status: 'active',
-          context: params.context || {},
-        })
-        .returning();
+      const clientSchema = await getClientSchema(params.userId);
+      // Remplacer db.withSchema par SQL direct
+      const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
+      
+      const result = await db.execute(sql`
+        INSERT INTO ${sql.raw(schemaPrefix)}ai_conversations
+        (user_id, title, category, status, context, created_at, updated_at)
+        VALUES (
+          ${params.userId}, 
+          ${params.title}, 
+          ${params.category || 'general'}, 
+          'active', 
+          ${params.context ? JSON.stringify(params.context) : '{}'}, 
+          NOW(), 
+          NOW()
+        )
+        RETURNING *
+      `);
 
-      return conversation;
+      return result.rows && result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      logger.error('Error creating conversation:', error);
       throw error;
     }
   }
@@ -45,35 +59,47 @@ export class AIAssistantService {
    */
   static async addMessage(params: CreateMessageParams) {
     try {
+      const clientSchema = await getClientSchema(params.userId);
+      // Remplacer db.withSchema par SQL direct
+      const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
+      
       // Insérer le message de l'utilisateur
-      const [userMessage] = await db
-        .insert(aiMessages)
-        .values({
-          conversationId: params.conversationId,
-          userId: params.userId,
-          role: 'user',
-          content: params.content,
-          isUrgent: params.isUrgent || false,
-          metadata: params.metadata || {},
-        })
-        .returning();
+      const userMsgResult = await db.execute(sql`
+        INSERT INTO ${sql.raw(schemaPrefix)}ai_messages
+        (conversation_id, user_id, role, content, is_urgent, metadata, created_at)
+        VALUES (
+          ${params.conversationId},
+          ${params.userId},
+          'user',
+          ${params.content},
+          ${params.isUrgent || false},
+          ${params.metadata ? JSON.stringify(params.metadata) : '{}'},
+          NOW()
+        )
+        RETURNING *
+      `);
+      
+      const userMessage = userMsgResult.rows && userMsgResult.rows.length > 0 ? userMsgResult.rows[0] : null;
 
       // Mettre à jour l'horodatage de la conversation
-      await db
-        .update(aiConversations)
-        .set({ updatedAt: new Date() })
-        .where(eq(aiConversations.id, params.conversationId));
+      await db.execute(sql`
+        UPDATE ${sql.raw(schemaPrefix)}ai_conversations
+        SET updated_at = NOW()
+        WHERE id = ${params.conversationId}
+      `);
 
       let assistantResponse = "";
       let isUrgent = false;
 
       try {
         // Récupérer l'historique des messages pour contexte
-        const messages = await db
-          .select()
-          .from(aiMessages)
-          .where(eq(aiMessages.conversationId, params.conversationId))
-          .orderBy(aiMessages.createdAt);
+        const messagesResult = await db.execute(sql`
+          SELECT * FROM ${sql.raw(schemaPrefix)}ai_messages
+          WHERE conversation_id = ${params.conversationId}
+          ORDER BY created_at
+        `);
+        
+        const messages = messagesResult.rows || [];
 
         // Formater les messages pour les API de modèles de langage
         const formattedMessages = messages.map(msg => ({
@@ -83,7 +109,7 @@ export class AIAssistantService {
 
         // Ajouter un message système pour l'assistant
         formattedMessages.unshift({
-          role: 'system',
+          role: 'system' as 'system',
           content: `Tu es ImmoBot, un assistant virtuel expert en immobilier, spécialisé dans tous les aspects du secteur immobilier français et international.
 
 EXPERTISE:
@@ -107,37 +133,92 @@ COMPORTEMENT:
 Utilise ton expertise immobilière complète pour fournir des réponses précises, pratiques et à jour sur tous les sujets immobiliers.`
         });
 
-        // Utiliser le service de modèle de langage pour générer une réponse avec le userId
-        assistantResponse = await LanguageModelService.generateChatResponse(formattedMessages, params.userId);
+        // Estimer les tokens nécessaires pour la requête
+        const totalMessageLength = formattedMessages.reduce((total, msg) => total + msg.content.length, 0);
+        const estimatedPromptTokens = Math.ceil(totalMessageLength / 4) + 150; // ~4 caractères par token + overhead
+        const estimatedCompletionTokens = 500; // Estimation pour la réponse
+        const estimatedTotalTokens = estimatedPromptTokens + estimatedCompletionTokens;
         
-        // Détecter si le message contient une urgence
-        isUrgent = this.detectUrgency(params.content, assistantResponse);
+        // Vérifier si l'utilisateur a suffisamment de tokens
+        const canUseAI = await AITokenService.canUseAI(params.userId, estimatedTotalTokens, clientSchema);
+        
+        if (!canUseAI) {
+          assistantResponse = "Je suis désolé, mais votre quota de tokens AI est épuisé. Veuillez contacter l'administrateur pour recharger votre compte ou attendre la prochaine période de recharge.";
+        } else {
+          // Utiliser le service de modèle de langage pour générer une réponse
+          assistantResponse = await LanguageModelService.generateChatResponse(
+            formattedMessages, 
+            params.userId
+          );
+          
+          // Détecter si le message contient une urgence
+          isUrgent = this.detectUrgency(params.content, assistantResponse);
+        }
       } catch (error) {
-        console.error('AI model error:', error);
+        logger.error('AI model error:', error);
         
         // Message d'erreur générique en cas d'échec de toutes les options AI
         assistantResponse = "Je suis désolé, mais le service d'intelligence artificielle est temporairement indisponible. Votre message a bien été enregistré et sera traité dès que possible. Vous pouvez également nous contacter directement pour une assistance immédiate.";
       }
 
       // Enregistrer la réponse de l'assistant
-      const [assistantMessage] = await db
-        .insert(aiMessages)
-        .values({
-          conversationId: params.conversationId,
-          userId: params.userId,
-          role: 'assistant',
-          content: assistantResponse,
-          isUrgent: isUrgent,
-          metadata: {},
-        })
-        .returning();
+      const assistantMsgResult = await db.execute(sql`
+        INSERT INTO ${sql.raw(schemaPrefix)}ai_messages
+        (conversation_id, user_id, role, content, is_urgent, metadata, created_at)
+        VALUES (
+          ${params.conversationId},
+          ${params.userId},
+          'assistant',
+          ${assistantResponse},
+          ${isUrgent},
+          '{}',
+          NOW()
+        )
+        RETURNING *
+      `);
+      
+      const assistantMessage = assistantMsgResult.rows && assistantMsgResult.rows.length > 0 ? assistantMsgResult.rows[0] : null;
+      
+      // Mise à jour de l'utilisation des tokens
+      try {
+        // Récupérer le modèle préféré de l'utilisateur
+        const [userResult] = await db
+          .select({ preferredAiModel: users.preferredAiModel })
+          .from(users)
+          .where(eq(users.id, params.userId));
+
+        // Modèle par défaut si aucun modèle préféré n'est trouvé
+        const userModelType = (userResult?.preferredAiModel || 'openai-gpt-3.5') as string;
+        
+        // Calculer approximativement les tokens utilisés
+        const promptLength = params.content.length;
+        const responseLength = assistantResponse.length;
+        const promptTokens = Math.ceil(promptLength / 4); // ~4 caractères par token
+        const completionTokens = Math.ceil(responseLength / 4);
+        const totalTokens = promptTokens + completionTokens;
+        
+        // Enregistrer l'utilisation avec le modèle de l'utilisateur
+        await AITokenService.useTokens(
+          params.userId,
+          totalTokens,
+          userModelType, // Utiliser le modèle préféré de l'utilisateur
+          promptTokens,
+          completionTokens,
+          assistantMessage.id,
+          params.conversationId,
+          clientSchema
+        );
+      } catch (tokenError) {
+        logger.error('Error tracking token usage:', tokenError);
+        // Ne pas interrompre le flux si le suivi des tokens échoue
+      }
 
       return {
         userMessage,
         assistantMessage,
       };
     } catch (error) {
-      console.error('Error adding message:', error);
+      logger.error('Error adding message:', error);
       throw error;
     }
   }
@@ -210,28 +291,34 @@ Utilise ton expertise immobilière complète pour fournir des réponses précise
 
         suggestionContent = await LanguageModelService.generateChatResponse(messages, params.userId);
       } catch (error) {
-        console.error('AI model error in createSuggestion:', error);
+        logger.error('AI model error in createSuggestion:', error);
         
         // Message d'erreur générique en cas d'échec de toutes les options AI
         suggestionContent = "Le service d'analyse automatique est temporairement indisponible. Votre demande a été enregistrée et sera traitée par notre équipe d'experts immobiliers dans les plus brefs délais.";
       }
 
-      // Enregistrer la suggestion dans la base de données
-      const [suggestion] = await db
-        .insert(aiSuggestions)
-        .values({
-          userId: params.userId,
-          propertyId: params.propertyId,
-          type: params.type,
-          suggestion: suggestionContent,
-          data: params.data,
-          status: 'pending',
-        })
-        .returning();
+      const clientSchema = await getClientSchema(params.userId);
+      const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
 
-      return suggestion;
+      // Enregistrer la suggestion dans la base de données
+      const result = await db.execute(sql`
+        INSERT INTO ${sql.raw(schemaPrefix)}ai_suggestions
+        (user_id, property_id, type, suggestion, data, status, created_at)
+        VALUES (
+          ${params.userId},
+          ${params.propertyId || null},
+          ${params.type},
+          ${suggestionContent},
+          ${JSON.stringify(params.data)},
+          'pending',
+          NOW()
+        )
+        RETURNING *
+      `);
+
+      return result.rows && result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
-      console.error('Error creating suggestion:', error);
+      logger.error('Error creating suggestion:', error);
       throw error;
     }
   }
@@ -241,31 +328,36 @@ Utilise ton expertise immobilière complète pour fournir des réponses précise
    */
   static async getConversationWithMessages(conversationId: number, userId: number): Promise<ConversationWithMessages | null> {
     try {
-      const conversation = await db
-        .select()
-        .from(aiConversations)
-        .where(and(
-          eq(aiConversations.id, conversationId),
-          eq(aiConversations.userId, userId)
-        ))
-        .limit(1);
+      const clientSchema = await getClientSchema(userId);
+      // Remplacer db.withSchema par SQL direct
+      const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
+      
+      const conversationResult = await db.execute(sql`
+        SELECT * FROM ${sql.raw(schemaPrefix)}ai_conversations
+        WHERE id = ${conversationId} AND user_id = ${userId}
+        LIMIT 1
+      `);
+      
+      const conversation = conversationResult.rows && conversationResult.rows.length > 0 ? conversationResult.rows[0] : null;
 
-      if (!conversation || conversation.length === 0) {
+      if (!conversation) {
         return null;
       }
 
-      const messages = await db
-        .select()
-        .from(aiMessages)
-        .where(eq(aiMessages.conversationId, conversationId))
-        .orderBy(aiMessages.createdAt);
+      const messagesResult = await db.execute(sql`
+        SELECT * FROM ${sql.raw(schemaPrefix)}ai_messages
+        WHERE conversation_id = ${conversationId}
+        ORDER BY created_at
+      `);
+      
+      const messages = messagesResult.rows || [];
 
       return {
-        ...conversation[0],
+        ...conversation,
         messages,
       };
     } catch (error) {
-      console.error('Error getting conversation with messages:', error);
+      logger.error('Error fetching conversation:', error);
       throw error;
     }
   }
@@ -275,15 +367,18 @@ Utilise ton expertise immobilière complète pour fournir des réponses précise
    */
   static async getUserConversations(userId: number) {
     try {
-      const conversations = await db
-        .select()
-        .from(aiConversations)
-        .where(eq(aiConversations.userId, userId))
-        .orderBy(aiConversations.updatedAt, 'desc');
-
-      return conversations;
+      const clientSchema = await getClientSchema(userId);
+      const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
+      
+      const result = await db.execute(sql`
+        SELECT * FROM ${sql.raw(schemaPrefix)}ai_conversations
+        WHERE user_id = ${userId}
+        ORDER BY updated_at DESC
+      `);
+      
+      return result.rows || [];
     } catch (error) {
-      console.error('Error getting user conversations:', error);
+      logger.error('Error getting user conversations:', error);
       throw error;
     }
   }
@@ -293,29 +388,30 @@ Utilise ton expertise immobilière complète pour fournir des réponses précise
    */
   static async getUserSuggestions(userId: number, type?: SuggestionType) {
     try {
-      let query = db
-        .select()
-        .from(aiSuggestions)
-        .where(eq(aiSuggestions.userId, userId));
-
+      const clientSchema = await getClientSchema(userId);
+      const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
+      
       if (type) {
-        // Utiliser une nouvelle requête filtrée
-        const suggestions = await db
-          .select()
-          .from(aiSuggestions)
-          .where(and(
-            eq(aiSuggestions.userId, userId),
-            eq(aiSuggestions.type, type as any)
-          ))
-          .orderBy(aiSuggestions.createdAt, 'desc');
+        // Utiliser une requête filtrée par type
+        const result = await db.execute(sql`
+          SELECT * FROM ${sql.raw(schemaPrefix)}ai_suggestions
+          WHERE user_id = ${userId} AND type = ${type}
+          ORDER BY created_at DESC
+        `);
         
-        return suggestions;
+        return result.rows || [];
       }
 
-      const suggestions = await query.orderBy(aiSuggestions.createdAt, 'desc');
-      return suggestions;
+      // Requête sans filtre de type
+      const result = await db.execute(sql`
+        SELECT * FROM ${sql.raw(schemaPrefix)}ai_suggestions
+        WHERE user_id = ${userId}
+        ORDER BY created_at DESC
+      `);
+      
+      return result.rows || [];
     } catch (error) {
-      console.error('Error getting user suggestions:', error);
+      logger.error('Error getting user suggestions:', error);
       throw error;
     }
   }
@@ -325,18 +421,19 @@ Utilise ton expertise immobilière complète pour fournir des réponses précise
    */
   static async updateSuggestionStatus(suggestionId: number, userId: number, status: 'accepted' | 'rejected') {
     try {
-      const [updatedSuggestion] = await db
-        .update(aiSuggestions)
-        .set({ status })
-        .where(and(
-          eq(aiSuggestions.id, suggestionId),
-          eq(aiSuggestions.userId, userId)
-        ))
-        .returning();
+      const clientSchema = await getClientSchema(userId);
+      const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
+      
+      const result = await db.execute(sql`
+        UPDATE ${sql.raw(schemaPrefix)}ai_suggestions
+        SET status = ${status}
+        WHERE id = ${suggestionId} AND user_id = ${userId}
+        RETURNING *
+      `);
 
-      return updatedSuggestion;
+      return result.rows && result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
-      console.error('Error updating suggestion status:', error);
+      logger.error('Error updating suggestion status:', error);
       throw error;
     }
   }
@@ -346,18 +443,19 @@ Utilise ton expertise immobilière complète pour fournir des réponses précise
    */
   static async updateConversationStatus(conversationId: number, userId: number, status: ConversationStatus) {
     try {
-      const [updatedConversation] = await db
-        .update(aiConversations)
-        .set({ status })
-        .where(and(
-          eq(aiConversations.id, conversationId),
-          eq(aiConversations.userId, userId)
-        ))
-        .returning();
+      const clientSchema = await getClientSchema(userId);
+      const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
+      
+      const result = await db.execute(sql`
+        UPDATE ${sql.raw(schemaPrefix)}ai_conversations
+        SET status = ${status}
+        WHERE id = ${conversationId} AND user_id = ${userId}
+        RETURNING *
+      `);
 
-      return updatedConversation;
+      return result.rows && result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
-      console.error('Error updating conversation status:', error);
+      logger.error('Error updating conversation status:', error);
       throw error;
     }
   }

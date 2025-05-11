@@ -1,10 +1,40 @@
 import { OpenAI } from 'openai';
 import logger from '../utils/logger';
+import { db } from '../db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 // Initialize the OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+/**
+ * Récupère le modèle préféré d'un utilisateur
+ */
+async function getUserPreferredModel(userId: number): Promise<string> {
+  try {
+    const [userResult] = await db
+      .select({ preferredAiModel: users.preferredAiModel })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!userResult) {
+      return 'gpt-3.5-turbo';
+    }
+
+    // Convertir le type de modèle en nom de modèle OpenAI
+    const modelType = userResult.preferredAiModel as string || 'openai-gpt-3.5';
+    if (modelType === 'openai-gpt-4o') {
+      return 'gpt-4o';
+    }
+    
+    return 'gpt-3.5-turbo';
+  } catch (error) {
+    logger.error('Error getting user preferred model:', error);
+    return 'gpt-3.5-turbo';
+  }
+}
 
 /**
  * Generate a response using OpenAI's API
@@ -46,8 +76,14 @@ Si tu ne connais pas la réponse, dis-le clairement au lieu de spéculer.`;
       }
     }
 
+    // Récupérer le modèle préféré de l'utilisateur si un userId est fourni
+    const userId = context?.userId as number;
+    const modelName = userId ? await getUserPreferredModel(userId) : 'gpt-3.5-turbo';
+    
+    logger.info(`Using model: ${modelName} for user ID: ${userId || 'N/A'}`);
+    
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: modelName,
       messages: [
         { role: 'system', content: systemMessage },
         { role: 'user', content: prompt }

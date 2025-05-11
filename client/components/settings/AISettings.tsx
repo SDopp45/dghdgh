@@ -48,19 +48,37 @@ const AISettingsComponent: React.FC = () => {
 
   useEffect(() => {
     fetchSettings();
+    
+    // Rafraîchissement automatique toutes les 10 secondes
+    const intervalId = setInterval(fetchSettings, 10000);
+    
+    // Nettoyer l'intervalle lorsque le composant est démonté
+    return () => clearInterval(intervalId);
   }, []);
 
   const fetchSettings = async () => {
     try {
-      setLoading(true);
+      // Ne pas afficher le loader lors des actualisations automatiques
+      if (loading) setLoading(true);
+      
       const response = await axios.get('/api/user/ai-settings');
       setSettings(response.data);
     } catch (error) {
       console.error('Error fetching AI settings:', error);
-      toast.error('Impossible de récupérer vos paramètres d\'IA');
+      // N'afficher la toast que lors du chargement initial, pas pendant les rafraîchissements automatiques
+      if (loading) {
+        toast.error('Impossible de récupérer vos paramètres d\'IA');
+      }
     } finally {
-      setLoading(false);
+      if (loading) setLoading(false);
     }
+  };
+
+  // Fonction pour rafraîchir manuellement les paramètres
+  const refreshSettings = () => {
+    setLoading(true);
+    fetchSettings();
+    toast.success('Quotas actualisés');
   };
 
   const handleModelChange = async (model: AIModelType) => {
@@ -69,6 +87,9 @@ const AISettingsComponent: React.FC = () => {
       await axios.post('/api/user/ai-settings', { preferredModel: model });
       setSettings(prev => ({ ...prev, preferredModel: model }));
       toast.success('Modèle d\'IA mis à jour avec succès');
+      
+      // Rafraîchir les paramètres après le changement pour obtenir les quotas à jour
+      fetchSettings();
     } catch (error) {
       console.error('Error updating AI model:', error);
       toast.error('Impossible de mettre à jour le modèle d\'IA');
@@ -83,7 +104,19 @@ const AISettingsComponent: React.FC = () => {
 
   return (
     <div className="bg-white p-6 shadow-md rounded-lg">
-      <h2 className="text-2xl font-semibold mb-4">Paramètres de l'Assistant IA</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold">Paramètres de l'Assistant IA</h2>
+        <button 
+          onClick={refreshSettings}
+          className="text-blue-500 hover:text-blue-700 flex items-center"
+          title="Actualiser les quotas"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Actualiser
+        </button>
+      </div>
       
       <div className="mb-6">
         <h3 className="text-lg font-medium mb-3">Modèle d'IA Préféré</h3>
@@ -148,7 +181,7 @@ const AISettingsComponent: React.FC = () => {
         <h3 className="text-amber-700 font-medium mb-1">Information importante</h3>
         <p className="text-amber-700 text-sm">
           Chaque requête à l'assistant compte dans votre quota mensuel, sauf si vous utilisez le modèle "Réponses Locales".
-          Les modèles plus avancés comme GPT-4o peuvent offrir des réponses de meilleure qualité mais consomment également votre quota.
+          Les modèles plus avancés comme GPT-4o peuvent offrir des réponses de meilleure qualité mais consomment 2 points de votre quota.
         </p>
       </div>
     </div>

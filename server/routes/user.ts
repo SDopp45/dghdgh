@@ -99,4 +99,34 @@ router.put('/notification-settings', ensureAuth, async (req, res) => {
   }
 });
 
+/**
+ * Route pour mettre à jour les paramètres IA de l'utilisateur
+ */
+router.post('/ai-settings', ensureAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { preferredAiModel } = req.body;
+    
+    if (!preferredAiModel || !['openai-gpt-3.5', 'openai-gpt-4o'].includes(preferredAiModel)) {
+      return res.status(400).json({ error: 'Modèle IA invalide' });
+    }
+    
+    // Mettre à jour les préférences utilisateur
+    await db.execute(sql`
+      UPDATE users 
+      SET preferred_ai_model = ${preferredAiModel} 
+      WHERE id = ${userId}
+    `);
+    
+    res.json({ 
+      success: true, 
+      message: 'Préférences IA mises à jour',
+      preferredAiModel
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour des paramètres IA:', error);
+    res.status(500).json({ error: 'Échec de la mise à jour des paramètres IA' });
+  }
+});
+
 // ...reste du fichier 

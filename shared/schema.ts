@@ -310,6 +310,36 @@ export const aiSuggestions = pgTable('ai_suggestions', {
   status: text('status', { enum: ['pending', 'accepted', 'rejected'] }).default('pending')
 });
 
+// Tables pour la gestion des tokens AI
+export const aiTokens = pgTable('ai_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  tokens: integer('tokens').default(0).notNull(),
+  plan: text('plan', { 
+    enum: ['free', 'basic', 'premium', 'enterprise'] 
+  }).default('free').notNull(),
+  expiresAt: timestamp('expires_at'),
+  requestCount: integer('request_count').default(0),
+  monthlyResetDate: timestamp('monthly_reset_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+export const aiUsage = pgTable('ai_usage', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  messageId: integer('message_id').references(() => aiMessages.id),
+  conversationId: integer('conversation_id').references(() => aiConversations.id),
+  tokensUsed: integer('tokens_used').notNull(),
+  model: text('model', { 
+    enum: ['openai-gpt-3.5', 'openai-gpt-4o'] 
+  }).notNull(),
+  promptTokens: integer('prompt_tokens').default(0),
+  completionTokens: integer('completion_tokens').default(0),
+  cost: decimal('cost', { precision: 10, scale: 6 }).default('0'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
 // Relations pour les tables IA
 export const aiMessagesRelations = relations(aiMessages, ({ one }) => ({
   user: one(users, {
@@ -341,6 +371,29 @@ export const aiSuggestionsRelations = relations(aiSuggestions, ({ one }) => ({
   })
 }));
 
+// Relations pour les tables de tokens AI
+export const aiTokensRelations = relations(aiTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [aiTokens.userId],
+    references: [users.id]
+  })
+}));
+
+export const aiUsageRelations = relations(aiUsage, ({ one }) => ({
+  user: one(users, {
+    fields: [aiUsage.userId],
+    references: [users.id]
+  }),
+  message: one(aiMessages, {
+    fields: [aiUsage.messageId],
+    references: [aiMessages.id]
+  }),
+  conversation: one(aiConversations, {
+    fields: [aiUsage.conversationId],
+    references: [aiConversations.id]
+  })
+}));
+
 // Schémas d'insertion pour les tables IA
 export const insertAiMessageSchema = createInsertSchema(aiMessages)
   .omit({
@@ -361,6 +414,20 @@ export const insertAiSuggestionSchema = createInsertSchema(aiSuggestions)
     createdAt: true
   });
 
+// Schémas d'insertion pour les tables de tokens AI
+export const insertAiTokenSchema = createInsertSchema(aiTokens)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true
+  });
+
+export const insertAiUsageSchema = createInsertSchema(aiUsage)
+  .omit({
+    id: true,
+    createdAt: true
+  });
+
 // Types pour les tables IA
 export type AiMessage = typeof aiMessages.$inferSelect;
 export type InsertAiMessage = typeof aiMessages.$inferInsert;
@@ -368,6 +435,10 @@ export type AiConversation = typeof aiConversations.$inferSelect;
 export type InsertAiConversation = typeof aiConversations.$inferInsert;
 export type AiSuggestion = typeof aiSuggestions.$inferSelect;
 export type InsertAiSuggestion = typeof aiSuggestions.$inferInsert;
+export type AiToken = typeof aiTokens.$inferSelect;
+export type InsertAiToken = typeof aiTokens.$inferInsert;
+export type AiUsage = typeof aiUsage.$inferSelect;
+export type InsertAiUsage = typeof aiUsage.$inferInsert;
 
 // Documents table avec type explicite
 export const documents = pgTable('documents', {
@@ -648,12 +719,6 @@ export const insertTenantHistorySchema = createInsertSchema(tenantHistory)
 
 // Pour la rétrocompatibilité, on garde l'ancien schéma qui utilise le nouveau
 export const insertFeedbackHistorySchema = insertTenantHistorySchema;
-
-// Types
-export type TenantHistory = typeof tenantHistory.$inferSelect;
-export type InsertTenantHistory = z.infer<typeof insertTenantHistorySchema>;
-export type FeedbackHistory = typeof feedbackHistory.$inferSelect; // Alias pour rétrocompatibilité
-export type InsertFeedbackHistory = z.infer<typeof insertFeedbackHistorySchema>;
 
 // Relations for tenants
 export const tenantsRelations = relations(tenants, ({ one, many }) => ({

@@ -173,7 +173,7 @@ export function setupRoutes(app: Express) {
   apiRouter.use('/export', dataExportRouter);
   apiRouter.use('/property-features', propertyFeaturesRouter);
   apiRouter.use('/ai-assistant', aiAssistantRouter);
-  apiRouter.use('/ai-settings', aiSettingsRouter);
+  apiRouter.use('/user/ai-settings', aiSettingsRouter);
   apiRouter.use('/financial-analysis', financialAnalysisRouter);
   apiRouter.use('/feedbacks', feedbacksRouter);
   apiRouter.use('/tenant-history', tenantHistoryRouter);

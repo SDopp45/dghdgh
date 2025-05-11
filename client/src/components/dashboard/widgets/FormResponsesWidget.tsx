@@ -15,6 +15,8 @@ type FormSubmission = {
   linkId: number;
   formData: Record<string, any>;
   createdAt: string;
+  ipAddress?: string;
+  userAgent?: string;
 };
 
 type Link = {
@@ -81,19 +83,58 @@ export function FormResponsesWidget() {
         
         for (const link of formLinks) {
           try {
+            console.log(`Tentative de récupération des réponses pour le formulaire ${link.id}...`);
             const response = await apiRequest(`/api/forms/${link.id}/responses`);
+            
+            console.log(`Réponse du serveur pour le formulaire ${link.id}:`, response);
             
             if (response && response.success && Array.isArray(response.data)) {
               // Convertir les données au format attendu par le composant
-              const submissions = response.data.map((item: any) => ({
-                id: item.id,
-                linkId: item.link_id || item.form_id,
-                formData: item.response_data || {},
-                createdAt: item.created_at
-              })).sort((a: FormSubmission, b: FormSubmission) => 
+              const submissions = response.data.map((item: any) => {
+                // Vérifier le format des données et journaliser pour déboguer
+                console.log(`Traitement de la réponse ${item.id}:`, item);
+                
+                // Identifier si les données sont dans response_data ou form_data
+                let formDataObj = item.response_data || item.form_data;
+                
+                // Si aucun des deux n'existe, chercher directement dans un des champs "data"
+                if (!formDataObj && item.data) {
+                  formDataObj = item.data;
+                }
+                
+                // Essayer de parser si c'est une chaîne
+                if (typeof formDataObj === 'string') {
+                  try {
+                    formDataObj = JSON.parse(formDataObj);
+                    console.log('Données JSON parsées avec succès:', formDataObj);
+                  } catch(e) {
+                    console.error('Erreur lors du parsing des données:', e);
+                    formDataObj = {};
+                  }
+                }
+                
+                // Si toujours aucune donnée structurée trouvée, utiliser l'objet item entier comme données
+                if (!formDataObj || Object.keys(formDataObj).length === 0) {
+                  // Filtrer les champs techniques
+                  const excludeFields = ['id', 'link_id', 'form_id', 'created_at', 'updated_at', 'ip_address', 'user_agent'];
+                  formDataObj = Object.entries(item)
+                    .filter(([key]) => !excludeFields.includes(key))
+                    .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+                }
+                
+                return {
+                  id: item.id,
+                  linkId: item.link_id || item.form_id || parseInt(link.id),
+                  formData: formDataObj || {},
+                  createdAt: item.created_at || new Date().toISOString(),
+                  ipAddress: item.ip_address,
+                  userAgent: item.user_agent
+                };
+              }).sort((a: FormSubmission, b: FormSubmission) => 
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               );
               
+              console.log(`Nombre de réponses traitées pour ${link.title}: ${submissions.length}`);
               totalSubmissions += submissions.length;
               
               // Vérifier s'il y a une soumission plus récente
@@ -319,7 +360,7 @@ export function FormResponsesWidget() {
             variant="ghost" 
             size="sm" 
             className="h-7 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => window.location.href = "/links"}
+            onClick={() => window.location.href = "/links?tab=forms"}
           >
             Voir tout
           </Button>

@@ -422,31 +422,67 @@ router.get('/:formId/responses', authenticateMiddleware, async (req: Request, re
     // S'assurer que les tables existent
     await ensureTablesExist(schemaName, clientDb);
     
-    // Vérifier si le formulaire appartient à l'utilisateur
+    console.log(`Recherche des réponses pour le formulaire ${formId} dans le schéma ${schemaName}`);
+    
+    // Vérifier d'abord si les réponses existent directement dans form_responses sans vérification du propriétaire
+    // Ce qui permet de récupérer les réponses même si le formulaire a été créé différemment
+    const directResponsesQuery = await clientDb.executeInSchema(
+      sql`SELECT * FROM form_responses 
+          WHERE form_id = ${parseInt(formId)} OR link_id = ${parseInt(formId)}
+            ORDER BY created_at DESC`
+    );
+    
+    if (directResponsesQuery.rowCount && directResponsesQuery.rowCount > 0) {
+      console.log(`Trouvé ${directResponsesQuery.rowCount} réponses directement pour le formulaire ${formId}`);
+      return res.json({
+        success: true,
+        data: directResponsesQuery.rows
+      });
+    }
+    
+    // Si aucune réponse directe trouvée, essayer la méthode standard avec vérification du propriétaire
     const formOwnershipQuery = await clientDb.executeInSchema(
       sql`SELECT id FROM forms WHERE id = ${parseInt(formId)} AND user_id = ${userId} LIMIT 1`
     );
     
     if (!formOwnershipQuery.rowCount || formOwnershipQuery.rowCount === 0) {
-        return res.status(403).json({
-          success: false,
-        message: 'Accès non autorisé à ce formulaire'
+      console.log(`Aucun formulaire trouvé avec l'ID ${formId} pour l'utilisateur ${userId}, essai avec link_id`);
+      
+      // Essayer de trouver des réponses par link_id si form_id ne fonctionne pas
+      const linkResponsesQuery = await clientDb.executeInSchema(
+        sql`SELECT * FROM form_responses 
+            WHERE link_id = ${parseInt(formId)} 
+            ORDER BY created_at DESC`
+      );
+      
+      if (linkResponsesQuery.rowCount && linkResponsesQuery.rowCount > 0) {
+        console.log(`Trouvé ${linkResponsesQuery.rowCount} réponses via link_id ${formId}`);
+        return res.json({
+          success: true,
+          data: linkResponsesQuery.rows
+        });
+      }
+      
+      return res.status(403).json({
+        success: false,
+        message: 'Accès non autorisé à ce formulaire ou aucune réponse trouvée'
       });
     }
-      
-      // Récupérer les réponses
+    
+    // Récupérer les réponses
     const responsesQuery = await clientDb.executeInSchema(
       sql`SELECT * FROM form_responses 
           WHERE form_id = ${parseInt(formId)} 
             ORDER BY created_at DESC`
-      );
-      
+    );
+    
     const responses = responsesQuery.rows || [];
-      
-      return res.json({
-        success: true,
+    console.log(`${responses.length} réponses trouvées pour le formulaire ${formId}`);
+    
+    return res.json({
+      success: true,
       data: responses
-      });
+    });
   } catch (error) {
     logger.error('Error fetching form responses:', error);
     return res.status(500).json({

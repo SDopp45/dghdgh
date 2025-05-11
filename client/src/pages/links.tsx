@@ -10,7 +10,8 @@ import {
   Check, ChevronsUpDown, Move, ArrowUpCircle, Unlock, 
   SunMoon, MoonStar, Paintbrush, Gauge, PanelTop, 
   PanelRight, FileImage, Clock, XCircle, User, LinkIcon, 
-  AlertTriangle, Upload, FileX, ChevronRight
+  AlertTriangle, Upload, FileX, ChevronRight,
+  ArrowRight, BriefcaseIcon, CheckCircle2, EyeIcon, FolderIcon, FolderOpenIcon, Pencil, PlusSquare
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -432,6 +433,17 @@ export default function LinksPage() {
   
   // Getter pour l'ID d'édition (pour la compatibilité avec le code existant)
   const editingLinkId = editingLink.id;
+  
+  // Initialiser l'onglet à partir des paramètres d'URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    
+    if (tabParam === 'forms' || tabParam === 'links' || tabParam === 'info' || tabParam === 'appearance' || tabParam === 'stats') {
+      setCurrentTab(tabParam);
+      console.log(`Tab défini sur ${tabParam} à partir de l'URL`);
+    }
+  }, []);
   
   // Setter pour l'ID d'édition qui met à jour également la référence au lien
   const setEditingLinkId = (id: string | null) => {
@@ -1525,6 +1537,36 @@ export default function LinksPage() {
         </div>
         </Card>
         
+        {/* Inputs de type file cachés pour les uploads */}
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleLogoUpload}
+        />
+        <input 
+          type="file" 
+          ref={backgroundInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleBackgroundUpload}
+        />
+        <input 
+          type="file" 
+          ref={linkIconInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => editingLinkId && handleLinkIconUpload(e, editingLinkId)}
+        />
+        <input 
+          type="file" 
+          ref={newLinkIconInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleNewLinkIconUpload}
+        />
+        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {previewMode ? (
             <div className="lg:col-span-12">
@@ -1852,29 +1894,23 @@ export default function LinksPage() {
                                       "Votre profil est actuellement visible publiquement."}
                                   </p>
                                 </div>
-                                <Button 
-                                  variant={profile.is_paused ? "default" : "outline"}
-                                  className={profile.is_paused ? "bg-emerald-600 hover:bg-emerald-700" : "border-amber-500 text-amber-600 hover:bg-amber-50"}
-                                  onClick={handleTogglePause}
-                                  disabled={togglePauseMutation.isPending}
-                                >
-                                  {togglePauseMutation.isPending ? (
-                                    <>
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      Chargement...
-                                    </>
-                                  ) : profile.is_paused ? (
-                                    <>
-                                      <Unlock className="mr-2 h-4 w-4" />
-                                      Activer le profil
-                                    </>
-                                  ) : (
-                                    <>
-                                      <AlertTriangle className="mr-2 h-4 w-4" />
-                                      Mettre en pause
-                                    </>
-                                  )}
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-muted-foreground">
+                                    {profile.is_paused ? "Désactivé" : "Activé"}
+                                  </span>
+                                  <Switch
+                                    checked={!profile.is_paused}
+                                    onCheckedChange={(checked) => {
+                                      // Mise à jour de l'état local uniquement, sans déclencher la mutation
+                                      setProfile({
+                                        ...profile,
+                                        is_paused: !checked
+                                      });
+                                      setHasUnsavedChanges(true);
+                                    }}
+                                    className="data-[state=checked]:bg-emerald-600"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>

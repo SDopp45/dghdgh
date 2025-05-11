@@ -455,37 +455,27 @@ router.post('/profile', authenticateMiddleware, async (req, res) => {
     // Trouver les liens à supprimer
     const linksToDelete = existingLinks.filter((link: any) => !newLinkIds.includes(link.id));
     
-    // Vérifier les soumissions pour chaque lien à supprimer
+    // Supprimer les liens, y compris ceux avec des soumissions
     for (const link of linksToDelete) {
-      // Vérifier s'il y a des soumissions pour ce lien
-      const submissionCountQuery = await db.execute(
-        sql`SELECT COUNT(*) FROM form_submissions WHERE link_id = ${link.id} LIMIT 1`
-      );
-      
-      const hasSubmissions = submissionCountQuery.rows[0] && 
-                            typeof submissionCountQuery.rows[0].count !== 'undefined' ? 
-                            Number(submissionCountQuery.rows[0].count) > 0 : false;
-      
-      if (!hasSubmissions) {
-        // Pas de soumissions, on peut supprimer en toute sécurité
-        try {
-          await db.execute(
-            sql`DELETE FROM links WHERE id = ${link.id}`
-          );
-          logger.info(`Lien ${link.id} supprimé car il n'a pas de soumissions`);
-        } catch (deleteError) {
-          logger.error(`Erreur lors de la suppression du lien ${link.id}:`, deleteError);
-        }
-      } else {
-        // Il y a des soumissions, on désactive le lien au lieu de le supprimer
-        try {
-          await db.execute(
-            sql`UPDATE links SET enabled = false, updated_at = NOW() WHERE id = ${link.id}`
-          );
-          logger.info(`Lien ${link.id} désactivé car il a des soumissions`);
-        } catch (updateError) {
-          logger.error(`Erreur lors de la désactivation du lien ${link.id}:`, updateError);
-        }
+      try {
+        // Supprimer d'abord les réponses associées au lien dans form_responses
+        await db.execute(
+          sql`DELETE FROM form_responses WHERE link_id = ${link.id}`
+        );
+        
+        // Supprimer également les réponses dans form_submissions pour compatibilité
+        await db.execute(
+          sql`DELETE FROM form_submissions WHERE link_id = ${link.id}`
+        );
+        
+        // Supprimer enfin le lien lui-même
+        await db.execute(
+          sql`DELETE FROM links WHERE id = ${link.id}`
+        );
+        
+        logger.info(`Lien ${link.id} et toutes ses réponses ont été supprimés définitivement`);
+      } catch (deleteError) {
+        logger.error(`Erreur lors de la suppression du lien ${link.id}:`, deleteError);
       }
     }
     
@@ -623,233 +613,114 @@ router.get('/profile/:slug', async (req, res) => {
     // Essayer de trouver le profil dans chaque schéma client
     for (const schema of clientSchemas) {
       try {
-        // Rechercher le profil dans ce schéma avec TOUTES les colonnes explicitement
+        // Rechercher le profil dans ce schéma
         const profileQuery = await db.execute(
-          sql`SELECT 
-                lp.id, lp.user_id, lp.slug, lp.title, lp.description,
-                lp.background_color, lp.text_color, lp.accent_color,
-                lp.logo_url, lp.views, lp.background_image, 
-                lp.background_pattern, lp.button_style, lp.button_radius,
-                lp.font_family, lp.animation, lp.custom_css, lp.custom_theme,
-                lp.background_saturation, lp.background_hue_rotate, 
-                lp.background_sepia, lp.background_grayscale, lp.background_invert,
-                lp.background_color_filter, lp.background_color_filter_opacity,
-                lp.created_at, lp.updated_at, lp.is_paused
-              FROM ${sql.identifier(schema)}."link_profiles" lp 
-              WHERE lp.slug = ${slug} 
-              AND (lp.is_paused IS NULL OR lp.is_paused = false)
-              LIMIT 1`
+          sql`SELECT * FROM ${sql.identifier(schema)}."link_profiles" 
+              WHERE slug = ${slug} LIMIT 1`
         );
         
         if (profileQuery && profileQuery.rowCount && profileQuery.rowCount > 0) {
           profileFound = profileQuery.rows[0];
           schemaFound = schema;
-          
-          // Convertir les noms de colonnes snake_case en camelCase pour le frontend
-          profileFound = {
-            id: profileFound.id,
-            userId: profileFound.user_id,
-            slug: profileFound.slug,
-            title: profileFound.title,
-            description: profileFound.description,
-            backgroundColor: profileFound.background_color,
-            textColor: profileFound.text_color,
-            accentColor: profileFound.accent_color,
-            logoUrl: profileFound.logo_url,
-            views: profileFound.views,
-            backgroundImage: profileFound.background_image,
-            backgroundPattern: profileFound.background_pattern,
-            buttonStyle: profileFound.button_style,
-            buttonRadius: profileFound.button_radius,
-            fontFamily: profileFound.font_family,
-            animation: profileFound.animation,
-            customCss: profileFound.custom_css,
-            customTheme: profileFound.custom_theme,
-            backgroundSaturation: profileFound.background_saturation,
-            backgroundHueRotate: profileFound.background_hue_rotate,
-            backgroundSepia: profileFound.background_sepia,
-            backgroundGrayscale: profileFound.background_grayscale,
-            backgroundInvert: profileFound.background_invert,
-            backgroundColorFilter: profileFound.background_color_filter,
-            backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
-            createdAt: profileFound.created_at,
-            updatedAt: profileFound.updated_at,
-            isPaused: profileFound.is_paused
-          };
-          
-          // Récupérer les liens actifs pour ce profil dans ce schéma avec TOUTES les colonnes
-          const linksQuery = await db.execute(
-            sql`SELECT 
-                  id, profile_id, title, url, icon, enabled, clicks, 
-                  position, featured, custom_color, custom_text_color, 
-                  animation, type, form_definition, created_at, 
-                  updated_at, button_style, user_id
-                FROM ${sql.identifier(schema)}."links" 
-                WHERE profile_id = ${profileFound.id}
-                AND enabled = true
-                ORDER BY position ASC`
-          );
-          
-          // Convertir les liens en format camelCase également
-          linksFound = (linksQuery.rows || []).map(link => ({
-            id: link.id,
-            profileId: link.profile_id,
-            title: link.title,
-            url: link.url,
-            icon: link.icon,
-            enabled: link.enabled,
-            clicks: link.clicks,
-            position: link.position,
-            featured: link.featured,
-            customColor: link.custom_color,
-            customTextColor: link.custom_text_color,
-            animation: link.animation,
-            type: link.type,
-            formDefinition: link.form_definition,
-            createdAt: link.created_at,
-            updatedAt: link.updated_at,
-            buttonStyle: link.button_style,
-            userId: link.user_id
-          }));
-          
-          // Incrémenter le compteur de vues
-          await db.execute(
-            sql`UPDATE ${sql.identifier(schema)}."link_profiles"
-                SET views = views + 1 
-                WHERE id = ${profileFound.id}`
-          );
-          
-          logger.info(`Profil trouvé dans le schéma ${schema} avec ${linksFound.length} liens`);
-          
-          // Profil trouvé, sortir de la boucle
           break;
         }
       } catch (schemaError) {
         // Ignorer l'erreur et continuer avec le schéma suivant
-        logger.warn(`Erreur lors de la recherche dans le schéma ${schema}:`, schemaError);
+        logger.warn(`Erreur lors de la recherche dans le schéma ${schema} pour enregistrer une vue:`, schemaError);
       }
     }
     
-    // Si aucun profil n'est trouvé, vérifier aussi dans le schéma public
+    // Ne plus chercher dans le schéma public car la table n'y existe pas
     if (!profileFound) {
-      try {
-        // Rechercher le profil dans le schéma public avec TOUTES les colonnes
-        const publicProfileQuery = await db.execute(
-          sql`SELECT 
-                lp.id, lp.user_id, lp.slug, lp.title, lp.description,
-                lp.background_color, lp.text_color, lp.accent_color,
-                lp.logo_url, lp.views, lp.background_image, 
-                lp.background_pattern, lp.button_style, lp.button_radius,
-                lp.font_family, lp.animation, lp.custom_css, lp.custom_theme,
-                lp.background_saturation, lp.background_hue_rotate, 
-                lp.background_sepia, lp.background_grayscale, lp.background_invert,
-                lp.background_color_filter, lp.background_color_filter_opacity,
-                lp.created_at, lp.updated_at, lp.is_paused
-              FROM public."link_profiles" lp 
-              WHERE lp.slug = ${slug} 
-              AND (lp.is_paused IS NULL OR lp.is_paused = false)
-              LIMIT 1`
-        );
-        
-        if (publicProfileQuery && publicProfileQuery.rowCount && publicProfileQuery.rowCount > 0) {
-          profileFound = publicProfileQuery.rows[0];
-          schemaFound = 'public';
-          
-          // Convertir les noms de colonnes snake_case en camelCase pour le frontend
-          profileFound = {
-            id: profileFound.id,
-            userId: profileFound.user_id,
-            slug: profileFound.slug,
-            title: profileFound.title,
-            description: profileFound.description,
-            backgroundColor: profileFound.background_color,
-            textColor: profileFound.text_color,
-            accentColor: profileFound.accent_color,
-            logoUrl: profileFound.logo_url,
-            views: profileFound.views,
-            backgroundImage: profileFound.background_image,
-            backgroundPattern: profileFound.background_pattern,
-            buttonStyle: profileFound.button_style,
-            buttonRadius: profileFound.button_radius,
-            fontFamily: profileFound.font_family,
-            animation: profileFound.animation,
-            customCss: profileFound.custom_css,
-            customTheme: profileFound.custom_theme,
-            backgroundSaturation: profileFound.background_saturation,
-            backgroundHueRotate: profileFound.background_hue_rotate,
-            backgroundSepia: profileFound.background_sepia,
-            backgroundGrayscale: profileFound.background_grayscale,
-            backgroundInvert: profileFound.background_invert,
-            backgroundColorFilter: profileFound.background_color_filter,
-            backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
-            createdAt: profileFound.created_at,
-            updatedAt: profileFound.updated_at,
-            isPaused: profileFound.is_paused
-          };
-          
-          // Récupérer les liens actifs pour ce profil dans le schéma public avec TOUTES les colonnes
-          const publicLinksQuery = await db.execute(
-            sql`SELECT 
-                  id, profile_id, title, url, icon, enabled, clicks, 
-                  position, featured, custom_color, custom_text_color, 
-                  animation, type, form_definition, created_at, 
-                  updated_at, button_style, user_id
-                FROM public."links" 
-                WHERE profile_id = ${profileFound.id}
-                AND enabled = true
-                ORDER BY position ASC`
-          );
-          
-          // Convertir les liens en format camelCase également
-          linksFound = (publicLinksQuery.rows || []).map(link => ({
-            id: link.id,
-            profileId: link.profile_id,
-            title: link.title,
-            url: link.url,
-            icon: link.icon,
-            enabled: link.enabled,
-            clicks: link.clicks,
-            position: link.position,
-            featured: link.featured,
-            customColor: link.custom_color,
-            customTextColor: link.custom_text_color,
-            animation: link.animation,
-            type: link.type,
-            formDefinition: link.form_definition,
-            createdAt: link.created_at,
-            updatedAt: link.updated_at,
-            buttonStyle: link.button_style,
-            userId: link.user_id
-          }));
-          
-          // Incrémenter le compteur de vues
-          await db.execute(
-            sql`UPDATE public."link_profiles"
-                SET views = views + 1 
-                WHERE id = ${profileFound.id}`
-          );
-          
-          logger.info(`Profil trouvé dans le schéma public avec ${linksFound.length} liens`);
-        }
-      } catch (publicError) {
-        logger.warn('Erreur lors de la recherche dans le schéma public:', publicError);
-      }
+      logger.info(`Aucun profil trouvé dans les schémas clients pour enregistrer une vue sur le slug: ${slug}`);
     }
     
-    // Si toujours aucun profil trouvé, renvoyer une erreur 404
-    if (!profileFound) {
+    if (!profileFound || !schemaFound) {
       return res.status(404).json({
         success: false,
-        message: 'Profil non trouvé ou temporairement indisponible'
+        message: 'Profil non trouvé'
       });
     }
     
-    logger.info(`Renvoi du profil ${profileFound.slug} avec ${linksFound.length} liens`);
-    logger.debug(`Données de style: backgroundColor=${profileFound.backgroundColor}, buttonStyle=${profileFound.buttonStyle}`);
+    // Convertir les noms de colonnes snake_case en camelCase pour le frontend
+    const formattedProfileData = {
+      id: profileFound.id,
+      userId: profileFound.user_id,
+      slug: profileFound.slug,
+      title: profileFound.title,
+      description: profileFound.description,
+      backgroundColor: profileFound.background_color,
+      textColor: profileFound.text_color,
+      accentColor: profileFound.accent_color,
+      logoUrl: profileFound.logo_url,
+      views: profileFound.views,
+      backgroundImage: profileFound.background_image,
+      backgroundPattern: profileFound.background_pattern,
+      buttonStyle: profileFound.button_style,
+      buttonRadius: profileFound.button_radius,
+      fontFamily: profileFound.font_family,
+      animation: profileFound.animation,
+      customCss: profileFound.custom_css,
+      customTheme: profileFound.custom_theme,
+      backgroundSaturation: profileFound.background_saturation,
+      backgroundHueRotate: profileFound.background_hue_rotate,
+      backgroundSepia: profileFound.background_sepia,
+      backgroundGrayscale: profileFound.background_grayscale,
+      backgroundInvert: profileFound.background_invert,
+      backgroundColorFilter: profileFound.background_color_filter,
+      backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
+      createdAt: profileFound.created_at,
+      updatedAt: profileFound.updated_at,
+      isPaused: profileFound.is_paused
+    };
+    
+    // Récupérer les liens actifs pour ce profil dans ce schéma avec TOUTES les colonnes
+    const linksQuery = await db.execute(
+      sql`SELECT 
+            id, profile_id, title, url, icon, enabled, clicks, 
+            position, featured, custom_color, custom_text_color, 
+            animation, type, form_definition, created_at, 
+            updated_at, button_style, user_id
+          FROM ${sql.identifier(schemaFound)}."links" 
+          WHERE profile_id = ${profileFound.id}
+          AND enabled = true
+          ORDER BY position ASC`
+    );
+    
+    // Convertir les liens en format camelCase également
+    linksFound = (linksQuery.rows || []).map(link => ({
+      id: link.id,
+      profileId: link.profile_id,
+      title: link.title,
+      url: link.url,
+      icon: link.icon,
+      enabled: link.enabled,
+      clicks: link.clicks,
+      position: link.position,
+      featured: link.featured,
+      customColor: link.custom_color,
+      customTextColor: link.custom_text_color,
+      animation: link.animation,
+      type: link.type,
+      formDefinition: link.form_definition,
+      createdAt: link.created_at,
+      updatedAt: link.updated_at,
+      buttonStyle: link.button_style,
+      userId: link.user_id
+    }));
+    
+    // Incrémenter le compteur de vues
+    await db.execute(
+      sql`UPDATE ${sql.identifier(schemaFound)}."link_profiles"
+          SET views = views + 1 
+          WHERE id = ${profileFound.id}`
+    );
+    
+    logger.info(`Profil trouvé dans le schéma ${schemaFound} avec ${linksFound.length} liens`);
     
     // Formater la réponse avec les liens
     const formattedProfile = {
-      ...profileFound,
+      ...formattedProfileData,
       links: linksFound || []
     };
     
@@ -890,233 +761,114 @@ router.get('/u/:slug', async (req, res) => {
     // Essayer de trouver le profil dans chaque schéma client
     for (const schema of clientSchemas) {
       try {
-        // Rechercher le profil dans ce schéma avec TOUTES les colonnes explicitement
+        // Rechercher le profil dans ce schéma
         const profileQuery = await db.execute(
-          sql`SELECT 
-                lp.id, lp.user_id, lp.slug, lp.title, lp.description,
-                lp.background_color, lp.text_color, lp.accent_color,
-                lp.logo_url, lp.views, lp.background_image, 
-                lp.background_pattern, lp.button_style, lp.button_radius,
-                lp.font_family, lp.animation, lp.custom_css, lp.custom_theme,
-                lp.background_saturation, lp.background_hue_rotate, 
-                lp.background_sepia, lp.background_grayscale, lp.background_invert,
-                lp.background_color_filter, lp.background_color_filter_opacity,
-                lp.created_at, lp.updated_at, lp.is_paused
-              FROM ${sql.identifier(schema)}."link_profiles" lp 
-              WHERE lp.slug = ${slug} 
-              AND (lp.is_paused IS NULL OR lp.is_paused = false)
-              LIMIT 1`
+          sql`SELECT * FROM ${sql.identifier(schema)}."link_profiles" 
+              WHERE slug = ${slug} LIMIT 1`
         );
         
         if (profileQuery && profileQuery.rowCount && profileQuery.rowCount > 0) {
           profileFound = profileQuery.rows[0];
           schemaFound = schema;
-          
-          // Convertir les noms de colonnes snake_case en camelCase pour le frontend
-          profileFound = {
-            id: profileFound.id,
-            userId: profileFound.user_id,
-            slug: profileFound.slug,
-            title: profileFound.title,
-            description: profileFound.description,
-            backgroundColor: profileFound.background_color,
-            textColor: profileFound.text_color,
-            accentColor: profileFound.accent_color,
-            logoUrl: profileFound.logo_url,
-            views: profileFound.views,
-            backgroundImage: profileFound.background_image,
-            backgroundPattern: profileFound.background_pattern,
-            buttonStyle: profileFound.button_style,
-            buttonRadius: profileFound.button_radius,
-            fontFamily: profileFound.font_family,
-            animation: profileFound.animation,
-            customCss: profileFound.custom_css,
-            customTheme: profileFound.custom_theme,
-            backgroundSaturation: profileFound.background_saturation,
-            backgroundHueRotate: profileFound.background_hue_rotate,
-            backgroundSepia: profileFound.background_sepia,
-            backgroundGrayscale: profileFound.background_grayscale,
-            backgroundInvert: profileFound.background_invert,
-            backgroundColorFilter: profileFound.background_color_filter,
-            backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
-            createdAt: profileFound.created_at,
-            updatedAt: profileFound.updated_at,
-            isPaused: profileFound.is_paused
-          };
-          
-          // Récupérer les liens actifs pour ce profil dans ce schéma avec TOUTES les colonnes
-          const linksQuery = await db.execute(
-            sql`SELECT 
-                  id, profile_id, title, url, icon, enabled, clicks, 
-                  position, featured, custom_color, custom_text_color, 
-                  animation, type, form_definition, created_at, 
-                  updated_at, button_style, user_id
-                FROM ${sql.identifier(schema)}."links" 
-                WHERE profile_id = ${profileFound.id}
-                AND enabled = true
-                ORDER BY position ASC`
-          );
-          
-          // Convertir les liens en format camelCase également
-          linksFound = (linksQuery.rows || []).map(link => ({
-            id: link.id,
-            profileId: link.profile_id,
-            title: link.title,
-            url: link.url,
-            icon: link.icon,
-            enabled: link.enabled,
-            clicks: link.clicks,
-            position: link.position,
-            featured: link.featured,
-            customColor: link.custom_color,
-            customTextColor: link.custom_text_color,
-            animation: link.animation,
-            type: link.type,
-            formDefinition: link.form_definition,
-            createdAt: link.created_at,
-            updatedAt: link.updated_at,
-            buttonStyle: link.button_style,
-            userId: link.user_id
-          }));
-          
-          // Incrémenter le compteur de vues
-          await db.execute(
-            sql`UPDATE ${sql.identifier(schema)}."link_profiles"
-                SET views = views + 1 
-                WHERE id = ${profileFound.id}`
-          );
-          
-          logger.info(`Profil trouvé dans le schéma ${schema} avec ${linksFound.length} liens`);
-          
-          // Profil trouvé, sortir de la boucle
           break;
         }
       } catch (schemaError) {
         // Ignorer l'erreur et continuer avec le schéma suivant
-        logger.warn(`Erreur lors de la recherche dans le schéma ${schema}:`, schemaError);
+        logger.warn(`Erreur lors de la recherche dans le schéma ${schema} pour enregistrer une vue:`, schemaError);
       }
     }
     
-    // Si aucun profil n'est trouvé, vérifier aussi dans le schéma public
+    // Ne plus chercher dans le schéma public car la table n'y existe pas
     if (!profileFound) {
-      try {
-        // Rechercher le profil dans le schéma public avec TOUTES les colonnes
-        const publicProfileQuery = await db.execute(
-          sql`SELECT 
-                lp.id, lp.user_id, lp.slug, lp.title, lp.description,
-                lp.background_color, lp.text_color, lp.accent_color,
-                lp.logo_url, lp.views, lp.background_image, 
-                lp.background_pattern, lp.button_style, lp.button_radius,
-                lp.font_family, lp.animation, lp.custom_css, lp.custom_theme,
-                lp.background_saturation, lp.background_hue_rotate, 
-                lp.background_sepia, lp.background_grayscale, lp.background_invert,
-                lp.background_color_filter, lp.background_color_filter_opacity,
-                lp.created_at, lp.updated_at, lp.is_paused
-              FROM public."link_profiles" lp 
-              WHERE lp.slug = ${slug} 
-              AND (lp.is_paused IS NULL OR lp.is_paused = false)
-              LIMIT 1`
-        );
-        
-        if (publicProfileQuery && publicProfileQuery.rowCount && publicProfileQuery.rowCount > 0) {
-          profileFound = publicProfileQuery.rows[0];
-          schemaFound = 'public';
-          
-          // Convertir les noms de colonnes snake_case en camelCase pour le frontend
-          profileFound = {
-            id: profileFound.id,
-            userId: profileFound.user_id,
-            slug: profileFound.slug,
-            title: profileFound.title,
-            description: profileFound.description,
-            backgroundColor: profileFound.background_color,
-            textColor: profileFound.text_color,
-            accentColor: profileFound.accent_color,
-            logoUrl: profileFound.logo_url,
-            views: profileFound.views,
-            backgroundImage: profileFound.background_image,
-            backgroundPattern: profileFound.background_pattern,
-            buttonStyle: profileFound.button_style,
-            buttonRadius: profileFound.button_radius,
-            fontFamily: profileFound.font_family,
-            animation: profileFound.animation,
-            customCss: profileFound.custom_css,
-            customTheme: profileFound.custom_theme,
-            backgroundSaturation: profileFound.background_saturation,
-            backgroundHueRotate: profileFound.background_hue_rotate,
-            backgroundSepia: profileFound.background_sepia,
-            backgroundGrayscale: profileFound.background_grayscale,
-            backgroundInvert: profileFound.background_invert,
-            backgroundColorFilter: profileFound.background_color_filter,
-            backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
-            createdAt: profileFound.created_at,
-            updatedAt: profileFound.updated_at,
-            isPaused: profileFound.is_paused
-          };
-          
-          // Récupérer les liens actifs pour ce profil dans le schéma public avec TOUTES les colonnes
-          const publicLinksQuery = await db.execute(
-            sql`SELECT 
-                  id, profile_id, title, url, icon, enabled, clicks, 
-                  position, featured, custom_color, custom_text_color, 
-                  animation, type, form_definition, created_at, 
-                  updated_at, button_style, user_id
-                FROM public."links" 
-                WHERE profile_id = ${profileFound.id}
-                AND enabled = true
-                ORDER BY position ASC`
-          );
-          
-          // Convertir les liens en format camelCase également
-          linksFound = (publicLinksQuery.rows || []).map(link => ({
-            id: link.id,
-            profileId: link.profile_id,
-            title: link.title,
-            url: link.url,
-            icon: link.icon,
-            enabled: link.enabled,
-            clicks: link.clicks,
-            position: link.position,
-            featured: link.featured,
-            customColor: link.custom_color,
-            customTextColor: link.custom_text_color,
-            animation: link.animation,
-            type: link.type,
-            formDefinition: link.form_definition,
-            createdAt: link.created_at,
-            updatedAt: link.updated_at,
-            buttonStyle: link.button_style,
-            userId: link.user_id
-          }));
-          
-          // Incrémenter le compteur de vues
-          await db.execute(
-            sql`UPDATE public."link_profiles"
-                SET views = views + 1 
-                WHERE id = ${profileFound.id}`
-          );
-          
-          logger.info(`Profil trouvé dans le schéma public avec ${linksFound.length} liens`);
-        }
-      } catch (publicError) {
-        logger.warn('Erreur lors de la recherche dans le schéma public:', publicError);
-      }
+      logger.info(`Aucun profil trouvé dans les schémas clients pour enregistrer une vue sur le slug: ${slug}`);
     }
     
-    // Si toujours aucun profil trouvé, renvoyer une erreur 404
-    if (!profileFound) {
+    if (!profileFound || !schemaFound) {
       return res.status(404).json({
         success: false,
-        message: 'Profil non trouvé ou temporairement indisponible'
+        message: 'Profil non trouvé'
       });
     }
     
-    logger.info(`Renvoi du profil ${profileFound.slug} avec ${linksFound.length} liens`);
-    logger.debug(`Données de style: backgroundColor=${profileFound.backgroundColor}, buttonStyle=${profileFound.buttonStyle}`);
+    // Convertir les noms de colonnes snake_case en camelCase pour le frontend
+    const formattedProfileData = {
+      id: profileFound.id,
+      userId: profileFound.user_id,
+      slug: profileFound.slug,
+      title: profileFound.title,
+      description: profileFound.description,
+      backgroundColor: profileFound.background_color,
+      textColor: profileFound.text_color,
+      accentColor: profileFound.accent_color,
+      logoUrl: profileFound.logo_url,
+      views: profileFound.views,
+      backgroundImage: profileFound.background_image,
+      backgroundPattern: profileFound.background_pattern,
+      buttonStyle: profileFound.button_style,
+      buttonRadius: profileFound.button_radius,
+      fontFamily: profileFound.font_family,
+      animation: profileFound.animation,
+      customCss: profileFound.custom_css,
+      customTheme: profileFound.custom_theme,
+      backgroundSaturation: profileFound.background_saturation,
+      backgroundHueRotate: profileFound.background_hue_rotate,
+      backgroundSepia: profileFound.background_sepia,
+      backgroundGrayscale: profileFound.background_grayscale,
+      backgroundInvert: profileFound.background_invert,
+      backgroundColorFilter: profileFound.background_color_filter,
+      backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
+      createdAt: profileFound.created_at,
+      updatedAt: profileFound.updated_at,
+      isPaused: profileFound.is_paused
+    };
+    
+    // Récupérer les liens actifs pour ce profil dans ce schéma avec TOUTES les colonnes
+    const linksQuery = await db.execute(
+      sql`SELECT 
+            id, profile_id, title, url, icon, enabled, clicks, 
+            position, featured, custom_color, custom_text_color, 
+            animation, type, form_definition, created_at, 
+            updated_at, button_style, user_id
+          FROM ${sql.identifier(schemaFound)}."links" 
+          WHERE profile_id = ${profileFound.id}
+          AND enabled = true
+          ORDER BY position ASC`
+    );
+    
+    // Convertir les liens en format camelCase également
+    linksFound = (linksQuery.rows || []).map(link => ({
+      id: link.id,
+      profileId: link.profile_id,
+      title: link.title,
+      url: link.url,
+      icon: link.icon,
+      enabled: link.enabled,
+      clicks: link.clicks,
+      position: link.position,
+      featured: link.featured,
+      customColor: link.custom_color,
+      customTextColor: link.custom_text_color,
+      animation: link.animation,
+      type: link.type,
+      formDefinition: link.form_definition,
+      createdAt: link.created_at,
+      updatedAt: link.updated_at,
+      buttonStyle: link.button_style,
+      userId: link.user_id
+    }));
+    
+    // Incrémenter le compteur de vues
+    await db.execute(
+      sql`UPDATE ${sql.identifier(schemaFound)}."link_profiles"
+          SET views = views + 1 
+          WHERE id = ${profileFound.id}`
+    );
+    
+    logger.info(`Profil trouvé dans le schéma ${schemaFound} avec ${linksFound.length} liens`);
     
     // Formater la réponse avec les liens
     const formattedProfile = {
-      ...profileFound,
+      ...formattedProfileData,
       links: linksFound || []
     };
     
@@ -1238,20 +990,9 @@ router.post('/profile/:slug/view', async (req, res) => {
       }
     }
     
-    // Si aucun profil n'est trouvé, vérifier aussi dans le schéma public
+    // Ne plus chercher dans le schéma public car la table n'y existe pas
     if (!profileFound) {
-      try {
-        const publicProfileQuery = await db.execute(
-          sql`SELECT * FROM public."link_profiles" WHERE slug = ${slug} LIMIT 1`
-        );
-        
-        if (publicProfileQuery && publicProfileQuery.rowCount && publicProfileQuery.rowCount > 0) {
-          profileFound = publicProfileQuery.rows[0];
-          schemaFound = 'public';
-        }
-      } catch (publicError) {
-        logger.warn('Erreur lors de la recherche dans le schéma public pour enregistrer une vue:', publicError);
-      }
+      logger.info(`Aucun profil trouvé dans les schémas clients pour enregistrer une vue sur le slug: ${slug}`);
     }
     
     if (!profileFound || !schemaFound) {
@@ -1291,24 +1032,58 @@ router.post('/click/:linkId', async (req, res) => {
       });
     }
     
-    const link = await db.query.links.findFirst({
-      where: eq(links.id, linkId)
-    });
+    // Rechercher dans tous les schémas client pour trouver le lien correspondant à linkId
+    const schemaQuery = await db.execute(
+      sql`SELECT schema_name 
+          FROM information_schema.schemata 
+          WHERE schema_name LIKE 'client_%'`
+    );
     
-    if (!link) {
+    const clientSchemas = schemaQuery.rows.map(row => row.schema_name as string);
+    logger.info(`Recherche du lien ${linkId} dans ${clientSchemas.length} schémas clients pour enregistrer un clic`);
+    
+    let linkFound = null;
+    let schemaFound = null;
+    
+    // Essayer de trouver le lien dans chaque schéma client
+    for (const schema of clientSchemas) {
+      try {
+        // Rechercher le lien dans ce schéma
+        const linkQuery = await db.execute(
+          sql`SELECT * FROM ${sql.identifier(schema)}."links" 
+              WHERE id = ${linkId} LIMIT 1`
+        );
+        
+        if (linkQuery && linkQuery.rowCount && linkQuery.rowCount > 0) {
+          linkFound = linkQuery.rows[0];
+          schemaFound = schema;
+          break;
+        }
+      } catch (schemaError) {
+        // Ignorer l'erreur et continuer avec le schéma suivant
+        logger.warn(`Erreur lors de la recherche dans le schéma ${schema} pour le lien ${linkId}:`, schemaError);
+      }
+    }
+    
+    if (!linkFound || !schemaFound) {
+      logger.error(`Lien ${linkId} non trouvé dans aucun schéma client`);
       return res.status(404).json({
         success: false,
         message: 'Lien non trouvé'
       });
     }
     
-    // Increment clicks count
-    await db.update(links)
-      .set({
-        clicks: (link.clicks || 0) + 1,
-        updatedAt: new Date()
-      })
-      .where(eq(links.id, link.id));
+    // Incrémenter le compteur de clics dans le schéma approprié
+    const currentClicks = typeof linkFound.clicks === 'number' ? linkFound.clicks : 0;
+    
+    await db.execute(
+      sql`UPDATE ${sql.identifier(schemaFound)}."links"
+          SET clicks = ${currentClicks + 1}, 
+              updated_at = NOW() 
+          WHERE id = ${linkId}`
+    );
+    
+    logger.info(`Compteur de clics mis à jour pour le lien ${linkId} dans le schéma ${schemaFound}`);
     
     return res.json({
       success: true
@@ -1406,41 +1181,19 @@ router.post('/form-submit/:linkId', async (req, res) => {
       }
     }
     
-    // Si aucun lien n'est trouvé, vérifier aussi dans le schéma public
+    // Ne plus chercher dans le schéma public car la table n'y existe pas
     if (!linkFound) {
-      try {
-        const publicLinkQuery = await db.execute(
-          sql`SELECT l.*, lp.* 
-              FROM public."links" l
-              JOIN public."link_profiles" lp ON l.profile_id = lp.id
-              WHERE l.id = ${linkId} 
-              LIMIT 1`
-        );
-        
-        if (publicLinkQuery.rowCount && publicLinkQuery.rowCount > 0 && publicLinkQuery.rows[0]) {
-          linkFound = {
-            id: publicLinkQuery.rows[0].id,
-            title: publicLinkQuery.rows[0].title,
-            clicks: typeof publicLinkQuery.rows[0].clicks === 'number' ? publicLinkQuery.rows[0].clicks : 0
-          };
-          profileFound = {
-            id: publicLinkQuery.rows[0].profile_id
-          };
-          schemaFound = 'public';
-        }
-      } catch (publicError) {
-        logger.warn('Erreur lors de la recherche dans le schéma public pour le lien:', publicError);
-      }
+      logger.warn(`Lien ${linkId} non trouvé dans les schémas clients`);
     }
     
-    if (!linkFound || !schemaFound || !profileFound) {
+    if (!linkFound || !schemaFound) {
       logger.error(`Lien/formulaire ${linkId} non trouvé dans aucun schéma`);
-        return res.status(404).json({
-          success: false,
-          message: 'Formulaire non trouvé'
-        });
-      }
-      
+      return res.status(404).json({
+        success: false,
+        message: 'Formulaire non trouvé'
+      });
+    }
+    
     logger.info(`Formulaire trouvé dans le schéma ${schemaFound}: ${linkFound.title}`);
     
     // Increment form submissions count dans le bon schéma
@@ -1675,38 +1428,11 @@ router.post('/submit/:linkId', async (req, res) => {
           break;
         }
       } catch (schemaError) {
-        // Ignorer l'erreur et continuer avec le schéma suivant
-        logger.warn(`Erreur lors de la recherche dans le schéma ${schema} pour le lien ${linkId} (compatibilité):`, schemaError);
+        logger.warn(`Erreur lors de la recherche dans le schéma ${schema} pour le lien (compatibilité):`, schemaError);
       }
     }
     
-    // Si aucun lien n'est trouvé, vérifier aussi dans le schéma public
-    if (!linkFound) {
-      try {
-        const publicLinkQuery = await db.execute(
-          sql`SELECT l.*, lp.* 
-              FROM public."links" l
-              JOIN public."link_profiles" lp ON l.profile_id = lp.id
-              WHERE l.id = ${linkId} 
-              LIMIT 1`
-        );
-        
-        if (publicLinkQuery.rowCount && publicLinkQuery.rowCount > 0 && publicLinkQuery.rows[0]) {
-          linkFound = {
-            id: publicLinkQuery.rows[0].id,
-            title: publicLinkQuery.rows[0].title,
-            clicks: typeof publicLinkQuery.rows[0].clicks === 'number' ? publicLinkQuery.rows[0].clicks : 0
-          };
-          profileFound = {
-            id: publicLinkQuery.rows[0].profile_id
-          };
-          schemaFound = 'public';
-        }
-      } catch (publicError) {
-        logger.warn('Erreur lors de la recherche dans le schéma public pour le lien (compatibilité):', publicError);
-      }
-    }
-    
+    // Ne plus chercher dans le schéma public car la table n'y existe pas
     if (!linkFound || !schemaFound) {
       logger.error(`Lien/formulaire ${linkId} non trouvé dans aucun schéma (compatibilité)`);
       return res.status(404).json({

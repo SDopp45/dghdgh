@@ -1623,7 +1623,8 @@ router.post('/upload-logo', authenticateMiddleware, logoUpload.single('logo'), h
     }
     
     // Get the uploaded file path
-      const logoUrl = `/uploads/${clientSchema}/logos/${path.basename(req.file.path)}`;
+    const logoUrl = `/uploads/${clientSchema}/logos/${path.basename(req.file.path)}`;
+    const uploadDir = path.join(process.cwd(), 'uploads', clientSchema, 'logos');
     
     // Get the user's profile
     const profile = await db.query.linkProfiles.findFirst({
@@ -1639,15 +1640,53 @@ router.post('/upload-logo', authenticateMiddleware, logoUpload.single('logo'), h
     
     // Delete old logo if exists
     if (profile.logoUrl) {
-      const oldLogoPath = path.join(process.cwd(), profile.logoUrl.replace(/^\//, ''));
-      
-      if (fs.existsSync(oldLogoPath)) {
-        try {
+      try {
+        // Chemin absolu basé sur le nom de fichier
+        const oldFileName = path.basename(profile.logoUrl);
+        const oldLogoPath = path.join(uploadDir, oldFileName);
+        
+        logger.info(`Tentative de suppression de l'ancien logo: ${oldLogoPath}`);
+        
+        if (fs.existsSync(oldLogoPath)) {
           fs.unlinkSync(oldLogoPath);
-        } catch (err) {
-          logger.error('Error deleting old logo:', err);
+          logger.info(`Ancien logo supprimé avec succès: ${oldLogoPath}`);
+        } else {
+          logger.warn(`Ancien logo non trouvé: ${oldLogoPath}`);
+        }
+      } catch (err) {
+        logger.error('Erreur lors de la suppression de l\'ancien logo:', err);
+      }
+    }
+    
+    // Limiter le nombre de fichiers dans le dossier à 2 (conserver uniquement le plus récent)
+    try {
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        const currentFileName = path.basename(req.file.path);
+        
+        // Filtrer pour exclure le fichier actuel
+        const oldFiles = files
+          .filter(file => file !== currentFileName)
+          .map(file => ({
+            name: file,
+            path: path.join(uploadDir, file),
+            mtime: fs.statSync(path.join(uploadDir, file)).mtime.getTime()
+          }))
+          .sort((a, b) => b.mtime - a.mtime); // Du plus récent au plus ancien
+        
+        // Conserver uniquement le plus récent, supprimer les autres
+        if (oldFiles.length > 0) {
+          // Garder le premier fichier (le plus récent)
+          const filesToDelete = oldFiles.slice(1);
+          
+          for (const file of filesToDelete) {
+            logger.info(`Suppression du fichier logo excédentaire: ${file.path}`);
+            fs.unlinkSync(file.path);
+          }
         }
       }
+    } catch (cleanupError) {
+      logger.error('Erreur lors du nettoyage des anciens logos:', cleanupError);
     }
     
     // Update the profile with new logo URL
@@ -1714,7 +1753,8 @@ router.post('/upload-background', authenticateMiddleware, backgroundUpload.singl
     }
     
     // Get the uploaded file path
-      const backgroundUrl = `/uploads/${clientSchema}/backgrounds/${path.basename(req.file.path)}`;
+    const backgroundUrl = `/uploads/${clientSchema}/backgrounds/${path.basename(req.file.path)}`;
+    const uploadDir = path.join(process.cwd(), 'uploads', clientSchema, 'backgrounds');
     
     // Get the user's profile
     const profile = await db.query.linkProfiles.findFirst({
@@ -1730,20 +1770,53 @@ router.post('/upload-background', authenticateMiddleware, backgroundUpload.singl
     
     // Delete old background if exists
     if (profile.backgroundImage) {
-      const oldBackgroundPath = path.join(
-        process.cwd(), 
-        typeof profile.backgroundImage === 'string' 
-          ? profile.backgroundImage.replace(/^\//, '') 
-          : ''
-      );
-      
-      if (fs.existsSync(oldBackgroundPath)) {
-        try {
+      try {
+        // Chemin absolu basé sur le nom de fichier
+        const oldFileName = path.basename(profile.backgroundImage);
+        const oldBackgroundPath = path.join(uploadDir, oldFileName);
+        
+        logger.info(`Tentative de suppression de l'ancien arrière-plan: ${oldBackgroundPath}`);
+        
+        if (fs.existsSync(oldBackgroundPath)) {
           fs.unlinkSync(oldBackgroundPath);
-        } catch (err) {
-          logger.error('Error deleting old background:', err);
+          logger.info(`Ancien arrière-plan supprimé avec succès: ${oldBackgroundPath}`);
+        } else {
+          logger.warn(`Ancien arrière-plan non trouvé: ${oldBackgroundPath}`);
+        }
+      } catch (err) {
+        logger.error('Erreur lors de la suppression de l\'ancien arrière-plan:', err);
+      }
+    }
+    
+    // Limiter le nombre de fichiers dans le dossier à 2 (conserver uniquement le plus récent)
+    try {
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        const currentFileName = path.basename(req.file.path);
+        
+        // Filtrer pour exclure le fichier actuel
+        const oldFiles = files
+          .filter(file => file !== currentFileName)
+          .map(file => ({
+            name: file,
+            path: path.join(uploadDir, file),
+            mtime: fs.statSync(path.join(uploadDir, file)).mtime.getTime()
+          }))
+          .sort((a, b) => b.mtime - a.mtime); // Du plus récent au plus ancien
+        
+        // Conserver uniquement le plus récent, supprimer les autres
+        if (oldFiles.length > 0) {
+          // Garder le premier fichier (le plus récent)
+          const filesToDelete = oldFiles.slice(1);
+          
+          for (const file of filesToDelete) {
+            logger.info(`Suppression du fichier d'arrière-plan excédentaire: ${file.path}`);
+            fs.unlinkSync(file.path);
+          }
         }
       }
+    } catch (cleanupError) {
+      logger.error('Erreur lors du nettoyage des anciens arrière-plans:', cleanupError);
     }
     
     // Update the profile with new background URL
@@ -1815,12 +1888,41 @@ router.post('/upload-link-image', authenticateMiddleware, linkImageUpload.single
     logger.info(`Fichier téléchargé: ${req.file.path}`);
     
     // Get the uploaded file path
-      const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
+    const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
+    const uploadDir = path.join(process.cwd(), 'uploads', clientSchema, 'link-images');
+    
     logger.info(`URL de l'image: ${imageUrl}`);
+    
+    // Limiter le nombre total de fichiers à conserver dans le dossier
+    try {
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        
+        // Si plus de 10 images, supprimer les plus anciennes
+        if (files.length > 10) {
+          const fileStats = files.map(file => ({
+            name: file,
+            path: path.join(uploadDir, file),
+            mtime: fs.statSync(path.join(uploadDir, file)).mtime.getTime()
+          }))
+          .sort((a, b) => b.mtime - a.mtime); // Du plus récent au plus ancien
+          
+          // Conserver les 10 plus récentes, supprimer le reste
+          const filesToDelete = fileStats.slice(10);
+          
+          for (const file of filesToDelete) {
+            logger.info(`Suppression d'image de lien excédentaire: ${file.path}`);
+            fs.unlinkSync(file.path);
+          }
+        }
+      }
+    } catch (cleanupError) {
+      logger.error('Erreur lors du nettoyage des anciennes images de liens:', cleanupError);
+    }
       
-      // Réinitialiser le search_path avant de quitter
-      await db.execute(sql`SET search_path TO public`);
-      logger.info('Search path réinitialisé à "public"');
+    // Réinitialiser le search_path avant de quitter
+    await db.execute(sql`SET search_path TO public`);
+    logger.info('Search path réinitialisé à "public"');
     
     // Return the image URL
     return res.json({
@@ -1876,11 +1978,41 @@ router.post('/upload-link-icon', authenticateMiddleware, linkImageUpload.single(
     }
     
     // Get the uploaded file path
-      const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
+    const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
+    const uploadDir = path.join(process.cwd(), 'uploads', clientSchema, 'link-images');
+    
+    logger.info(`URL de l'image (ancien endpoint): ${imageUrl}`);
+    
+    // Limiter le nombre total de fichiers à conserver dans le dossier
+    try {
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        
+        // Si plus de 10 images, supprimer les plus anciennes
+        if (files.length > 10) {
+          const fileStats = files.map(file => ({
+            name: file,
+            path: path.join(uploadDir, file),
+            mtime: fs.statSync(path.join(uploadDir, file)).mtime.getTime()
+          }))
+          .sort((a, b) => b.mtime - a.mtime); // Du plus récent au plus ancien
+          
+          // Conserver les 10 plus récentes, supprimer le reste
+          const filesToDelete = fileStats.slice(10);
+          
+          for (const file of filesToDelete) {
+            logger.info(`Suppression d'image de lien excédentaire (ancien endpoint): ${file.path}`);
+            fs.unlinkSync(file.path);
+          }
+        }
+      }
+    } catch (cleanupError) {
+      logger.error('Erreur lors du nettoyage des anciennes images de liens (ancien endpoint):', cleanupError);
+    }
       
-      // Réinitialiser le search_path avant de quitter
-      await db.execute(sql`SET search_path TO public`);
-      logger.info('Search path réinitialisé à "public"');
+    // Réinitialiser le search_path avant de quitter
+    await db.execute(sql`SET search_path TO public`);
+    logger.info('Search path réinitialisé à "public"');
     
     // Return the URL as iconUrl for backward compatibility
     return res.json({

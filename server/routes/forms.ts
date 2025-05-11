@@ -463,26 +463,26 @@ router.get('/:formId/responses', authenticateMiddleware, async (req: Request, re
         });
       }
       
-      return res.status(403).json({
-        success: false,
+        return res.status(403).json({
+          success: false,
         message: 'Accès non autorisé à ce formulaire ou aucune réponse trouvée'
       });
     }
-    
-    // Récupérer les réponses
+      
+      // Récupérer les réponses
     const responsesQuery = await clientDb.executeInSchema(
       sql`SELECT * FROM form_responses 
           WHERE form_id = ${parseInt(formId)} 
             ORDER BY created_at DESC`
-    );
-    
+      );
+      
     const responses = responsesQuery.rows || [];
     console.log(`${responses.length} réponses trouvées pour le formulaire ${formId}`);
-    
-    return res.json({
-      success: true,
+      
+      return res.json({
+        success: true,
       data: responses
-    });
+      });
   } catch (error) {
     logger.error('Error fetching form responses:', error);
     return res.status(500).json({

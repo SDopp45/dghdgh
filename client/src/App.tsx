@@ -150,6 +150,14 @@ function ProtectedRouter() {
 // Main Router - Handles both protected and public routes
 function MainRouter() {
   const { isLoading, user } = useUser();
+  const [location, setLocation] = useLocation();
+
+  // Rediriger automatiquement vers le dashboard si l'utilisateur est connecté et se trouve sur /login
+  useEffect(() => {
+    if (user && location === "/login") {
+      setLocation("/");
+    }
+  }, [user, location, setLocation]);
 
   return (
     <Switch>

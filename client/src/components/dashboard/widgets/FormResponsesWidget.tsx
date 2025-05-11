@@ -123,7 +123,7 @@ export function FormResponsesWidget() {
                 }
                 
                 return {
-                  id: item.id,
+                id: item.id,
                   linkId: item.link_id || item.form_id || parseInt(link.id),
                   formData: formDataObj || {},
                   createdAt: item.created_at || new Date().toISOString(),

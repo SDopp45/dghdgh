@@ -461,21 +461,21 @@ router.post('/profile', authenticateMiddleware, async (req, res) => {
         // Supprimer d'abord les réponses associées au lien dans form_responses
         await db.execute(
           sql`DELETE FROM form_responses WHERE link_id = ${link.id}`
-        );
-        
+      );
+      
         // Supprimer également les réponses dans form_submissions pour compatibilité
         await db.execute(
           sql`DELETE FROM form_submissions WHERE link_id = ${link.id}`
         );
         
         // Supprimer enfin le lien lui-même
-        await db.execute(
-          sql`DELETE FROM links WHERE id = ${link.id}`
-        );
+          await db.execute(
+            sql`DELETE FROM links WHERE id = ${link.id}`
+          );
         
         logger.info(`Lien ${link.id} et toutes ses réponses ont été supprimés définitivement`);
-      } catch (deleteError) {
-        logger.error(`Erreur lors de la suppression du lien ${link.id}:`, deleteError);
+        } catch (deleteError) {
+          logger.error(`Erreur lors de la suppression du lien ${link.id}:`, deleteError);
       }
     }
     
@@ -641,81 +641,81 @@ router.get('/profile/:slug', async (req, res) => {
         message: 'Profil non trouvé'
       });
     }
-    
-    // Convertir les noms de colonnes snake_case en camelCase pour le frontend
+          
+          // Convertir les noms de colonnes snake_case en camelCase pour le frontend
     const formattedProfileData = {
-      id: profileFound.id,
-      userId: profileFound.user_id,
-      slug: profileFound.slug,
-      title: profileFound.title,
-      description: profileFound.description,
-      backgroundColor: profileFound.background_color,
-      textColor: profileFound.text_color,
-      accentColor: profileFound.accent_color,
-      logoUrl: profileFound.logo_url,
-      views: profileFound.views,
-      backgroundImage: profileFound.background_image,
-      backgroundPattern: profileFound.background_pattern,
-      buttonStyle: profileFound.button_style,
-      buttonRadius: profileFound.button_radius,
-      fontFamily: profileFound.font_family,
-      animation: profileFound.animation,
-      customCss: profileFound.custom_css,
-      customTheme: profileFound.custom_theme,
-      backgroundSaturation: profileFound.background_saturation,
-      backgroundHueRotate: profileFound.background_hue_rotate,
-      backgroundSepia: profileFound.background_sepia,
-      backgroundGrayscale: profileFound.background_grayscale,
-      backgroundInvert: profileFound.background_invert,
-      backgroundColorFilter: profileFound.background_color_filter,
-      backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
-      createdAt: profileFound.created_at,
-      updatedAt: profileFound.updated_at,
-      isPaused: profileFound.is_paused
-    };
-    
+            id: profileFound.id,
+            userId: profileFound.user_id,
+            slug: profileFound.slug,
+            title: profileFound.title,
+            description: profileFound.description,
+            backgroundColor: profileFound.background_color,
+            textColor: profileFound.text_color,
+            accentColor: profileFound.accent_color,
+            logoUrl: profileFound.logo_url,
+            views: profileFound.views,
+            backgroundImage: profileFound.background_image,
+            backgroundPattern: profileFound.background_pattern,
+            buttonStyle: profileFound.button_style,
+            buttonRadius: profileFound.button_radius,
+            fontFamily: profileFound.font_family,
+            animation: profileFound.animation,
+            customCss: profileFound.custom_css,
+            customTheme: profileFound.custom_theme,
+            backgroundSaturation: profileFound.background_saturation,
+            backgroundHueRotate: profileFound.background_hue_rotate,
+            backgroundSepia: profileFound.background_sepia,
+            backgroundGrayscale: profileFound.background_grayscale,
+            backgroundInvert: profileFound.background_invert,
+            backgroundColorFilter: profileFound.background_color_filter,
+            backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
+            createdAt: profileFound.created_at,
+            updatedAt: profileFound.updated_at,
+            isPaused: profileFound.is_paused
+          };
+          
     // Récupérer les liens actifs pour ce profil dans ce schéma avec TOUTES les colonnes
     const linksQuery = await db.execute(
-      sql`SELECT 
-            id, profile_id, title, url, icon, enabled, clicks, 
-            position, featured, custom_color, custom_text_color, 
-            animation, type, form_definition, created_at, 
-            updated_at, button_style, user_id
+            sql`SELECT 
+                  id, profile_id, title, url, icon, enabled, clicks, 
+                  position, featured, custom_color, custom_text_color, 
+                  animation, type, form_definition, created_at, 
+                  updated_at, button_style, user_id
           FROM ${sql.identifier(schemaFound)}."links" 
-          WHERE profile_id = ${profileFound.id}
-          AND enabled = true
-          ORDER BY position ASC`
-    );
-    
-    // Convertir les liens en format camelCase également
+                WHERE profile_id = ${profileFound.id}
+                AND enabled = true
+                ORDER BY position ASC`
+          );
+          
+          // Convertir les liens en format camelCase également
     linksFound = (linksQuery.rows || []).map(link => ({
-      id: link.id,
-      profileId: link.profile_id,
-      title: link.title,
-      url: link.url,
-      icon: link.icon,
-      enabled: link.enabled,
-      clicks: link.clicks,
-      position: link.position,
-      featured: link.featured,
-      customColor: link.custom_color,
-      customTextColor: link.custom_text_color,
-      animation: link.animation,
-      type: link.type,
-      formDefinition: link.form_definition,
-      createdAt: link.created_at,
-      updatedAt: link.updated_at,
-      buttonStyle: link.button_style,
-      userId: link.user_id
-    }));
-    
-    // Incrémenter le compteur de vues
-    await db.execute(
+            id: link.id,
+            profileId: link.profile_id,
+            title: link.title,
+            url: link.url,
+            icon: link.icon,
+            enabled: link.enabled,
+            clicks: link.clicks,
+            position: link.position,
+            featured: link.featured,
+            customColor: link.custom_color,
+            customTextColor: link.custom_text_color,
+            animation: link.animation,
+            type: link.type,
+            formDefinition: link.form_definition,
+            createdAt: link.created_at,
+            updatedAt: link.updated_at,
+            buttonStyle: link.button_style,
+            userId: link.user_id
+          }));
+          
+          // Incrémenter le compteur de vues
+          await db.execute(
       sql`UPDATE ${sql.identifier(schemaFound)}."link_profiles"
-          SET views = views + 1 
-          WHERE id = ${profileFound.id}`
-    );
-    
+                SET views = views + 1 
+                WHERE id = ${profileFound.id}`
+          );
+          
     logger.info(`Profil trouvé dans le schéma ${schemaFound} avec ${linksFound.length} liens`);
     
     // Formater la réponse avec les liens
@@ -789,81 +789,81 @@ router.get('/u/:slug', async (req, res) => {
         message: 'Profil non trouvé'
       });
     }
-    
-    // Convertir les noms de colonnes snake_case en camelCase pour le frontend
+          
+          // Convertir les noms de colonnes snake_case en camelCase pour le frontend
     const formattedProfileData = {
-      id: profileFound.id,
-      userId: profileFound.user_id,
-      slug: profileFound.slug,
-      title: profileFound.title,
-      description: profileFound.description,
-      backgroundColor: profileFound.background_color,
-      textColor: profileFound.text_color,
-      accentColor: profileFound.accent_color,
-      logoUrl: profileFound.logo_url,
-      views: profileFound.views,
-      backgroundImage: profileFound.background_image,
-      backgroundPattern: profileFound.background_pattern,
-      buttonStyle: profileFound.button_style,
-      buttonRadius: profileFound.button_radius,
-      fontFamily: profileFound.font_family,
-      animation: profileFound.animation,
-      customCss: profileFound.custom_css,
-      customTheme: profileFound.custom_theme,
-      backgroundSaturation: profileFound.background_saturation,
-      backgroundHueRotate: profileFound.background_hue_rotate,
-      backgroundSepia: profileFound.background_sepia,
-      backgroundGrayscale: profileFound.background_grayscale,
-      backgroundInvert: profileFound.background_invert,
-      backgroundColorFilter: profileFound.background_color_filter,
-      backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
-      createdAt: profileFound.created_at,
-      updatedAt: profileFound.updated_at,
-      isPaused: profileFound.is_paused
-    };
-    
+            id: profileFound.id,
+            userId: profileFound.user_id,
+            slug: profileFound.slug,
+            title: profileFound.title,
+            description: profileFound.description,
+            backgroundColor: profileFound.background_color,
+            textColor: profileFound.text_color,
+            accentColor: profileFound.accent_color,
+            logoUrl: profileFound.logo_url,
+            views: profileFound.views,
+            backgroundImage: profileFound.background_image,
+            backgroundPattern: profileFound.background_pattern,
+            buttonStyle: profileFound.button_style,
+            buttonRadius: profileFound.button_radius,
+            fontFamily: profileFound.font_family,
+            animation: profileFound.animation,
+            customCss: profileFound.custom_css,
+            customTheme: profileFound.custom_theme,
+            backgroundSaturation: profileFound.background_saturation,
+            backgroundHueRotate: profileFound.background_hue_rotate,
+            backgroundSepia: profileFound.background_sepia,
+            backgroundGrayscale: profileFound.background_grayscale,
+            backgroundInvert: profileFound.background_invert,
+            backgroundColorFilter: profileFound.background_color_filter,
+            backgroundColorFilterOpacity: profileFound.background_color_filter_opacity,
+            createdAt: profileFound.created_at,
+            updatedAt: profileFound.updated_at,
+            isPaused: profileFound.is_paused
+          };
+          
     // Récupérer les liens actifs pour ce profil dans ce schéma avec TOUTES les colonnes
     const linksQuery = await db.execute(
-      sql`SELECT 
-            id, profile_id, title, url, icon, enabled, clicks, 
-            position, featured, custom_color, custom_text_color, 
-            animation, type, form_definition, created_at, 
-            updated_at, button_style, user_id
+            sql`SELECT 
+                  id, profile_id, title, url, icon, enabled, clicks, 
+                  position, featured, custom_color, custom_text_color, 
+                  animation, type, form_definition, created_at, 
+                  updated_at, button_style, user_id
           FROM ${sql.identifier(schemaFound)}."links" 
-          WHERE profile_id = ${profileFound.id}
-          AND enabled = true
-          ORDER BY position ASC`
-    );
-    
-    // Convertir les liens en format camelCase également
+                WHERE profile_id = ${profileFound.id}
+                AND enabled = true
+                ORDER BY position ASC`
+          );
+          
+          // Convertir les liens en format camelCase également
     linksFound = (linksQuery.rows || []).map(link => ({
-      id: link.id,
-      profileId: link.profile_id,
-      title: link.title,
-      url: link.url,
-      icon: link.icon,
-      enabled: link.enabled,
-      clicks: link.clicks,
-      position: link.position,
-      featured: link.featured,
-      customColor: link.custom_color,
-      customTextColor: link.custom_text_color,
-      animation: link.animation,
-      type: link.type,
-      formDefinition: link.form_definition,
-      createdAt: link.created_at,
-      updatedAt: link.updated_at,
-      buttonStyle: link.button_style,
-      userId: link.user_id
-    }));
-    
-    // Incrémenter le compteur de vues
-    await db.execute(
+            id: link.id,
+            profileId: link.profile_id,
+            title: link.title,
+            url: link.url,
+            icon: link.icon,
+            enabled: link.enabled,
+            clicks: link.clicks,
+            position: link.position,
+            featured: link.featured,
+            customColor: link.custom_color,
+            customTextColor: link.custom_text_color,
+            animation: link.animation,
+            type: link.type,
+            formDefinition: link.form_definition,
+            createdAt: link.created_at,
+            updatedAt: link.updated_at,
+            buttonStyle: link.button_style,
+            userId: link.user_id
+          }));
+          
+          // Incrémenter le compteur de vues
+          await db.execute(
       sql`UPDATE ${sql.identifier(schemaFound)}."link_profiles"
-          SET views = views + 1 
-          WHERE id = ${profileFound.id}`
-    );
-    
+                SET views = views + 1 
+                WHERE id = ${profileFound.id}`
+          );
+          
     logger.info(`Profil trouvé dans le schéma ${schemaFound} avec ${linksFound.length} liens`);
     
     // Formater la réponse avec les liens
@@ -1188,12 +1188,12 @@ router.post('/form-submit/:linkId', async (req, res) => {
     
     if (!linkFound || !schemaFound) {
       logger.error(`Lien/formulaire ${linkId} non trouvé dans aucun schéma`);
-      return res.status(404).json({
-        success: false,
-        message: 'Formulaire non trouvé'
-      });
-    }
-    
+        return res.status(404).json({
+          success: false,
+          message: 'Formulaire non trouvé'
+        });
+      }
+      
     logger.info(`Formulaire trouvé dans le schéma ${schemaFound}: ${linkFound.title}`);
     
     // Increment form submissions count dans le bon schéma
@@ -1623,7 +1623,7 @@ router.post('/upload-logo', authenticateMiddleware, logoUpload.single('logo'), h
     }
     
     // Get the uploaded file path
-    const logoUrl = `/uploads/${clientSchema}/logos/${path.basename(req.file.path)}`;
+      const logoUrl = `/uploads/${clientSchema}/logos/${path.basename(req.file.path)}`;
     const uploadDir = path.join(process.cwd(), 'uploads', clientSchema, 'logos');
     
     // Get the user's profile
@@ -1646,14 +1646,14 @@ router.post('/upload-logo', authenticateMiddleware, logoUpload.single('logo'), h
         const oldLogoPath = path.join(uploadDir, oldFileName);
         
         logger.info(`Tentative de suppression de l'ancien logo: ${oldLogoPath}`);
-        
-        if (fs.existsSync(oldLogoPath)) {
+      
+      if (fs.existsSync(oldLogoPath)) {
           fs.unlinkSync(oldLogoPath);
           logger.info(`Ancien logo supprimé avec succès: ${oldLogoPath}`);
         } else {
           logger.warn(`Ancien logo non trouvé: ${oldLogoPath}`);
         }
-      } catch (err) {
+        } catch (err) {
         logger.error('Erreur lors de la suppression de l\'ancien logo:', err);
       }
     }
@@ -1753,7 +1753,7 @@ router.post('/upload-background', authenticateMiddleware, backgroundUpload.singl
     }
     
     // Get the uploaded file path
-    const backgroundUrl = `/uploads/${clientSchema}/backgrounds/${path.basename(req.file.path)}`;
+      const backgroundUrl = `/uploads/${clientSchema}/backgrounds/${path.basename(req.file.path)}`;
     const uploadDir = path.join(process.cwd(), 'uploads', clientSchema, 'backgrounds');
     
     // Get the user's profile
@@ -1776,14 +1776,14 @@ router.post('/upload-background', authenticateMiddleware, backgroundUpload.singl
         const oldBackgroundPath = path.join(uploadDir, oldFileName);
         
         logger.info(`Tentative de suppression de l'ancien arrière-plan: ${oldBackgroundPath}`);
-        
-        if (fs.existsSync(oldBackgroundPath)) {
+      
+      if (fs.existsSync(oldBackgroundPath)) {
           fs.unlinkSync(oldBackgroundPath);
           logger.info(`Ancien arrière-plan supprimé avec succès: ${oldBackgroundPath}`);
         } else {
           logger.warn(`Ancien arrière-plan non trouvé: ${oldBackgroundPath}`);
         }
-      } catch (err) {
+        } catch (err) {
         logger.error('Erreur lors de la suppression de l\'ancien arrière-plan:', err);
       }
     }
@@ -1888,7 +1888,7 @@ router.post('/upload-link-image', authenticateMiddleware, linkImageUpload.single
     logger.info(`Fichier téléchargé: ${req.file.path}`);
     
     // Get the uploaded file path
-    const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
+      const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
     const uploadDir = path.join(process.cwd(), 'uploads', clientSchema, 'link-images');
     
     logger.info(`URL de l'image: ${imageUrl}`);
@@ -1920,9 +1920,9 @@ router.post('/upload-link-image', authenticateMiddleware, linkImageUpload.single
       logger.error('Erreur lors du nettoyage des anciennes images de liens:', cleanupError);
     }
       
-    // Réinitialiser le search_path avant de quitter
-    await db.execute(sql`SET search_path TO public`);
-    logger.info('Search path réinitialisé à "public"');
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
     
     // Return the image URL
     return res.json({
@@ -1978,7 +1978,7 @@ router.post('/upload-link-icon', authenticateMiddleware, linkImageUpload.single(
     }
     
     // Get the uploaded file path
-    const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
+      const imageUrl = `/uploads/${clientSchema}/link-images/${path.basename(req.file.path)}`;
     const uploadDir = path.join(process.cwd(), 'uploads', clientSchema, 'link-images');
     
     logger.info(`URL de l'image (ancien endpoint): ${imageUrl}`);
@@ -2010,9 +2010,9 @@ router.post('/upload-link-icon', authenticateMiddleware, linkImageUpload.single(
       logger.error('Erreur lors du nettoyage des anciennes images de liens (ancien endpoint):', cleanupError);
     }
       
-    // Réinitialiser le search_path avant de quitter
-    await db.execute(sql`SET search_path TO public`);
-    logger.info('Search path réinitialisé à "public"');
+      // Réinitialiser le search_path avant de quitter
+      await db.execute(sql`SET search_path TO public`);
+      logger.info('Search path réinitialisé à "public"');
     
     // Return the URL as iconUrl for backward compatibility
     return res.json({

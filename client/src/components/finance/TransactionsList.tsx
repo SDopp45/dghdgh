@@ -52,7 +52,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel, SelectSeparator } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useVirtualizer } from '@tanstack/react-virtual';
-import * as XLSX from 'xlsx';
 import { LucideIcon } from 'lucide-react';
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
@@ -533,24 +532,6 @@ const groupTransactions = (transactions: FormattedTransaction[], filters: Transa
 
   // Assurons-nous de toujours retourner un tableau de GroupedTransaction
   return groups;
-};
-
-const exportToExcel = (transactions: FormattedTransaction[]) => {
-  const worksheet = XLSX.utils.json_to_sheet(transactions.map(t => ({
-    Date: format(new Date(t.date), 'dd/MM/yyyy'),
-    Description: t.description,
-    Catégorie: categoryLabels[t.category as TransactionCategory],
-    Type: t.type === 'income' ? 'Revenu' : t.type === 'expense' ? 'Dépense' : 'Crédit',
-    Montant: t.formattedAmount,
-    Propriété: t.propertyName,
-    Locataire: t.tenantName,
-    Statut: t.status,
-    'Méthode de paiement': paymentMethodLabels[t.paymentMethod as keyof typeof paymentMethodLabels]
-  })));
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Transactions');
-  XLSX.writeFile(workbook, `transactions_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
 };
 
 const exportToCSV = (transactions: FormattedTransaction[]) => {

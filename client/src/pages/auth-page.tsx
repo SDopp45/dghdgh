@@ -15,7 +15,40 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import { Building, Home, Key, Lock, Mail, Phone, User, UserPlus, Users } from "lucide-react";
 
-// Rest of the imports remain unchanged...
+// Hook personnalisé pour le carrousel
+const useCarrousel = (items: Array<{text: string, icon: string}>, interval = 3000) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex(prevIndex => (prevIndex + 1) % items.length);
+    }, interval);
+    
+    return () => clearInterval(timer);
+  }, [items, interval]);
+  
+  return {
+    currentItem: items[currentIndex],
+    currentIndex
+  };
+};
+
+// Fonction pour obtenir l'icône correspondante au texte
+const getFeatureIcon = (iconName: string) => {
+  switch (iconName) {
+    case "brain": return <span className="mr-1 text-[0.6rem]">🧠</span>;
+    case "chart": return <span className="mr-1 text-[0.6rem]">📊</span>;
+    case "data": return <span className="mr-1 text-[0.6rem]">📈</span>;
+    case "map": return <span className="mr-1 text-[0.6rem]">🗺️</span>;
+    case "cloud": return <span className="mr-1 text-[0.6rem]">☁️</span>;
+    case "trending-up": return <span className="mr-1 text-[0.6rem]">📈</span>;
+    case "shield": return <span className="mr-1 text-[0.6rem]">🔒</span>;
+    case "settings": return <span className="mr-1 text-[0.6rem]">⚙️</span>;
+    case "calculator": return <span className="mr-1 text-[0.6rem]">🧮</span>;
+    case "network": return <span className="mr-1 text-[0.6rem]">🔗</span>;
+    default: return null;
+  }
+};
 
 type TabValue = "login" | "register";
 
@@ -448,7 +481,34 @@ export default function AuthPage() {
   });
 
   const [activeTab, setActiveTab] = useState<TabValue>("login");
-
+  
+  // Hook pour le carrousel de technologie
+  const [techIndex, setTechIndex] = useState(0);
+  
+  // Technologies IA
+  const technologies = [
+    { name: "Intelligence Artificielle", icon: "🧠" },
+    { name: "Analytics Avancés", icon: "📊" },
+    { name: "Big Data Immobilier", icon: "📈" },
+    { name: "Road Map Stratégique", icon: "🗺️" },
+    { name: "Cloud Computing", icon: "☁️" },
+    { name: "Analyse Prédictive", icon: "📉" },
+    { name: "Sécurité Renforcée", icon: "🔒" },
+    { name: "Automatisation", icon: "⚙️" },
+    { name: "Optimisation Fiscale", icon: "🧮" },
+    { name: "API Interconnectées", icon: "🔗" },
+    { name: "Intelligence Neuronale", icon: "🤖" },
+  ];
+  
+  // Effet pour contrôler le carrousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTechIndex(prev => (prev + 1) % technologies.length);
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [technologies.length]);
+  
   const registerForm = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -546,9 +606,9 @@ export default function AuthPage() {
   // Rotation de carte au survol
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const springConfig = { damping: 15, stiffness: 150 };
-  const rotateX = useSpring(useTransform(y, [-100, 100], [10, -10]), springConfig);
-  const rotateY = useSpring(useTransform(x, [-100, 100], [-10, 10]), springConfig);
+  const springConfig = { damping: 25, stiffness: 120 };
+  const rotateX = useSpring(useTransform(y, [-100, 100], [4, -4]), springConfig);
+  const rotateY = useSpring(useTransform(x, [-100, 100], [-4, 4]), springConfig);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -558,8 +618,8 @@ export default function AuthPage() {
     const mouseY = e.clientY - rect.top;
     const xPct = (mouseX / width - 0.5) * 2;
     const yPct = (mouseY / height - 0.5) * 2;
-    x.set(xPct * 50);
-    y.set(yPct * 50);
+    x.set(xPct * 25);
+    y.set(yPct * 25);
   };
 
   const handleMouseLeave = () => {
@@ -599,13 +659,13 @@ export default function AuthPage() {
         >
           <motion.div 
             className="w-32 h-32 mb-0 -mb-4"
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.02 }}
             animate={{ 
-              scale: [1, 1.015, 1], 
+              scale: [1, 1.005, 1], 
             }}
             transition={{ 
               repeat: Infinity, 
-              duration: 6,
+              duration: 8,
               times: [0, 0.15, 1],
               ease: "easeInOut" 
             }}
@@ -623,17 +683,32 @@ export default function AuthPage() {
             Système de gestion immobilière intelligent
           </p>
           
-          {/* Animation de texte IA */}
-          <div className="flex mt-2 text-xs text-center space-x-1 text-cyan-600 dark:text-cyan-400">
-            <span>Propulsé par</span>
-            <motion.span 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.5 }}
-              className="font-semibold"
-            >
-              Intelligence Artificielle
-            </motion.span>
+          {/* Carrousel de technologies aligné avec le logo */}
+          <div className="flex items-center justify-center mt-2 text-xs text-cyan-600 dark:text-cyan-400">
+            <span className="mr-1">Propulsé par</span>
+            <div className="w-auto overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  key={techIndex}
+                  transition={{ 
+                    duration: 0.8, 
+                    ease: [0.4, 0.0, 0.2, 1] 
+                  }}
+                >
+                  <div className="font-semibold flex items-center">
+                    <span className="text-gradient bg-gradient-to-r from-cyan-600 to-blue-500 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">
+                      {technologies[techIndex].name}
+                    </span>
+                    <span className="ml-1.5 text-[0.7rem] text-cyan-500 dark:text-cyan-400 opacity-90">
+                      {technologies[techIndex].icon}
+                    </span>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </motion.div>
         
@@ -652,13 +727,13 @@ export default function AuthPage() {
             
             {/* Effet de lumière qui se déplace */}
             <motion.div 
-              className="absolute w-full h-20 bg-gradient-to-r from-transparent via-cyan-300/10 to-transparent pointer-events-none"
+              className="absolute w-full h-20 bg-gradient-to-r from-transparent via-cyan-300/5 to-transparent pointer-events-none"
               initial={{ top: -20, opacity: 0 }}
-              animate={{ top: "100%", opacity: 1 }}
+              animate={{ top: "100%", opacity: 0.7 }}
               transition={{
-                duration: 3,
+                duration: 5,
                 repeat: Infinity,
-                repeatDelay: 5
+                repeatDelay: 8
               }}
             />
             
@@ -726,8 +801,8 @@ export default function AuthPage() {
                       />
                       <motion.div 
                         className="pt-2"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
                       >
                         <Button 
                           type="submit" 
@@ -888,8 +963,8 @@ export default function AuthPage() {
                       </div>
                       <motion.div 
                         className="pt-2"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
                       >
                         <Button 
                           type="submit" 

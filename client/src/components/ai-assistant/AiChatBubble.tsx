@@ -65,7 +65,7 @@ const PREDEFINED_ANSWERS: Record<string, string> = {
     "4. **Procédure d'expulsion** : En dernier recours, nécessite une décision de justice\n\n" +
     "Il est recommandé de privilégier d'abord le dialogue et les solutions amiables avant d'entamer des procédures judiciaires.",
   
-  "Comment calculer la rentabilité d'un investissement locatif ?":
+  "Comment calculer la rentabilité d'un investissement locatif ?": 
     "Le calcul de la rentabilité d'un investissement locatif se fait principalement de deux façons :\n\n" +
     "**1. Rentabilité brute** = (Loyer annuel × 12) ÷ Prix d'acquisition × 100\n" +
     "**2. Rentabilité nette** = (Loyer annuel × 12 - Charges annuelles) ÷ Prix d'acquisition × 100\n\n" +
@@ -290,7 +290,7 @@ const AiChatBubble = () => {
             <SelectTrigger className="h-7 text-xs border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
               <div className="flex items-center gap-1.5">
                 <Brain className="h-3.5 w-3.5" />
-                <SelectValue placeholder="Sélectionner modèle" />
+              <SelectValue placeholder="Sélectionner modèle" />
               </div>
             </SelectTrigger>
             <SelectContent>
@@ -348,11 +348,11 @@ const AiChatBubble = () => {
             </div>
             
             <div className="flex justify-between items-center relative z-10">
-              <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3">
                 <div className="bg-white/10 backdrop-filter backdrop-blur-sm p-2 rounded-xl border border-white/20 shadow-lg">
                   <Bot className="h-5 w-5 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]" />
-                </div>
-                <div>
+              </div>
+              <div>
                   <h3 className="font-medium text-sm flex items-center gap-1.5">
                     <span>ImmoBot</span>
                     <span className="bg-blue-400/20 dark:bg-blue-300/20 text-[10px] px-1.5 py-0.5 rounded-md backdrop-blur-sm border border-white/20">
@@ -366,26 +366,26 @@ const AiChatBubble = () => {
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setShowSettings(true)} 
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowSettings(true)} 
                   className="h-8 w-8 bg-white/10 hover:bg-white/20 text-white rounded-full border border-white/20 backdrop-blur-sm transition-all duration-200"
-                  title="Paramètres avancés"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={toggleChat} 
+                title="Paramètres avancés"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleChat} 
                   className="h-8 w-8 bg-white/10 hover:bg-white/20 text-white rounded-full border border-white/20 backdrop-blur-sm transition-all duration-200"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            
+          </div>
+          
             {/* Effet de planète/cercle lumineux */}
             <div className="absolute -right-10 -bottom-12 w-32 h-32 rounded-full bg-gradient-to-r from-blue-400/30 to-indigo-500/30 blur-xl"></div>
             <div className="absolute -left-10 -top-12 w-24 h-24 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-600/20 blur-xl"></div>
@@ -422,7 +422,7 @@ const AiChatBubble = () => {
               </TabsList>
             </Tabs>
           </div>
-          
+            
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Onglet Chat */}
             {currentTab === 'chat' && (

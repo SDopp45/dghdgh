@@ -5,8 +5,44 @@ import { users } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { loginUser, logoutUser, requireAuth, hashPassword, type LoginResult } from '../auth';
 import { createClientSchema } from '../db/index';
+import path from 'path';
+import fs from 'fs';
 
 const router = Router();
+
+// Nouveau dossier spécifique pour les améliorations d'images
+const ENHANCED_IMAGES_DIR = 'uploads/ameliorationimages';
+
+// Fonction pour nettoyer les images d'un utilisateur
+const cleanupUserImages = async (userId: number) => {
+  try {
+    const dir = path.join(process.cwd(), ENHANCED_IMAGES_DIR);
+    const exists = await fs.promises.access(dir).then(() => true).catch(() => false);
+    
+    if (!exists) {
+      return;
+    }
+    
+    const files = await fs.promises.readdir(dir);
+    let deletedCount = 0;
+    
+    // Supprimer toutes les images améliorées
+    for (const file of files) {
+      try {
+        const filePath = path.join(dir, file);
+        await fs.promises.unlink(filePath);
+        deletedCount++;
+        logger.info(`Image supprimée lors de la déconnexion: ${file}`);
+      } catch (err) {
+        logger.error(`Erreur lors de la suppression du fichier ${file}:`, err);
+      }
+    }
+    
+    logger.info(`Nettoyage des images terminé: ${deletedCount} fichier(s) supprimé(s)`);
+  } catch (err) {
+    logger.error('Erreur lors du nettoyage des images:', err);
+  }
+};
 
 // Fonction interne pour configurer le schéma pour un utilisateur
 async function setUserSchema(userId: number) {
@@ -105,6 +141,9 @@ router.post('/login', async (req: Request, res: Response) => {
 // Route pour la déconnexion
 router.post('/logout', requireAuth, async (req: Request, res: Response) => {
   try {
+    // Récupérer l'ID utilisateur avant la déconnexion
+    const userId = req.user?.id;
+    
     const success = await logoutUser(req);
     
     if (!success) {
@@ -112,6 +151,11 @@ router.post('/logout', requireAuth, async (req: Request, res: Response) => {
         success: false, 
         message: 'Erreur lors de la déconnexion' 
       });
+    }
+    
+    // Nettoyer les images de l'utilisateur si un ID est disponible
+    if (userId) {
+      await cleanupUserImages(userId);
     }
     
     // Réinitialiser le schéma à public avant de déconnecter

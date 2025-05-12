@@ -172,6 +172,26 @@ router.post('/', ensureAuth, upload.fields([
 
       await fs.promises.writeFile(outputPath, enhancedBuffer);
 
+      // Nettoyer les autres images du dossier après téléchargement réussi
+      try {
+        const files = await fs.promises.readdir(uploadsDir);
+        for (const file of files) {
+          // Ne pas supprimer l'image qui vient d'être créée
+          if (file !== filename && file.startsWith('enhanced-')) {
+            try {
+              const filePath = path.join(uploadsDir, file);
+              await fs.promises.unlink(filePath);
+              logger.info(`Image supprimée après téléchargement: ${file}`);
+            } catch (deleteErr) {
+              logger.error(`Erreur lors de la suppression du fichier ${file}:`, deleteErr);
+            }
+          }
+        }
+        logger.info(`Nettoyage des images après téléchargement terminé`);
+      } catch (cleanupErr) {
+        logger.error('Erreur lors du nettoyage des images après téléchargement:', cleanupErr);
+      }
+
       // Réinitialiser le search_path après utilisation
       await db.execute(sql`SET search_path TO public`);
 
@@ -446,6 +466,69 @@ router.post('/cleanup', ensureAuth, async (req, res) => {
     logger.error('Error cleaning up temporary images:', error);
     return res.status(500).json({
       error: 'Erreur lors du nettoyage des images temporaires',
+      details: error instanceof Error ? error.message : 'Erreur inconnue'
+    });
+  }
+});
+
+// Route pour télécharger une image et nettoyer les autres
+router.post('/download-and-cleanup', ensureAuth, async (req: Request, res: Response) => {
+  try {
+    // Récupérer l'ID utilisateur
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non autorisé' });
+    }
+
+    const { filename } = req.body;
+    
+    if (!filename) {
+      return res.status(400).json({ error: 'Nom du fichier requis' });
+    }
+    
+    const uploadsDir = path.join(process.cwd(), ENHANCED_IMAGES_DIR);
+    const filePath = path.join(uploadsDir, filename);
+    
+    // Vérifier si le fichier existe
+    const fileExists = await fs.promises.access(filePath).then(() => true).catch(() => false);
+    
+    if (!fileExists) {
+      return res.status(404).json({ error: 'Fichier non trouvé' });
+    }
+    
+    // Nettoyer les autres images du dossier
+    try {
+      const files = await fs.promises.readdir(uploadsDir);
+      let deletedCount = 0;
+      
+      for (const file of files) {
+        // Ne pas supprimer l'image demandée
+        if (file !== filename && file.startsWith('enhanced-')) {
+          try {
+            const otherFilePath = path.join(uploadsDir, file);
+            await fs.promises.unlink(otherFilePath);
+            deletedCount++;
+            logger.info(`Image supprimée après téléchargement: ${file}`);
+          } catch (deleteErr) {
+            logger.error(`Erreur lors de la suppression du fichier ${file}:`, deleteErr);
+          }
+        }
+      }
+      logger.info(`Nettoyage des images après téléchargement terminé: ${deletedCount} fichier(s) supprimé(s)`);
+    } catch (cleanupErr) {
+      logger.error('Erreur lors du nettoyage des images après téléchargement:', cleanupErr);
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Téléchargement réussi et nettoyage effectué',
+      downloadUrl: `/${ENHANCED_IMAGES_DIR}/${filename}`
+    });
+    
+  } catch (error) {
+    logger.error('Erreur lors du téléchargement avec nettoyage:', error);
+    return res.status(500).json({
+      error: 'Erreur serveur',
       details: error instanceof Error ? error.message : 'Erreur inconnue'
     });
   }

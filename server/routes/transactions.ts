@@ -115,7 +115,7 @@ router.post("/", ensureAuth, async (req, res) => {
       const result = await db.execute(sql`
         INSERT INTO transactions
         (amount, date, description, category, type, status, property_id, tenant_id, user_id, 
-         payment_method, notes, recurring, frequency, reminder_sent, document_ids)
+         payment_method, document_ids)
         VALUES (
           ${amount.toString()}, 
           ${date.toISOString()}, 
@@ -127,11 +127,7 @@ router.post("/", ensureAuth, async (req, res) => {
           ${tenantId}, 
           ${userId}, 
           ${paymentMethod}, 
-          ${notes}, 
-          ${recurring}, 
-          ${frequency}, 
-          ${reminderSent}, 
-          ${JSON.stringify(documentIds)}
+          ${documentIds.length > 0 ? JSON.stringify(documentIds) : sql.raw('ARRAY[]::integer[]')}
         )
         RETURNING *
       `);
@@ -1168,7 +1164,7 @@ router.post("/:id/documents", ensureAuth, upload.array('documents', 5), async (r
         UPDATE transactions
         SET 
           document_id = ${documentId},
-          document_ids = ${JSON.stringify(allDocumentIds)},
+          document_ids = ${allDocumentIds.length > 0 ? JSON.stringify(allDocumentIds) : sql.raw('ARRAY[]::integer[]')},
           updated_at = NOW()
         WHERE id = ${transactionId}
         RETURNING *

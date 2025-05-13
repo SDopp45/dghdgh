@@ -112,7 +112,7 @@ router.post("/", ensureAuth, async (req, res) => {
           ${false},
           ${user.id},
           ${validatedData.source || "manual"},
-          ${validatedData.documents || []},
+          ${JSON.stringify(validatedData.documents || [])},
           ${false},
           NOW(), NOW()
         ) RETURNING *

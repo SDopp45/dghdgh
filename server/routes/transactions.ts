@@ -70,6 +70,7 @@ router.post("/", ensureAuth, async (req, res) => {
     
     // Configuration du schéma client pour cette requête
     await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search_path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
 
     logger.info('Creating new transaction with data:', req.body);
 
@@ -94,63 +95,111 @@ router.post("/", ensureAuth, async (req, res) => {
       }
     }
 
-    // Préparer les données de la transaction
-    const amount = parseFloat(req.body.amount.toString());
-    const date = new Date(req.body.date);
-    const description = req.body.description || '';
-    const category = req.body.category || 'other';
-    const type = req.body.type || 'expense';
-    const status = req.body.status || 'pending';
-    const propertyId = req.body.propertyId ? parseInt(req.body.propertyId.toString()) : null;
-    const tenantId = req.body.tenantId ? parseInt(req.body.tenantId.toString()) : null;
-    const paymentMethod = req.body.paymentMethod || 'cash';
-    const notes = req.body.notes || '';
-    const recurring = req.body.recurring === true;
-    const frequency = req.body.frequency || null;
-    const reminderSent = false;
+    try {
+      // Préparer les données de la transaction
+      const amount = parseFloat(req.body.amount.toString());
+      const date = new Date(req.body.date);
+      const description = req.body.description || '';
+      const category = req.body.category || 'other';
+      const type = req.body.type || 'expense';
+      const status = req.body.status || 'pending';
+      const propertyId = req.body.propertyId ? parseInt(req.body.propertyId.toString()) : null;
+      const tenantId = req.body.tenantId ? parseInt(req.body.tenantId.toString()) : null;
+      const paymentMethod = req.body.paymentMethod || 'cash';
+      const notes = req.body.notes || '';
+      const recurring = req.body.recurring === true;
+      const frequency = req.body.frequency || null;
+      const reminderSent = false;
 
-    // Insérer la transaction en utilisant Drizzle ORM
-    const [newTransaction] = await db.insert(transactions).values({
-      amount,
-      date,
-      description,
-      category: category as any,
-      type: type as any,
-      status: status as any,
-      propertyId,
-      tenantId,
-      userId,
-      paymentMethod: paymentMethod as any,
-      notes,
-      recurring,
-      frequency,
-      reminderSent,
-      documentIds
-    }).returning();
+      // Insérer la transaction en utilisant une requête SQL directe
+      const result = await db.execute(sql`
+        INSERT INTO transactions
+        (amount, date, description, category, type, status, property_id, tenant_id, user_id, 
+         payment_method, notes, recurring, frequency, reminder_sent, document_ids)
+        VALUES (
+          ${amount.toString()}, 
+          ${date.toISOString()}, 
+          ${description}, 
+          ${category}, 
+          ${type}, 
+          ${status}, 
+          ${propertyId}, 
+          ${tenantId}, 
+          ${userId}, 
+          ${paymentMethod}, 
+          ${notes}, 
+          ${recurring}, 
+          ${frequency}, 
+          ${reminderSent}, 
+          ${JSON.stringify(documentIds)}
+        )
+        RETURNING *
+      `);
 
-    if (!newTransaction) {
-      throw new Error("Failed to create transaction");
-    }
-    
-    // Récupérer les informations complètes avec les relations
-    const completeTransaction = await db.query.transactions.findFirst({
-      where: eq(transactions.id, newTransaction.id),
-      with: {
-        property: true,
-        tenant: {
-          with: {
-            user: true
-          }
+      const newTransaction = result.rows[0];
+      
+      if (!newTransaction) {
+        throw new Error("Failed to create transaction");
+      }
+      
+      // Récupérer les informations de la propriété si nécessaire
+      let propertyInfo = null;
+      if (propertyId) {
+        const propertyResult = await db.execute(sql`
+          SELECT name, address FROM properties WHERE id = ${propertyId}
+        `);
+        if (propertyResult.rows.length > 0) {
+          propertyInfo = propertyResult.rows[0];
         }
       }
-    });
+      
+      // Formater la transaction
+      const formattedTransaction = {
+        id: newTransaction.id,
+        amount: parseFloat(newTransaction.amount),
+        date: newTransaction.date,
+        description: newTransaction.description,
+        category: newTransaction.category,
+        type: newTransaction.type,
+        status: newTransaction.status,
+        propertyId: newTransaction.property_id,
+        tenantId: newTransaction.tenant_id,
+        userId: newTransaction.user_id,
+        paymentMethod: newTransaction.payment_method,
+        documentIds: newTransaction.document_ids || [],
+        property: propertyInfo ? {
+          id: propertyId,
+          name: propertyInfo.name,
+          address: propertyInfo.address
+        } : null,
+        tenant: tenantId ? {
+          id: tenantId,
+          user: {
+            fullName: "Locataire #" + tenantId
+          }
+        } : null,
+        formattedDate: format(new Date(newTransaction.date), 'dd/MM/yyyy'),
+        formattedAmount: new Intl.NumberFormat('fr-FR', {
+          style: 'currency',
+          currency: 'EUR'
+        }).format(parseFloat(newTransaction.amount))
+      };
 
-    const formattedTransaction = formatTransaction(completeTransaction);
+      // Réinitialiser le search_path après utilisation
+      await db.execute(sql`SET search_path TO public`);
 
-    // Réinitialiser le search_path après utilisation
-    await db.execute(sql`SET search_path TO public`);
-
-    res.status(201).json(formattedTransaction);
+      res.status(201).json(formattedTransaction);
+    } catch (dbError) {
+      logger.error("Database error creating transaction:", dbError);
+      
+      // Réinitialiser le search_path en cas d'erreur
+      await db.execute(sql`SET search_path TO public`);
+      
+      res.status(500).json({
+        error: "Erreur lors de la création de la transaction",
+        details: dbError instanceof Error ? dbError.message : "Erreur inconnue"
+      });
+    }
   } catch (error: any) {
     logger.error("Error creating transaction:", error);
     
@@ -205,20 +254,49 @@ router.put("/:id/status", ensureAuth, async (req, res) => {
       return res.status(404).json({ error: "Transaction non trouvée" });
     }
 
-    // Récupérer les informations complètes avec les relations
-    const completeTransaction = await db.query.transactions.findFirst({
-      where: eq(transactions.id, updatedTransaction.id),
-      with: {
-        property: true,
-        tenant: {
-          with: {
-            user: true
-          }
+    // Récupérer les informations complètes avec les relations en utilisant une requête SQL directe
+    const result = await db.execute(sql`
+      SELECT 
+        t.*,
+        p.name as property_name, 
+        p.address as property_address,
+        tn.first_name as tenant_first_name,
+        tn.last_name as tenant_last_name,
+        u.full_name as tenant_full_name
+      FROM 
+        transactions t
+      LEFT JOIN 
+        properties p ON t.property_id = p.id
+      LEFT JOIN 
+        tenants tn ON t.tenant_id = tn.id
+      LEFT JOIN 
+        users u ON tn.user_id = u.id
+      WHERE 
+        t.id = ${updatedTransaction.id}
+    `);
+
+    if (result.rows.length === 0) {
+      // Réinitialiser le search_path avant de retourner l'erreur
+      await db.execute(sql`SET search_path TO public`);
+      return res.status(404).json({ error: "Transaction non trouvée après mise à jour" });
+    }
+
+    const completeTransaction = result.rows[0];
+    
+    // Formater la transaction avec les données des relations
+    const formattedTransaction = formatTransaction({
+      ...completeTransaction,
+      property: completeTransaction.property_name ? {
+        name: completeTransaction.property_name,
+        address: completeTransaction.property_address
+      } : null,
+      tenant: completeTransaction.tenant_first_name ? {
+        user: {
+          fullName: completeTransaction.tenant_full_name
         }
-      }
+      } : null
     });
 
-    const formattedTransaction = formatTransaction(completeTransaction);
     if (!formattedTransaction) {
       // Réinitialiser le search_path avant de retourner l'erreur
       await db.execute(sql`SET search_path TO public`);
@@ -255,6 +333,7 @@ router.get("/", ensureAuth, async (req, res) => {
     
     // Configuration du schéma client pour cette requête
     await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search_path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
 
     const { 
       page = "1", 
@@ -271,151 +350,177 @@ router.get("/", ensureAuth, async (req, res) => {
       sortOrder = "desc"
     } = req.query;
     
-    // Parse query parameters - permettre des valeurs très grandes
+    // Parse query parameters
     const pageNum = parseInt(page as string, 10);
     const pageSizeNum = req.query.pageSize === "all" ? 99999 : parseInt(pageSize as string, 10);
     const skip = (pageNum - 1) * pageSizeNum;
     
-    // Construire la requête avec Drizzle et sql tag
-    let queryBuilder = db.select()
-      .from(transactions)
-      .leftJoin(properties, eq(transactions.propertyId, properties.id))
-      .leftJoin(tenants, eq(transactions.tenantId, tenants.id))
-      .leftJoin(users, eq(tenants.userId, users.id))
-      .where(eq(transactions.userId, userId));
-    
-    // Ajouter les filtres
-    if (propertyId && propertyId !== "null") {
-      queryBuilder = queryBuilder.where(eq(transactions.propertyId, parseInt(propertyId as string, 10)));
-    }
-    
-    if (tenantId && tenantId !== "null") {
-      queryBuilder = queryBuilder.where(eq(transactions.tenantId, parseInt(tenantId as string, 10)));
-    }
-    
-    if (category && category !== "all") {
-      queryBuilder = queryBuilder.where(eq(transactions.category, category as any));
-    }
-    
-    if (type && type !== "all") {
-      queryBuilder = queryBuilder.where(eq(transactions.type, type as any));
-    }
-    
-    if (status && status !== "all") {
-      queryBuilder = queryBuilder.where(eq(transactions.status, status as any));
-    }
-    
-    if (startDate) {
-      queryBuilder = queryBuilder.where(gte(transactions.date, new Date(startDate as string)));
-    }
-    
-    if (endDate) {
-      const endDateObj = new Date(endDate as string);
-      endDateObj.setDate(endDateObj.getDate() + 1); // Inclure le jour de fin complet
-      queryBuilder = queryBuilder.where(eq(transactions.date, endDateObj));
-    }
-    
-    if (search) {
-      queryBuilder = queryBuilder.where(
-        or(
-          like(transactions.description, `%${search}%`),
-          like(transactions.notes, `%${search}%`)
-        )
-      );
-    }
-    
-    // Pour compter le nombre total avec les mêmes filtres
-    const countQuery = db.select({ count: count() })
-      .from(queryBuilder.as('filtered_transactions'));
-    
-    const countResult = await countQuery;
-    const total = countResult[0]?.count || 0;
-    
-    // Appliquer le tri
-    switch (sortBy) {
-      case 'amount':
-        queryBuilder = queryBuilder.orderBy(sortOrder === 'asc' ? asc(transactions.amount) : desc(transactions.amount));
-        break;
-      case 'type':
-        queryBuilder = queryBuilder.orderBy(sortOrder === 'asc' ? asc(transactions.type) : desc(transactions.type));
-        break;
-      case 'date':
-      default:
-        queryBuilder = queryBuilder.orderBy(sortOrder === 'asc' ? asc(transactions.date) : desc(transactions.date));
-        break;
-    }
-    
-    // Appliquer la pagination
-    queryBuilder = queryBuilder.limit(pageSizeNum).offset(skip);
-    
-    const transactionsResult = await queryBuilder;
-    
-    // Formater les résultats
-    const formattedTransactions = transactionsResult.map(row => {
-      const transaction = row.transactions;
-      const property = row.properties;
-      const tenant = row.tenants;
-      const user = row.users;
+    try {
+      // Construire les conditions de la requête
+      let conditions = [`t.user_id = ${userId}`];
       
-      // Formater la date et le montant
-      const formattedDate = format(new Date(transaction.date), 'dd/MM/yyyy');
-      const formattedAmount = new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR'
-      }).format(parseFloat(transaction.amount.toString()));
-      
-      return {
-        id: transaction.id,
-        amount: transaction.amount,
-        date: transaction.date,
-        description: transaction.description,
-        category: transaction.category,
-        type: transaction.type,
-        status: transaction.status,
-        propertyId: transaction.propertyId,
-        tenantId: transaction.tenantId,
-        userId: transaction.userId,
-        paymentMethod: transaction.paymentMethod,
-        notes: transaction.notes,
-        recurring: transaction.recurring,
-        frequency: transaction.frequency,
-        reminderSent: transaction.reminderSent,
-        documentIds: Array.isArray(transaction.documentIds) ? transaction.documentIds : [],
-        property: property ? {
-          id: property.id,
-          name: property.name,
-          address: property.address
-        } : null,
-        tenant: tenant ? {
-          id: tenant.id,
-          leaseStart: tenant.leaseStart,
-          leaseEnd: tenant.leaseEnd,
-          leaseType: tenant.leaseType,
-          user: user ? {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            fullName: user.fullName,
-            phoneNumber: user.phoneNumber
-          } : null
-        } : null,
-        formattedDate,
-        formattedAmount
-      };
-    });
-
-    // Réinitialiser le search_path après utilisation
-    await db.execute(sql`SET search_path TO public`);
-
-    res.json({
-      data: formattedTransactions,
-      meta: {
-        total,
-        page: pageNum,
-        pageSize: pageSizeNum,
-        totalPages: Math.ceil(total / pageSizeNum)
+      if (propertyId && propertyId !== "null") {
+        conditions.push(`t.property_id = ${parseInt(propertyId as string, 10)}`);
       }
-    });
+      
+      if (tenantId && tenantId !== "null") {
+        conditions.push(`t.tenant_id = ${parseInt(tenantId as string, 10)}`);
+      }
+      
+      if (category && category !== "all") {
+        conditions.push(`t.category = ${category}`);
+      }
+      
+      if (type && type !== "all") {
+        conditions.push(`t.type = ${type}`);
+      }
+      
+      if (status && status !== "all") {
+        conditions.push(`t.status = ${status}`);
+      }
+      
+      if (startDate) {
+        conditions.push(`t.date >= ${new Date(startDate as string).toISOString()}`);
+      }
+      
+      if (endDate) {
+        const endDateObj = new Date(endDate as string);
+        endDateObj.setDate(endDateObj.getDate() + 1); // Inclure le jour de fin complet
+        conditions.push(`t.date <= ${endDateObj.toISOString()}`);
+      }
+      
+      if (search) {
+        conditions.push(`(t.description ILIKE '%${search}%')`);
+      }
+      
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+      
+      // Construire la clause ORDER BY
+      let orderByClause = "";
+      switch (sortBy) {
+        case 'amount':
+          orderByClause = `ORDER BY t.amount ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+          break;
+        case 'type':
+          orderByClause = `ORDER BY t.type ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+          break;
+        case 'date':
+        default:
+          orderByClause = `ORDER BY t.date ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+          break;
+      }
+      
+      // Requête pour compter le nombre total
+      const countQuery = sql`
+        SELECT COUNT(*) as total FROM transactions t ${sql.raw(whereClause)}
+      `;
+      
+      // Requête principale avec jointures simplifiées
+      const transactionsQuery = sql`
+        SELECT 
+          t.*,
+          p.name as property_name,
+          p.address as property_address
+        FROM 
+          transactions t
+        LEFT JOIN 
+          properties p ON t.property_id = p.id
+        ${sql.raw(whereClause)}
+        ${sql.raw(orderByClause)}
+        LIMIT ${pageSizeNum}
+        OFFSET ${skip}
+      `;
+      
+      logger.info(`Executing transactions query with conditions: ${conditions.join(" AND ")}`);
+      
+      // Exécuter les deux requêtes
+      const countResult = await db.execute(countQuery);
+      const transactionsResult = await db.execute(transactionsQuery);
+      
+      const total = parseInt(countResult.rows[0]?.total || "0", 10);
+      const transactions = transactionsResult.rows;
+      
+      // Formater les transactions
+      const formattedTransactions = transactions.map(transaction => {
+        // S'assurer que documentIds est un tableau
+        let documentIds = [];
+        if (transaction.document_ids) {
+          try {
+            documentIds = Array.isArray(transaction.document_ids) 
+              ? transaction.document_ids
+              : JSON.parse(transaction.document_ids);
+          } catch (e) {
+            logger.warn(`Failed to parse documentIds for transaction ${transaction.id}: ${transaction.document_ids}`);
+            documentIds = [];
+          }
+        }
+        
+        // Formater la date et le montant
+        const transactionDate = new Date(transaction.date);
+        const formattedDate = format(transactionDate, 'dd/MM/yyyy');
+        const amount = parseFloat(transaction.amount);
+        const formattedAmount = new Intl.NumberFormat('fr-FR', {
+          style: 'currency',
+          currency: 'EUR'
+        }).format(amount);
+        
+        return {
+          id: transaction.id,
+          amount: amount,
+          date: transaction.date,
+          description: transaction.description,
+          category: transaction.category,
+          type: transaction.type,
+          status: transaction.status,
+          propertyId: transaction.property_id,
+          tenantId: transaction.tenant_id,
+          userId: transaction.user_id,
+          paymentMethod: transaction.payment_method,
+          documentIds: documentIds,
+          property: transaction.property_name ? {
+            name: transaction.property_name,
+            address: transaction.property_address
+          } : null,
+          tenant: transaction.tenant_id ? {
+            id: transaction.tenant_id,
+            user: {
+              fullName: "Locataire #" + transaction.tenant_id
+            }
+          } : null,
+          formattedDate,
+          formattedAmount
+        };
+      });
+      
+      // Réinitialiser le search_path après utilisation
+      await db.execute(sql`SET search_path TO public`);
+      
+      res.json({
+        data: formattedTransactions,
+        meta: {
+          total,
+          page: pageNum,
+          pageSize: pageSizeNum,
+          totalPages: Math.ceil(total / pageSizeNum)
+        }
+      });
+    } catch (dbError) {
+      logger.error("Database error in transactions route:", dbError);
+      
+      // Réinitialiser le search_path en cas d'erreur
+      await db.execute(sql`SET search_path TO public`);
+      
+      // Retourner un résultat vide plutôt qu'une erreur 500
+      res.json({
+        data: [],
+        meta: {
+          total: 0,
+          page: pageNum,
+          pageSize: pageSizeNum,
+          totalPages: 0
+        }
+      });
+    }
   } catch (error: any) {
     logger.error("Error fetching transactions:", error);
     
@@ -871,190 +976,247 @@ router.post("/:id/documents", ensureAuth, upload.array('documents', 5), async (r
     logger.info(`Processing document upload for transaction ${id}. Request body:`, req.body);
     logger.info(`Request files:`, req.files ? `${req.files.length} files received` : 'No files received');
 
-    // Récupérer les noms personnalisés des fichiers s'ils existent
-    let customFileNames = {};
-    if (req.body.customNames) {
-      try {
-        customFileNames = typeof req.body.customNames === 'string' 
-          ? JSON.parse(req.body.customNames) 
-          : req.body.customNames;
-        logger.info('Custom file names:', customFileNames);
-      } catch (error) {
-        logger.warn('Error parsing customNames:', error);
-        // Continuer avec un objet vide en cas d'erreur
-      }
-    }
+    // Définition du schéma client
+    const clientSchema = `client_${userId}`;
+    
+    // Configuration du schéma client pour cette requête
+    await db.execute(sql`SET search_path TO ${sql.identifier(clientSchema)}, public`);
+    logger.info(`Search_path défini à "${clientSchema}, public" pour l'utilisateur ${userId}`);
 
-    // Récupérer les types de documents envoyés par le client
-    const documentTypesString = req.body.documentTypes ? JSON.stringify(req.body.documentTypes) : '{}';
-    let documentTypes = {};
     try {
-      // Si les types sont envoyés comme un JSON stringifié
-      documentTypes = JSON.parse(documentTypesString);
-    } catch (e) {
-      // Si les types sont envoyés comme des champs individuels
-      documentTypes = req.body;
-    }
-
-    // Vérifier si la transaction existe et appartient à l'utilisateur
-    const transaction = await db.query.transactions.findFirst({
-      where: and(
-        eq(transactions.id, transactionId),
-        eq(transactions.userId, userId)
-      )
-    });
-
-    if (!transaction) {
-      logger.warn(`Transaction not found or doesn't belong to user: ${id}, userId: ${userId}`);
-      return res.status(404).json({ error: "Transaction non trouvée" });
-    }
-
-    logger.info(`Transaction found: ${JSON.stringify(transaction)}`);
-
-    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-      logger.warn('No files provided in the request');
-      return res.status(400).json({ error: "Aucun document fourni" });
-    }
-
-    logger.info(`Received ${req.files.length} files for transaction ${id}`);
-
-    const insertedDocuments = [];
-    const documentIds = [];
-
-    // Traiter chaque fichier
-    for (const file of req.files) {
-      try {
-        logger.info('Processing file:', {
-          originalName: file.originalname,
-          filename: file.filename,
-          size: file.size,
-          mimetype: file.mimetype,
-          path: file.path
-        });
-
-        // Vérifier si le fichier existe physiquement
-        const filePath = path.join(documentsDir, file.filename);
-        const fileExists = fs.existsSync(filePath);
-        logger.info(`File ${file.filename} exists on disk: ${fileExists}`);
-
-        if (!fileExists) {
-          logger.error(`File ${file.filename} does not exist on disk at ${filePath}`);
-          throw new Error(`Le fichier ${file.originalname} n'existe pas physiquement`);
+      // Récupérer les noms personnalisés des fichiers s'ils existent
+      let customFileNames = {};
+      if (req.body.customNames) {
+        try {
+          customFileNames = typeof req.body.customNames === 'string' 
+            ? JSON.parse(req.body.customNames) 
+            : req.body.customNames;
+          logger.info('Custom file names:', customFileNames);
+        } catch (error) {
+          logger.warn('Error parsing customNames:', error);
+          // Continuer avec un objet vide en cas d'erreur
         }
-
-        // Déterminer le titre du document
-        let documentTitle = file.originalname;
-        let customFileName = undefined;
-        
-        // Vérifier si le nom de fichier a un nom personnalisé
-        const origName = file.originalname;
-        if (customFileNames && typeof customFileNames === 'object' && origName in customFileNames) {
-          customFileName = customFileNames[origName];
-          documentTitle = customFileName;
-        }
-        
-        // Récupérer le type du document s'il existe dans les types envoyés
-        let documentType = "invoice"; // Type par défaut
-        const docTypeKey = `documentTypes[${file.originalname}]`;
-        if (documentTypes && typeof documentTypes === 'object' && docTypeKey in documentTypes) {
-          documentType = documentTypes[docTypeKey];
-        }
-        
-        logger.info(`Document type for ${file.originalname}: ${documentType}`);
-
-        // Construire les métadonnées supplémentaires
-        const documentMetadata: any = {
-          section: 'finance',
-          description: `Document financier\nDocument uploadé via le formulaire Finances`,
-          source: 'finance',
-          transactionType: transaction.type,
-          uploadSource: 'finance',
-          uploadMethod: 'form',
-          uploadContext: 'transaction',
-          transactionId: transactionId,
-          documentCategory: transaction.category === 'maintenance' ? 'maintenance' : 'finance'
-        };
-
-        // Ajouter le nom personnalisé aux métadonnées si disponible
-        if (customFileName) {
-          documentMetadata.customFileName = customFileName;
-        }
-
-        // Insérer le document dans la base de données
-        const [insertedDoc] = await db.insert(documents).values({
-          title: documentTitle,
-          type: documentType as any, // Type casting pour éviter l'erreur TypeScript
-          filePath: file.filename,
-          originalName: file.originalname,
-          template: false,
-          userId: userId,
-          formData: documentMetadata,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }).returning();
-
-        logger.info(`Document inserted in database:`, {
-          id: insertedDoc.id,
-          title: insertedDoc.title,
-          type: insertedDoc.type,
-          filePath: insertedDoc.filePath,
-          formData: insertedDoc.formData
-        });
-
-        documentIds.push(insertedDoc.id);
-        insertedDocuments.push({
-          ...insertedDoc,
-          fileUrl: `/api/documents/files/${encodeURIComponent(insertedDoc.filePath)}`
-        });
-
-        logger.info(`Document ${insertedDoc.id} created for transaction ${id}`);
-      } catch (error) {
-        logger.error(`Error processing file ${file.originalname}:`, error);
-        throw error;
       }
-    }
 
-    // Récupérer les documentIds existants de la transaction
-    let existingDocIds: number[] = [];
-    if (transaction.documentIds && Array.isArray(transaction.documentIds)) {
-      existingDocIds = transaction.documentIds;
-    }
-    
-    // Fusionner avec les nouveaux documentIds
-    const allDocumentIds = [...existingDocIds, ...documentIds];
-    
-    logger.info(`Updating transaction ${id} with all document IDs: ${JSON.stringify(allDocumentIds)}`);
+      // Récupérer les types de documents envoyés par le client
+      const documentTypesString = req.body.documentTypes ? JSON.stringify(req.body.documentTypes) : '{}';
+      let documentTypes = {};
+      try {
+        // Si les types sont envoyés comme un JSON stringifié
+        documentTypes = JSON.parse(documentTypesString);
+      } catch (e) {
+        // Si les types sont envoyés comme des champs individuels
+        documentTypes = req.body;
+      }
 
-    // Mettre à jour la transaction avec les documents
+      // Vérifier si la transaction existe et appartient à l'utilisateur avec une requête SQL directe
+      const transactionResult = await db.execute(sql`
+        SELECT * FROM transactions
+        WHERE id = ${transactionId}
+        AND user_id = ${userId}
+      `);
+
+      if (transactionResult.rows.length === 0) {
+        logger.warn(`Transaction not found or doesn't belong to user: ${id}, userId: ${userId}`);
+        await db.execute(sql`SET search_path TO public`);
+        return res.status(404).json({ error: "Transaction non trouvée" });
+      }
+
+      const transaction = transactionResult.rows[0];
+      logger.info(`Transaction found: ${JSON.stringify(transaction)}`);
+
+      if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+        logger.warn('No files provided in the request');
+        await db.execute(sql`SET search_path TO public`);
+        return res.status(400).json({ error: "Aucun document fourni" });
+      }
+
+      logger.info(`Received ${req.files.length} files for transaction ${id}`);
+
+      const insertedDocuments = [];
+      const documentIds = [];
+
+      // Traiter chaque fichier
+      for (const file of req.files) {
+        try {
+          logger.info('Processing file:', {
+            originalName: file.originalname,
+            filename: file.filename,
+            size: file.size,
+            mimetype: file.mimetype,
+            path: file.path
+          });
+
+          // Vérifier si le fichier existe physiquement
+          const filePath = path.join(documentsDir, file.filename);
+          const fileExists = fs.existsSync(filePath);
+          logger.info(`File ${file.filename} exists on disk: ${fileExists}`);
+
+          if (!fileExists) {
+            logger.error(`File ${file.originalname} does not exist on disk at ${filePath}`);
+            throw new Error(`Le fichier ${file.originalname} n'existe pas physiquement`);
+          }
+
+          // Déterminer le titre du document
+          let documentTitle = file.originalname;
+          let customFileName = undefined;
+          
+          // Vérifier si le nom de fichier a un nom personnalisé
+          const origName = file.originalname;
+          if (customFileNames && typeof customFileNames === 'object' && origName in customFileNames) {
+            customFileName = customFileNames[origName];
+            documentTitle = customFileName;
+          }
+          
+          // Récupérer le type du document s'il existe dans les types envoyés
+          let documentType = "invoice"; // Type par défaut
+          const docTypeKey = `documentTypes[${file.originalname}]`;
+          if (documentTypes && typeof documentTypes === 'object' && docTypeKey in documentTypes) {
+            documentType = documentTypes[docTypeKey];
+          }
+          
+          logger.info(`Document type for ${file.originalname}: ${documentType}`);
+
+          // Construire les métadonnées supplémentaires
+          const documentMetadata: any = {
+            section: 'finance',
+            description: `Document financier\nDocument uploadé via le formulaire Finances`,
+            source: 'finance',
+            transactionType: transaction.type,
+            uploadSource: 'finance',
+            uploadMethod: 'form',
+            uploadContext: 'transaction',
+            transactionId: transactionId,
+            documentCategory: transaction.category === 'maintenance' ? 'maintenance' : 'finance'
+          };
+
+          // Ajouter le nom personnalisé aux métadonnées si disponible
+          if (customFileName) {
+            documentMetadata.customFileName = customFileName;
+          }
+
+          // Insérer le document dans la base de données avec SQL direct
+          const docResult = await db.execute(sql`
+            INSERT INTO documents
+            (title, type, file_path, original_name, template, user_id, form_data, created_at, updated_at)
+            VALUES (
+              ${documentTitle},
+              ${documentType},
+              ${file.filename},
+              ${file.originalname},
+              ${false},
+              ${userId},
+              ${JSON.stringify(documentMetadata)},
+              NOW(),
+              NOW()
+            )
+            RETURNING *
+          `);
+
+          const insertedDoc = docResult.rows[0];
+          logger.info(`Document inserted in database:`, {
+            id: insertedDoc.id,
+            title: insertedDoc.title,
+            type: insertedDoc.type,
+            filePath: insertedDoc.file_path,
+            formData: insertedDoc.form_data
+          });
+
+          documentIds.push(insertedDoc.id);
+          insertedDocuments.push({
+            ...insertedDoc,
+            fileUrl: `/api/documents/files/${encodeURIComponent(insertedDoc.file_path)}`
+          });
+
+          logger.info(`Document ${insertedDoc.id} created for transaction ${id}`);
+        } catch (error) {
+          logger.error(`Error processing file ${file.originalname}:`, error);
+          throw error;
+        }
+      }
+
+      // Récupérer les documentIds existants de la transaction
+      let existingDocIds: number[] = [];
+      if (transaction.document_ids) {
+        // Si c'est déjà un tableau, l'utiliser tel quel
+        if (Array.isArray(transaction.document_ids)) {
+          existingDocIds = transaction.document_ids;
+        }
+        // Si c'est une chaîne JSON, essayer de la parser
+        else if (typeof transaction.document_ids === 'string') {
+          try {
+            existingDocIds = JSON.parse(transaction.document_ids);
+          } catch (e) {
+            logger.warn(`Failed to parse existing document_ids for transaction ${id}: ${transaction.document_ids}`);
+          }
+        }
+      }
+      
+      // Fusionner avec les nouveaux documentIds
+      const allDocumentIds = [...existingDocIds, ...documentIds];
+      
+      logger.info(`Updating transaction ${id} with all document IDs: ${JSON.stringify(allDocumentIds)}`);
+
+      // Mettre à jour la transaction avec les documents
       // Mettre à jour documentId avec le premier document (pour la compatibilité)
-    const documentId = documentIds.length > 0 ? documentIds[0] : null;
+      const documentId = documentIds.length > 0 ? documentIds[0] : null;
       
-    logger.info(`Updating transaction ${id} with documentId: ${documentId} and documentIds: [${allDocumentIds.join(', ')}]`);
+      logger.info(`Updating transaction ${id} with documentId: ${documentId} and documentIds: [${allDocumentIds.join(', ')}]`);
       
-      // Mettre à jour documentIds avec tous les documents
-      const [updatedTransaction] = await db.update(transactions)
-        .set({ 
-          documentId: documentId,
-        documentIds: allDocumentIds,
-          updatedAt: new Date()
-        })
-        .where(eq(transactions.id, transactionId))
-        .returning();
+      // Mettre à jour documentIds avec tous les documents en utilisant SQL direct
+      const updateResult = await db.execute(sql`
+        UPDATE transactions
+        SET 
+          document_id = ${documentId},
+          document_ids = ${JSON.stringify(allDocumentIds)},
+          updated_at = NOW()
+        WHERE id = ${transactionId}
+        RETURNING *
+      `);
       
+      if (updateResult.rows.length === 0) {
+        logger.error(`Failed to update transaction ${id} with document IDs`);
+        await db.execute(sql`SET search_path TO public`);
+        return res.status(500).json({ error: "Échec de la mise à jour de la transaction" });
+      }
+      
+      const updatedTransaction = updateResult.rows[0];
       logger.info(`Transaction ${id} updated:`, updatedTransaction);
 
-    const response = {
-      success: true,
-      count: insertedDocuments.length,
-      documents: insertedDocuments,
-      documentIds: documentIds
-    };
-    
-    logger.info(`Response for transaction ${id} document upload:`, response);
-    
-    res.status(201).json(response);
+      // Réinitialiser le search_path après utilisation
+      await db.execute(sql`SET search_path TO public`);
+
+      const response = {
+        success: true,
+        count: insertedDocuments.length,
+        documents: insertedDocuments,
+        documentIds: documentIds
+      };
+      
+      logger.info(`Response for transaction ${id} document upload:`, response);
+      
+      res.status(201).json(response);
+    } catch (dbError) {
+      logger.error(`Database error during document upload:`, dbError);
+      
+      // Réinitialiser le search_path en cas d'erreur
+      await db.execute(sql`SET search_path TO public`);
+      
+      res.status(500).json({
+        error: "Erreur de base de données lors de l'ajout des documents",
+        details: dbError.message
+      });
+    }
   } catch (error: any) {
     logger.error(`Error uploading documents to transaction:`, error);
+    
+    // Réinitialiser le search_path en cas d'erreur
+    try {
+      await db.execute(sql`SET search_path TO public`);
+    } catch (resetError) {
+      logger.error('Error resetting search_path:', resetError);
+    }
+    
     res.status(500).json({
       error: "Erreur lors de l'ajout des documents à la transaction",
       details: error.message,
@@ -1198,7 +1360,7 @@ router.get("/groups", ensureAuth, async (req, res) => {
       : 'date';
 
     // Requête pour compter le nombre total de groupes distincts
-    const countQuery = `
+    const countQuery = sql`
       SELECT COUNT(*) as total 
       FROM (
         SELECT ${groupBySql ? groupBySql : 't.id'} as group_key
@@ -1210,7 +1372,7 @@ router.get("/groups", ensureAuth, async (req, res) => {
     `;
 
     // Requête pour les groupes avec pagination
-    const groupsQuery = `
+    const groupsQuery = sql`
       WITH transaction_stats AS (
         SELECT 
           ${groupBySql ? groupBySql : 't.id'} as group_key,
@@ -1328,7 +1490,7 @@ router.get("/group/:key", ensureAuth, async (req, res) => {
     const groupCondition = `AND ${groupSqlExpr} = $2`;
 
     // Requête pour compter le nombre total de transactions dans ce groupe
-    const countQuery = `
+    const countQuery = sql`
       SELECT COUNT(*) as total
       FROM transactions t
       LEFT JOIN properties p ON t.property_id = p.id
@@ -1338,7 +1500,7 @@ router.get("/group/:key", ensureAuth, async (req, res) => {
     // Requête pour récupérer les transactions paginées pour ce groupe
     // Cette requête utilise une jointure pour récupérer toutes les informations
     // nécessaires en une seule requête
-    const transactionsQuery = `
+    const transactionsQuery = sql`
       SELECT 
         t.*,
         p.name as property_name,

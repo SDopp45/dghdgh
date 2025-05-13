@@ -140,12 +140,6 @@ router.post("/", ensureAuth, async (req, res) => {
         archived: newVisitDirect.archived
       };
       
-      // Emit socket event
-      const io = req.app.get('io');
-      if (io) {
-        io.emit('newVisit', formattedVisit);
-      }
-
       res.status(201).json(formattedVisit);
     } finally {
       // Réinitialiser le search_path à public
@@ -464,12 +458,6 @@ router.patch("/:id", ensureAuth, async (req, res) => {
         archived: updatedVisitDirect.archived
       };
       
-      // Emit socket event
-      const io = req.app.get('io');
-      if (io) {
-        io.emit('visitUpdated', formattedVisit);
-      }
-
       visitLogger.info(`Visit ${id} updated successfully via direct SQL`);
       res.json(formattedVisit);
     } finally {
@@ -556,12 +544,6 @@ router.patch("/:id/status", ensureAuth, async (req, res) => {
         archived: updatedVisitDirect.archived
       };
       
-      // Emit socket event
-      const io = req.app.get('io');
-      if (io) {
-        io.emit('visitStatusUpdated', formattedVisit);
-      }
-
       logger.info(`Visit ${id} status updated successfully to ${status} via direct SQL`);
       res.json(formattedVisit);
     } finally {
@@ -634,12 +616,6 @@ router.patch("/:id/reminder", ensureAuth, async (req, res) => {
         archived: updatedVisitDirect.archived
       };
       
-      // Emit socket event
-      const io = req.app.get('io');
-      if (io) {
-        io.emit('visitReminderUpdated', formattedVisit);
-      }
-
       logger.info(`Visit ${id} reminder status updated successfully to ${reminderSent} via direct SQL`);
       res.json(formattedVisit);
     } finally {

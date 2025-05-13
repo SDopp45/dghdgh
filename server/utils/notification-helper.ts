@@ -1,7 +1,6 @@
 import { db } from '../db';
 import { notifications, type InsertNotification } from '@shared/schema';
 import logger from './logger';
-import { sendNotificationToUser } from '../websocket/notification-ws';
 
 export async function createNotification({
   userId,
@@ -27,8 +26,7 @@ export async function createNotification({
 
     logger.info(`Created notification: ${notification.id}`);
     
-    // Envoyer la notification en temps réel via WebSocket
-    sendNotificationToUser(userId, notification);
+    // La notification en temps réel via WebSocket a été supprimée
     
     return notification;
   } catch (error) {

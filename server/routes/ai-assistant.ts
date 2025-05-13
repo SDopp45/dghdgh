@@ -39,11 +39,12 @@ router.get('/tokens/balance', async (req, res) => {
     const userId = req.user!.id;
     const clientSchema = await getClientSchema(userId);
     
-    const balance = await AITokenService.getUserTokenBalance(userId, clientSchema);
+    // Si aucun schéma client n'est trouvé, utiliser undefined
+    const balanceData = await AITokenService.getUserTokenBalance(userId, clientSchema || undefined);
     
     res.json({
       success: true,
-      balance
+      balance: balanceData
     });
   } catch (error) {
     logger.error('Error fetching token balance:', error);
@@ -62,7 +63,8 @@ router.get('/tokens/usage', async (req, res) => {
     const userId = req.user!.id;
     const clientSchema = await getClientSchema(userId);
     
-    const usage = await AITokenService.getUserUsageHistory(userId, clientSchema);
+    // Si aucun schéma client n'est trouvé, utiliser undefined
+    const usage = await AITokenService.getUserUsageHistory(userId, clientSchema || undefined);
     
     res.json({
       success: true,
@@ -73,6 +75,43 @@ router.get('/tokens/usage', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch token usage history'
+    });
+  }
+});
+
+/**
+ * Synchroniser les données d'utilisation de l'IA avec le compteur de requêtes
+ */
+router.post('/sync-usage', async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const clientSchema = await getClientSchema(userId);
+    
+    if (!clientSchema) {
+      return res.status(404).json({
+        success: false,
+        error: 'Schéma client non trouvé'
+      });
+    }
+    
+    const success = await AITokenService.syncRequestCount(userId, clientSchema);
+    
+    if (success) {
+      res.json({
+        success: true,
+        message: 'Données d\'utilisation synchronisées avec succès'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Échec de la synchronisation des données'
+      });
+    }
+  } catch (error) {
+    logger.error('Error syncing usage data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to sync usage data'
     });
   }
 });
@@ -107,7 +146,7 @@ router.post('/tokens/add', async (req, res) => {
     const { userId, amount } = result.data;
     const clientSchema = await getClientSchema(userId);
     
-    const success = await AITokenService.addTokens(userId, amount, clientSchema);
+    const success = await AITokenService.addTokens(userId, amount, clientSchema || undefined);
     
     if (success) {
       res.json({
@@ -153,7 +192,7 @@ router.post('/message', async (req, res) => {
     
     // Vérifier le solde de tokens avant de traiter le message
     const estimatedTokens = Math.ceil(content.length / 4) + 600; // Estimation approximative
-    const canUseAI = await AITokenService.canUseAI(userId, estimatedTokens, clientSchema);
+    const canUseAI = await AITokenService.canUseAI(userId, estimatedTokens, clientSchema || undefined);
     
     if (!canUseAI) {
       return res.status(402).json({
@@ -174,11 +213,15 @@ router.post('/message', async (req, res) => {
       });
       
       // Ajouter le message à la nouvelle conversation
-      message = await AIAssistantService.addMessage({
-        conversationId: conversation.id,
-        userId,
-        content,
-      });
+      if (conversation) {
+        message = await AIAssistantService.addMessage({
+          conversationId: conversation.id,
+          userId,
+          content,
+        });
+      } else {
+        throw new Error('Failed to create conversation');
+      }
     } else {
       // Ajouter le message à une conversation existante
       message = await AIAssistantService.addMessage({

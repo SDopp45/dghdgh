@@ -8,25 +8,51 @@ export class AITokenService {
   /**
    * Récupère le solde de tokens d'un utilisateur
    */
-  static async getUserTokenBalance(userId: number, clientSchema?: string): Promise<number> {
+  static async getUserTokenBalance(userId: number, clientSchema?: string): Promise<any> {
     try {
       // Utiliser la requête SQL directe avec le schéma client si spécifié
       const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
       
-      const result = await db.execute(sql`
-        SELECT tokens FROM ${sql.raw(schemaPrefix)}ai_tokens 
+      // Récupérer les tokens
+      const tokenResult = await db.execute(sql`
+        SELECT tokens, plan, monthly_reset_date FROM ${sql.raw(`${schemaPrefix}ai_tokens`)} 
         WHERE user_id = ${userId}
         LIMIT 1
       `);
+
+      // Récupérer les informations de quota de l'utilisateur
+      const userQuotaResult = await db.execute(sql`
+        SELECT request_count, request_limit FROM public.users 
+        WHERE id = ${userId}
+        LIMIT 1
+      `);
       
-      if (result.rows && result.rows.length > 0) {
-        return Number(result.rows[0].tokens || 0);
-      }
+      // Récupérer la date de la prochaine réinitialisation
+      const resetDate = tokenResult.rows && tokenResult.rows.length > 0 && tokenResult.rows[0].monthly_reset_date
+        ? tokenResult.rows[0].monthly_reset_date
+        : null;
       
-      return 0;
+      // Calculer la date de la prochaine réinitialisation si elle n'existe pas
+      const nextResetDate = resetDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      
+      return {
+        balance: tokenResult.rows && tokenResult.rows.length > 0 ? Number(tokenResult.rows[0].tokens || 0) : 0,
+        plan: tokenResult.rows && tokenResult.rows.length > 0 ? tokenResult.rows[0].plan || 'free' : 'free',
+        requestCount: userQuotaResult.rows && userQuotaResult.rows.length > 0 ? Number(userQuotaResult.rows[0].request_count || 0) : 0,
+        requestLimit: userQuotaResult.rows && userQuotaResult.rows.length > 0 ? Number(userQuotaResult.rows[0].request_limit || 100) : 100,
+        monthlyResetDate: resetDate,
+        nextResetDate: nextResetDate
+      };
     } catch (error) {
       logger.error(`Erreur lors de la récupération du solde de tokens: ${error}`);
-      return 0;
+      return {
+        balance: 0,
+        plan: 'free',
+        requestCount: 0,
+        requestLimit: 100,
+        monthlyResetDate: null,
+        nextResetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      };
     }
   }
 
@@ -69,7 +95,7 @@ export class AITokenService {
    * Incrémente le compteur de requêtes en fonction du modèle utilisé
    * Version simplifiée utilisant uniquement public.users
    */
-  static async incrementRequestCount(userId: number, modelId: string): Promise<boolean> {
+  static async incrementRequestCount(userId: number, modelId: string, clientSchema?: string): Promise<boolean> {
     try {
       // Déterminer l'incrément selon le modèle
       const increment = (
@@ -88,6 +114,40 @@ export class AITokenService {
       `);
       
       logger.info(`Compteur de requêtes incrémenté pour l'utilisateur ${userId}: +${increment}`);
+      
+      // Vérifier la cohérence avec ai_usage si un schéma client est spécifié
+      if (clientSchema) {
+        try {
+          const schemaPrefix = `${clientSchema}.`;
+          
+          // Compter les entrées dans ai_usage
+          const countResult = await db.execute(sql`
+            SELECT COUNT(*) as usage_count 
+            FROM ${sql.raw(`${schemaPrefix}ai_usage`)}
+            WHERE user_id = ${userId}
+          `);
+          
+          const usageCount = parseInt(countResult.rows[0].usage_count || '0', 10);
+          
+          // Récupérer le request_count actuel
+          const userResult = await db.execute(sql`
+            SELECT request_count FROM public.users 
+            WHERE id = ${userId}
+            LIMIT 1
+          `);
+          
+          const requestCount = parseInt(userResult.rows[0].request_count || '0', 10);
+          
+          // Si la différence est trop grande, synchroniser
+          if (Math.abs(requestCount - usageCount) > 2) {
+            logger.warn(`Incohérence détectée: request_count=${requestCount}, ai_usage count=${usageCount}`);
+            await this.syncRequestCount(userId, clientSchema);
+          }
+        } catch (error) {
+          logger.error(`Erreur lors de la vérification de cohérence: ${error}`);
+          // Ne pas bloquer l'exécution en cas d'erreur
+        }
+      }
       
       // Vérifier si la réinitialisation mensuelle est nécessaire
       await this.checkMonthlyReset(userId);
@@ -213,7 +273,7 @@ export class AITokenService {
       `);
 
       // Incrémenter le compteur de requêtes
-      await this.incrementRequestCount(userId, modelId);
+      await this.incrementRequestCount(userId, modelId, clientSchema);
 
       // Enregistrer l'utilisation
       await db.execute(sql`
@@ -270,7 +330,7 @@ export class AITokenService {
       const schemaPrefix = clientSchema ? `${clientSchema}.` : '';
       
       const result = await db.execute(sql`
-        SELECT * FROM ${sql.raw(schemaPrefix)}ai_usage
+        SELECT * FROM ${sql.raw(`${schemaPrefix}ai_usage`)}
         WHERE user_id = ${userId}
         ORDER BY created_at DESC
         LIMIT 100
@@ -280,6 +340,43 @@ export class AITokenService {
     } catch (error) {
       logger.error(`Erreur lors de la récupération de l'historique d'utilisation: ${error}`);
       return [];
+    }
+  }
+
+  /**
+   * Synchronise le compteur request_count dans public.users avec les données de ai_usage
+   */
+  static async syncRequestCount(userId: number, clientSchema?: string): Promise<boolean> {
+    try {
+      if (!clientSchema) {
+        logger.error('Impossible de synchroniser: schéma client non spécifié');
+        return false;
+      }
+      
+      const schemaPrefix = `${clientSchema}.`;
+      
+      // Compter les entrées dans la table ai_usage
+      const usageResult = await db.execute(sql`
+        SELECT COUNT(*) as usage_count 
+        FROM ${sql.raw(`${schemaPrefix}ai_usage`)}
+        WHERE user_id = ${userId}
+      `);
+      
+      const usageCount = parseInt(usageResult.rows[0].usage_count || '0', 10);
+      
+      // Mettre à jour le request_count dans public.users
+      await db.execute(sql`
+        UPDATE public.users
+        SET request_count = ${usageCount}
+        WHERE id = ${userId}
+      `);
+      
+      logger.info(`Compteur de requêtes synchronisé pour l'utilisateur ${userId}: ${usageCount}`);
+      
+      return true;
+    } catch (error) {
+      logger.error(`Erreur lors de la synchronisation du compteur: ${error}`);
+      return false;
     }
   }
 } 

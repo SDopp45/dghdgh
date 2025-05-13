@@ -40,7 +40,7 @@ export const notifications = pgTable('notifications', {
   title: text('title').notNull(),
   message: text('message').notNull(),
   type: text('type', { enum: ['info', 'warning', 'alert'] }).notNull(),
-  relatedTo: text('related_to', { enum: ['property', 'tenant', 'maintenance'] }),
+  relatedTo: text('related_to'),
   relatedId: integer('related_id'),
   isRead: boolean('is_read').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull()
@@ -50,7 +50,7 @@ export const notifications = pgTable('notifications', {
 export const insertNotificationSchema = createInsertSchema(notifications)
   .extend({
     type: z.enum(['info', 'warning', 'alert']),
-    relatedTo: z.enum(['property', 'tenant', 'maintenance']).optional(),
+    relatedTo: z.string().optional(),
     relatedId: z.number().int().positive().optional(),
   })
   .omit({

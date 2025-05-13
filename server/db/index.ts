@@ -194,6 +194,73 @@ async function createClientSchema(userId: number): Promise<void> {
       // Continuer malgré l'erreur de clonage
     }
     
+    // Vérifier si la table storage_management existe et l'initialiser
+    try {
+      const storageManagementExists = await dbPool.query(
+        `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = 'storage_management'`,
+        [schemaName]
+      );
+      
+      if (!storageManagementExists.rowCount || storageManagementExists.rowCount === 0) {
+        logger.info(`Table storage_management manquante dans le schéma ${schemaName}. Création en cours...`);
+        
+        // Créer la séquence pour l'ID auto-incrémenté
+        await dbPool.query(`
+          CREATE SEQUENCE IF NOT EXISTS "${schemaName}"."storage_management_id_seq"
+          START WITH 1
+          INCREMENT BY 1
+          NO MINVALUE
+          NO MAXVALUE
+          CACHE 1;
+        `);
+        
+        // Créer la table storage_management
+        await dbPool.query(`
+          CREATE TABLE "${schemaName}"."storage_management" (
+            id integer DEFAULT nextval('"${schemaName}"."storage_management_id_seq"'::regclass) NOT NULL,
+            total_used BIGINT DEFAULT 0,
+            last_calculation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            storage_categories JSONB DEFAULT '{"documents": 0, "images": 0, "attachments": 0, "other": 0}'::jsonb,
+            cleanup_history JSONB DEFAULT '[]'::jsonb,
+            user_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT storage_management_pkey PRIMARY KEY (id)
+          );
+        `);
+        
+        // Créer le trigger pour mettre à jour automatically updated_at
+        await dbPool.query(`
+          CREATE OR REPLACE FUNCTION "${schemaName}".update_storage_management_timestamp()
+          RETURNS TRIGGER AS $$
+          BEGIN
+             NEW.updated_at = NOW();
+             RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql;
+          
+          CREATE TRIGGER update_storage_management_timestamp
+          BEFORE UPDATE ON "${schemaName}".storage_management
+          FOR EACH ROW
+          EXECUTE PROCEDURE "${schemaName}".update_storage_management_timestamp();
+        `);
+        
+        // Insérer l'entrée initiale
+        await dbPool.query(`
+          INSERT INTO "${schemaName}".storage_management (user_id, total_used, created_at, updated_at)
+          VALUES ($1, 0, NOW(), NOW())
+        `, [userId]);
+        
+        logger.info(`Table storage_management créée et initialisée avec succès dans le schéma ${schemaName}`);
+        
+        // Calculer l'utilisation initiale du stockage
+        await dbPool.query(`SELECT public.calculate_client_storage_usage($1)`, [schemaName]);
+      }
+    } catch (storageTableError) {
+      logger.error(`Erreur lors de la création de la table storage_management dans le schéma ${schemaName}:`, storageTableError);
+      // Continuer malgré l'erreur
+    }
+    
     // Créer explicitement les tables essentielles si elles n'existent pas après le clonage
     try {
       // Vérifier si la table link_profiles existe

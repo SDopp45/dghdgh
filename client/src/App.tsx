@@ -20,12 +20,12 @@ import Contracts from "./pages/contracts";
 import ContractLetters from "./pages/contracts/letters";
 import DocumentEdit from "./pages/documents/[id]/edit";
 import Settings from "./pages/settings";
-import ProfileSettings from "./pages/settings/profile";
-import NotificationsSettings from "./pages/settings/notifications";
+import AccountSettings from "./pages/settings/account";
 import SecuritySettings from "./pages/settings/security";
-import AppearanceSettings from "./pages/settings/appearance";
-import LocalizationSettings from "./pages/settings/localization";
-import DatesSettings from "./pages/settings/dates";
+import UserDashboard from "./pages/settings/user-dashboard";
+import StorageSettings from "./pages/settings/storage";
+import StoragePlansSettings from "./pages/settings/storage/plans";
+import AITokensSettings from "./pages/settings/ai-tokens";
 import ImageEnhancement from "./pages/image-enhancement";
 import Marketplace from "./pages/marketplace";
 import { Loader2 } from "lucide-react";
@@ -91,20 +91,23 @@ function ProtectedRouter() {
             <Route path="/settings">
               <Settings />
             </Route>
-            <Route path="/settings/profile">
-              <ProfileSettings />
-            </Route>
-            <Route path="/settings/notifications">
-              <NotificationsSettings />
+            <Route path="/settings/account">
+              <AccountSettings />
             </Route>
             <Route path="/settings/security">
               <SecuritySettings />
             </Route>
-            <Route path="/settings/appearance">
-              <AppearanceSettings />
+            <Route path="/settings/user-dashboard">
+              <UserDashboard />
             </Route>
-            <Route path="/settings/localization">
-              <LocalizationSettings />
+            <Route path="/settings/storage">
+              <StorageSettings />
+            </Route>
+            <Route path="/settings/storage/plans">
+              <StoragePlansSettings />
+            </Route>
+            <Route path="/settings/ai-tokens">
+              <AITokensSettings />
             </Route>
             <Route path="/tenant-history">
               <TenantHistory />

@@ -1,6 +1,7 @@
 import { db } from '@server/db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 // Limite maximale de requêtes par utilisateur
 const DEFAULT_REQUEST_LIMIT = 100;
@@ -30,21 +31,20 @@ export class UserQuotaService {
   static async checkUserQuota(userId: number): Promise<{ hasQuotaLeft: boolean; currentUsage: number; limit: number }> {
     try {
       // Récupérer les informations de l'utilisateur
-      const userResult = await db
-        .select({
-          requestCount: users.requestCount,
-          requestLimit: users.requestLimit
-        })
-        .from(users)
-        .where(eq(users.id, userId));
+      const userResult = await db.execute(sql`
+        SELECT request_count, request_limit 
+        FROM public.users 
+        WHERE id = ${userId}
+        LIMIT 1
+      `);
 
-      if (!userResult.length) {
+      if (!userResult.rows || userResult.rows.length === 0) {
         throw new Error(`Utilisateur avec ID ${userId} introuvable`);
       }
 
       // Utiliser des valeurs par défaut si les valeurs sont nulles
-      const requestCount = userResult[0].requestCount ?? 0;
-      const requestLimit = userResult[0].requestLimit ?? DEFAULT_REQUEST_LIMIT;
+      const requestCount = Number(userResult.rows[0].request_count) || 0;
+      const requestLimit = Number(userResult.rows[0].request_limit) || DEFAULT_REQUEST_LIMIT;
       const hasQuotaLeft = requestCount < requestLimit;
 
       return {
@@ -81,25 +81,26 @@ export class UserQuotaService {
   static async incrementRequestCount(userId: number, quotaToConsume: number = 1): Promise<number> {
     try {
       // Récupérer le compteur actuel
-      const userResult = await db
-        .select({
-          requestCount: users.requestCount
-        })
-        .from(users)
-        .where(eq(users.id, userId));
+      const userResult = await db.execute(sql`
+        SELECT request_count 
+        FROM public.users 
+        WHERE id = ${userId}
+        LIMIT 1
+      `);
 
-      if (!userResult.length) {
+      if (!userResult.rows || userResult.rows.length === 0) {
         throw new Error(`Utilisateur avec ID ${userId} introuvable`);
       }
 
-      const currentCount = userResult[0].requestCount ?? 0;
+      const currentCount = Number(userResult.rows[0].request_count) || 0;
       const newCount = currentCount + quotaToConsume;
 
       // Mettre à jour le compteur
-      await db
-        .update(users)
-        .set({ requestCount: newCount })
-        .where(eq(users.id, userId));
+      await db.execute(sql`
+        UPDATE public.users
+        SET request_count = ${newCount}
+        WHERE id = ${userId}
+      `);
 
       return newCount;
     } catch (error) {
@@ -113,10 +114,11 @@ export class UserQuotaService {
    */
   static async resetRequestCount(userId: number): Promise<void> {
     try {
-      await db
-        .update(users)
-        .set({ requestCount: 0 })
-        .where(eq(users.id, userId));
+      await db.execute(sql`
+        UPDATE public.users
+        SET request_count = 0
+        WHERE id = ${userId}
+      `);
     } catch (error) {
       console.error('Error resetting request count:', error);
       throw error;
@@ -128,10 +130,11 @@ export class UserQuotaService {
    */
   static async updateRequestLimit(userId: number, newLimit: number): Promise<void> {
     try {
-      await db
-        .update(users)
-        .set({ requestLimit: newLimit })
-        .where(eq(users.id, userId));
+      await db.execute(sql`
+        UPDATE public.users
+        SET request_limit = ${newLimit}
+        WHERE id = ${userId}
+      `);
     } catch (error) {
       console.error('Error updating request limit:', error);
       throw error;

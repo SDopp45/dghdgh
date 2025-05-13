@@ -11,7 +11,6 @@ import logger from "./utils/logger";
 import { setupRoutes } from "./routes";
 import config from "./config";
 import { initCronJobs } from "./cron";
-import { initializeWebSockets } from './websocket/init-websocket';
 import { schemaMiddleware, resetSchemaAfterHandler } from './middleware/schema';
 import './schema/links';
 import { repairDatabaseFunctions } from './db/repair-functions';
@@ -132,9 +131,6 @@ async function startServer() {
       logger.info(`Serveur démarré sur le port ${PORT}`);
       logger.info(`Mode: ${process.env.NODE_ENV}`);
       logger.info(`Base de données: ${process.env.DATABASE_HOST || 'locale'}`);
-      
-      // Initialize WebSockets with error handling
-      initializeWebSockets(server);
       
       // Initialize cron jobs
       initCronJobs();

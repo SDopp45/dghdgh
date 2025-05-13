@@ -43,6 +43,7 @@ import staticsRouter from './routes/statics';
 import authRoutes from './routes/auth-routes';
 import usersRouter from './routes/users';
 import formsRouter from './routes/forms';
+import userStorageRouter from './routes/user-storage';
 
 // Initialiser la structure de dossiers uploads
 initializeUploadDirectories();
@@ -181,6 +182,7 @@ export function setupRoutes(app: Express) {
   apiRouter.use('/image-enhancement', imageEnhancementRouter);
   apiRouter.use('/marketplace', marketplaceRouter);
   apiRouter.use('/links', linksRouter);
+  apiRouter.use('/user', userStorageRouter);
   
   // Static files and templates
   apiRouter.use('/statics', staticsRouter);

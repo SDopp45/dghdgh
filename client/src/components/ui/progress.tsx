@@ -3,10 +3,15 @@ import * as ProgressPrimitive from "@radix-ui/react-progress"
 
 import { cn } from "@/lib/utils"
 
+// Étendre l'interface des props pour inclure indicatorClassName
+interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
+  indicatorClassName?: string;
+}
+
 const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({ className, value, ...props }, ref) => (
+  ProgressProps
+>(({ className, value, indicatorClassName, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
     className={cn(
@@ -16,8 +21,9 @@ const Progress = React.forwardRef<
     {...props}
   >
     <ProgressPrimitive.Indicator
-      className={cn("h-full w-full flex-1 bg-green-500 transition-all", 
-        className?.includes("bg-") ? "" : "bg-green-500"
+      className={cn(
+        "h-full w-full flex-1 transition-all", 
+        indicatorClassName || "bg-green-500"
       )}
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     />

@@ -1,107 +1,55 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Settings as SettingsIcon, Bell, User, Globe, Paintbrush, Shield, Building, Euro, FileText, Key, FileInput, CreditCard } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Globe, Palette, Shield, Database, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { LucideIcon } from "lucide-react";
+
+interface SettingsItem {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  href: string;
+  color: string;
+}
+
+interface SettingsCategory {
+  title: string;
+  items: SettingsItem[];
+}
 
 export default function SettingsPage() {
   const [, setLocation] = useLocation();
 
-  const settingsCategories = [
+  const settingsCategories: SettingsCategory[] = [
     {
-      title: "Compte & Sécurité",
+      title: "Compte",
       items: [
         {
-          title: "Profil & Identité",
-          description: "Gérer vos informations personnelles",
-      icon: User,
-      href: "/settings/profile",
-      color: "text-blue-500"
-    },
-        {
-          title: "Sécurité",
-          description: "Mot de passe et authentification",
-          icon: Shield,
-          href: "/settings/security",
-          color: "text-emerald-500"
-        },
-    {
-      title: "Notifications",
-      description: "Configurer vos préférences de notifications",
-      icon: Bell,
-      href: "/settings/notifications",
-      color: "text-amber-500"
+          title: "Tableau de bord utilisateur",
+          description: "Interface unifiée pour gérer votre profil et vos paramètres de sécurité",
+          icon: User,
+          href: "/settings/user-dashboard",
+          color: "text-indigo-600"
         }
       ]
     },
     {
-      title: "Préférences Générales",
-      items: [
-    {
-      title: "Localisation",
-      description: "Format des dates et paramètres régionaux",
-      icon: Globe,
-      href: "/settings/localization",
-          color: "text-indigo-500"
-        },
-        {
-          title: "Apparence",
-          description: "Thème et interface utilisateur",
-          icon: Paintbrush,
-          href: "/settings/appearance",
-          color: "text-purple-500"
-        }
-      ]
-    },
-    {
-      title: "Propriétés & Finance",
+      title: "Préférences",
       items: [
         {
-          title: "Paramètres des biens",
-          description: "Options par défaut des propriétés",
-          icon: Building,
-          href: "/settings/properties",
-          color: "text-teal-500"
-        },
-        {
-          title: "Finance",
-          description: "Paramètres financiers et comptabilité",
-          icon: Euro,
-          href: "/settings/finance",
-          color: "text-green-500"
-        },
-        {
-          title: "Paiements",
-          description: "Méthodes de paiement et facturation",
-          icon: CreditCard,
-          href: "/settings/payments",
-      color: "text-rose-500"
-        }
-      ]
-    },
-    {
-      title: "Documents & Contrats",
-      items: [
-        {
-          title: "Modèles de documents",
-          description: "Gérer vos modèles de contrats et documents",
-          icon: FileText,
-          href: "/settings/document-templates",
+          title: "Stockage et données",
+          description: "Gérez votre utilisation de stockage et vos quotas",
+          icon: Database,
+          href: "/settings/storage",
           color: "text-cyan-500"
         },
         {
-          title: "Signatures",
-          description: "Paramètres de signature électronique",
-          icon: Key,
-          href: "/settings/signatures",
-          color: "text-orange-500"
-        },
-        {
-          title: "Import/Export",
-          description: "Options d'import et d'export de données",
-          icon: FileInput,
-          href: "/settings/import-export",
-          color: "text-slate-500"
+          title: "Quotas IA",
+          description: "Gérez et achetez des crédits pour l'assistant d'intelligence artificielle",
+          icon: Zap,
+          href: "/settings/ai-tokens",
+          color: "text-amber-500"
         }
       ]
     }

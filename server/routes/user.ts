@@ -1,3 +1,13 @@
+import { Router } from "express";
+import { db } from "../db";
+import { users, userNotificationSettings } from "../db/schema";
+import { sql, eq, and, ne } from "drizzle-orm";
+import logger from "../utils/logger";
+import { ensureAuth } from "../middleware/auth";
+import bcrypt from "bcryptjs";
+
+const router = Router();
+
 // Existant...
 
 // Récupérer les paramètres de notification de l'utilisateur
@@ -126,6 +136,140 @@ router.post('/ai-settings', ensureAuth, async (req, res) => {
   } catch (error) {
     logger.error('Erreur lors de la mise à jour des paramètres IA:', error);
     res.status(500).json({ error: 'Échec de la mise à jour des paramètres IA' });
+  }
+});
+
+/**
+ * Route pour récupérer le profil utilisateur
+ */
+router.get('/profile', ensureAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    
+    // Récupérer les informations du profil utilisateur depuis la base de données
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: {
+        id: true,
+        username: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        profileImage: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+    
+    res.json(user);
+  } catch (error) {
+    logger.error('Erreur lors de la récupération du profil utilisateur:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération du profil' });
+  }
+});
+
+/**
+ * Route pour mettre à jour le profil utilisateur
+ */
+router.put('/profile', ensureAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { fullName, email, phoneNumber } = req.body;
+    
+    // Vérifier que l'email n'est pas déjà utilisé par un autre utilisateur
+    if (email) {
+      const existingUser = await db.query.users.findFirst({
+        where: and(
+          eq(users.email, email),
+          ne(users.id, userId)
+        )
+      });
+      
+      if (existingUser) {
+        return res.status(400).json({ error: 'Cet email est déjà utilisé par un autre utilisateur' });
+      }
+    }
+    
+    // Mettre à jour le profil utilisateur
+    const [updatedUser] = await db.update(users)
+      .set({
+        fullName,
+        email,
+        phoneNumber,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning({
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        profileImage: users.profileImage,
+        role: users.role,
+        updatedAt: users.updatedAt
+      });
+    
+    res.json(updatedUser);
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour du profil utilisateur:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour du profil' });
+  }
+});
+
+/**
+ * Route pour changer le mot de passe utilisateur
+ */
+router.post('/change-password', ensureAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { currentPassword, newPassword } = req.body;
+    
+    // Vérifier que les champs requis sont présents
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Les champs mot de passe actuel et nouveau mot de passe sont requis' });
+    }
+    
+    // Récupérer l'utilisateur avec son mot de passe pour vérification
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: {
+        id: true,
+        password: true
+      }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+    
+    // Vérifier le mot de passe actuel
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Mot de passe actuel incorrect' });
+    }
+    
+    // Hasher le nouveau mot de passe
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Mettre à jour le mot de passe
+    await db.update(users)
+      .set({
+        password: hashedPassword,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+    
+    res.json({ message: 'Mot de passe modifié avec succès' });
+  } catch (error) {
+    logger.error('Erreur lors du changement de mot de passe:', error);
+    res.status(500).json({ message: 'Erreur lors du changement de mot de passe' });
   }
 });
 

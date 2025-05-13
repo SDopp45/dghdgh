@@ -679,3 +679,13 @@
   transform: translateY(-10px);
   transition: opacity 300ms, transform 300ms;
 }
+
+/* Ajout des transitions pour le changement de thème */
+.theme-transition,
+.theme-transition *,
+.theme-transition *:before,
+.theme-transition *:after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}

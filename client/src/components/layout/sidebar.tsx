@@ -134,8 +134,11 @@ export function Sidebar({ className }: SidebarProps) {
       )}
     >
       {/* Header avec logo */}
-      <div className="px-5 py-5 border-b border-[hsl(var(--sidebar-border))] bg-white">
-        <div className="flex items-center justify-between">
+      <div className="px-5 py-5 h-[72px] border-b border-[hsl(var(--sidebar-border))] bg-white flex items-center">
+        {/* Ligne horizontale à mi-hauteur */}
+        <div className="absolute left-0 right-0 h-[1px] bg-[hsl(var(--sidebar-border))] top-1/2 opacity-30"></div>
+        
+        <div className="flex items-center justify-between w-full">
           <div className={cn(
             "flex items-center",
             isCollapsed ? "justify-center w-full" : "justify-start"

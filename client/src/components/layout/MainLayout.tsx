@@ -67,6 +67,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   
   return (
     <div className="flex min-h-screen bg-background">
+      {/* Motif de grille en fond */}
+      <div className="fixed inset-0 bg-grid-primary pointer-events-none z-0"></div>
+      
       {/* Sidebar pour les écrans moyens et grands */}
       <div className="hidden md:block z-30 h-screen sticky top-0">
         <Sidebar />
@@ -92,8 +95,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header Navigation */}
-        <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-border flex items-center px-4 md:px-6">
+        <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-[hsl(var(--sidebar-border))] flex items-center px-4 md:px-6">
           <div className="w-full flex items-center justify-between gap-2">
+            {/* Ligne horizontale à mi-hauteur */}
+            <div className="absolute left-0 right-0 h-[1px] bg-[hsl(var(--sidebar-border))] top-1/2 opacity-30"></div>
+            
             {/* Titre de la page courante (responsive) */}
             <div className="w-14 md:w-auto md:ml-2 flex items-center">
               <h1 className="text-lg font-semibold text-foreground hidden md:block">
@@ -111,7 +117,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <NotificationBell />
               
               {/* Theme Toggle */}
-              <ThemeToggle variant="icon" className="h-8 w-8 text-[#70C7BA] hover:text-[#70C7BA] hover:bg-[#70C7BA]/10" />
+              <ThemeToggle 
+                variant="icon" 
+                className="h-8 w-8 text-[#70C7BA] hover:text-[#70C7BA] hover:bg-[#70C7BA]/10" 
+              />
               
               <Button 
                 variant="ghost" 
@@ -146,9 +155,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             </div>
           </div>
         </header>
-        
-        {/* Motif de grille en fond */}
-        <div className="fixed inset-0 bg-grid-primary pointer-events-none z-0"></div>
         
         {/* Contenu principal */}
         <main className="flex-1 overflow-auto relative z-10">

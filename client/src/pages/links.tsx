@@ -1462,32 +1462,24 @@ export default function LinksPage() {
       className="container mx-auto py-8 px-4 max-w-7xl"
     >
       <div className="flex flex-col space-y-6">
-        {/* En-tête redesigné */}
-        <Card className="p-5 rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary">
+        {/* En-tête repris du style de maintenance.tsx */}
+        <Card className="p-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                 <Link2 className="h-6 w-6" />
               </div>
           <div>
-                <h1 className="text-2xl font-bold tracking-tight">Vos liens</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Personnalisation de lien</h1>
                 <p className="text-muted-foreground text-sm">
-                  Gérez et personnalisez votre vitrine en ligne
+                  Créez et gérez le profil public pour partager vos liens.
                 </p>
           </div>
             </div>
-            
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              {/* Bouton Pause du profil */}
-              <div className="flex items-center mr-1">
-                <div className="flex items-center gap-2 pr-2 border-r">
-                  <span className={`w-2 h-2 rounded-full ${profile.is_paused ? 'bg-destructive' : 'bg-emerald-500'}`}></span>
-                  <span className="text-xs text-muted-foreground">{profile.is_paused ? 'Désactivé' : 'Actif'}</span>
-                </div>
-              </div>
-              
-              {/* Barre de lien */}
-              <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg text-sm border border-gray-200 mr-1">
+            <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto justify-end">
+               {/* Barre de lien - style adapté */}
+              <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg text-sm border border-gray-200">
+                <span className="text-muted-foreground text-xs">Lien public:</span>
                 <code className="font-mono text-xs bg-white px-1.5 py-0.5 rounded border border-gray-200">{window.location.origin}/u/{profile.slug || 'votre-lien'}</code>
               <Button
                 variant="ghost"
@@ -1501,25 +1493,6 @@ export default function LinksPage() {
             </div>
             
               {/* Boutons d'actions */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={handleTogglePause}
-              >
-                {profile.is_paused ? (
-                  <>
-                    <Unlock className="h-4 w-4" />
-                    Activer
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="h-4 w-4" />
-                    Désactiver
-                  </>
-                )}
-              </Button>
-              
             {previewMode ? (
               <Button
                 variant="outline"
@@ -1608,204 +1581,228 @@ export default function LinksPage() {
             <div className="lg:col-span-12">
               <Card className="shadow-xl overflow-hidden border-none bg-gradient-to-br from-primary/5 to-background">
                 <CardContent className="p-0">
-                  <div className="flex flex-col lg:flex-row h-[calc(100vh-200px)]">
-                    <div className="lg:w-1/3 flex items-center justify-center border-r bg-gray-50 p-6">
-                      <div className="mb-4 flex flex-col items-center">
-                        <div className="relative w-[320px] h-[640px] border-8 border-gray-800 rounded-[40px] shadow-xl overflow-hidden bg-black">
-                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[120px] h-[30px] bg-gray-800 rounded-b-[14px] z-10"></div>
-                          <iframe
-                            key={JSON.stringify(previewProfile)} // Force refresh when previewProfile changes
-                            src={`/u/${previewProfile.slug || 'preview'}?preview=true&data=${encodeURIComponent(JSON.stringify(previewProfile))}`}
-                            className="w-full h-full border-0"
-                            title="Aperçu de votre page"
-                          />
+                  <div className="flex flex-col items-center p-8">
+                    {/* Aperçu mobile centré */}
+                    <div className="mb-8 flex flex-col items-center">
+                      <h2 className="text-2xl font-bold mb-6">Aperçu de votre page</h2>
+                      <div className="relative w-[320px] h-[640px] border-8 border-gray-800 rounded-[40px] shadow-xl overflow-hidden bg-black">
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[120px] h-[30px] bg-gray-800 rounded-b-[14px] z-10"></div>
+                        <iframe
+                          key={JSON.stringify(previewProfile)} // Force refresh when previewProfile changes
+                          src={`/u/${previewProfile.slug || 'preview'}?preview=true&data=${encodeURIComponent(JSON.stringify(previewProfile))}`}
+                          className="w-full h-full border-0"
+                          title="Aperçu de votre page"
+                        />
+                      </div>
+                      
+                      <div className="mt-6 flex flex-col items-center">
+                        <p className="text-sm text-muted-foreground">URL de partage</p>
+                        <div className="flex items-center mt-2">
+                          <div className="relative group">
+                            <div className="flex items-center bg-muted/70 backdrop-blur-sm rounded-md py-1.5 px-3 pr-8 border border-muted-foreground/10">
+                              <Globe className="h-3.5 w-3.5 text-muted-foreground mr-2" />
+                              <code className="text-xs">
+                                {window.location.origin}/u/{previewProfile.slug || 'votre-lien'}
+                              </code>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 absolute right-1 top-1"
+                              onClick={copyLinkToClipboard}
+                            >
+                              <Copy className="h-3 w-3 group-hover:scale-110 transition-transform" />
+                            </Button>
+                          </div>
                         </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-4 text-sm bg-muted/50 hover:bg-muted"
+                          onClick={() => window.open(`/u/${previewProfile.slug}`, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-2" />
+                          Ouvrir dans un nouvel onglet
+                        </Button>
                       </div>
                     </div>
                     
-                    <div className="p-8 lg:w-2/3 overflow-auto">
-                      <div className="space-y-8">
-                        <div>
-                          <div className="flex items-center gap-3 mb-4">
-                            <h2 className="text-2xl font-bold">Statistiques</h2>
-                            <Badge className="bg-primary/10 text-primary border-primary/20">
-                              {profile.views} vues au total
+                    {/* Section des statistiques */}
+                    <div className="w-full max-w-5xl">
+                      <h2 className="text-2xl font-bold mb-4">Statistiques</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <Card className="bg-gradient-to-br from-primary/5 to-background border border-primary/10 shadow-sm hover:shadow-md transition-all">
+                            <CardContent className="p-6">
+                              <div className="flex items-center gap-4">
+                                <div className="p-3 rounded-full bg-primary/10">
+                                  <Eye className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Vues totales</p>
+                                  <Counter value={profile.views} className="text-3xl font-bold" />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                        
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 }}
+                        >
+                          <Card className="bg-gradient-to-br from-primary/5 to-background border border-primary/10 shadow-sm hover:shadow-md transition-all">
+                            <CardContent className="p-6">
+                              <div className="flex items-center gap-4">
+                                <div className="p-3 rounded-full bg-primary/10">
+                                  <Link2 className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Clics totaux</p>
+                                  <Counter 
+                                    value={profile.links.reduce((acc: number, link: LinkItem) => acc + link.clicks, 0)} 
+                                    className="text-3xl font-bold"
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                        
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.2 }}
+                        >
+                          <Card className="bg-gradient-to-br from-primary/5 to-background border border-primary/10 shadow-sm hover:shadow-md transition-all">
+                            <CardContent className="p-6">
+                              <div className="flex items-center gap-4">
+                                <div className="p-3 rounded-full bg-primary/10">
+                                  <Sparkles className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Taux de clic</p>
+                                  <div className="flex items-end gap-1">
+                                    <Counter 
+                                      value={profile.views > 0 
+                                        ? Math.round((profile.links.reduce((acc: number, link: LinkItem) => acc + link.clicks, 0) / profile.views) * 100) 
+                                        : 0} 
+                                      className="text-3xl font-bold"
+                                    />
+                                    <span className="text-xl font-bold text-muted-foreground">%</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      </div>
+                      
+                      {profile.links.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.3 }}
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-medium">Performance par lien</h3>
+                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                              {profile.links.reduce((acc: number, link: LinkItem) => acc + link.clicks, 0)} clics au total
                             </Badge>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <motion.div
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <Card className="bg-gradient-to-br from-primary/5 to-background border border-primary/10 shadow-sm hover:shadow-md transition-all">
-                              <CardContent className="p-6">
-                                <div className="flex items-center gap-4">
-                                  <div className="p-3 rounded-full bg-primary/10">
-                                    <Eye className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div>
-                                      <p className="text-sm text-muted-foreground">Vues totales</p>
-                                      <Counter value={profile.views} className="text-3xl font-bold" />
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                            </motion.div>
-                            
-                            <motion.div
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3, delay: 0.1 }}
-                            >
-                              <Card className="bg-gradient-to-br from-primary/5 to-background border border-primary/10 shadow-sm hover:shadow-md transition-all">
-                              <CardContent className="p-6">
-                                <div className="flex items-center gap-4">
-                                  <div className="p-3 rounded-full bg-primary/10">
-                                    <Link2 className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div>
-                                      <p className="text-sm text-muted-foreground">Clics totaux</p>
-                                      <Counter 
-                                        value={profile.links.reduce((acc: number, link: LinkItem) => acc + link.clicks, 0)} 
-                                        className="text-3xl font-bold"
-                                      />
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                            </motion.div>
-                            
-                            <motion.div
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3, delay: 0.2 }}
-                            >
-                              <Card className="bg-gradient-to-br from-primary/5 to-background border border-primary/10 shadow-sm hover:shadow-md transition-all">
-                              <CardContent className="p-6">
-                                <div className="flex items-center gap-4">
-                                  <div className="p-3 rounded-full bg-primary/10">
-                                    <Sparkles className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">Taux de clic</p>
-                                      <div className="flex items-end gap-1">
-                                        <Counter 
-                                          value={profile.views > 0 
-                                        ? Math.round((profile.links.reduce((acc: number, link: LinkItem) => acc + link.clicks, 0) / profile.views) * 100) 
-                                            : 0} 
-                                          className="text-3xl font-bold"
-                                        />
-                                        <span className="text-xl font-bold text-muted-foreground">%</span>
-                                      </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                            </motion.div>
-                          </div>
-                        </div>
-                        
-                        {profile.links.length > 0 && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: 0.3 }}
-                          >
-                            <div className="flex items-center justify-between mb-4">
-                              <h3 className="text-lg font-medium">Performance par lien</h3>
-                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                                {profile.links.reduce((acc: number, link: LinkItem) => acc + link.clicks, 0)} clics au total
-                              </Badge>
-                            </div>
-                            
-                            <Card className="border border-muted-foreground/10 overflow-hidden">
-                              <CardContent className="p-4 space-y-3">
-                                {profile.links
-                                  .filter(link => link.enabled)
-                                  .sort((a, b) => b.clicks - a.clicks)
-                                  .map((link, index) => {
-                                    const totalClicks = profile.links.reduce((acc: number, link: LinkItem) => acc + link.clicks, 0);
-                                    const percentage = totalClicks > 0 ? (link.clicks / totalClicks) * 100 : 0;
-                                    
-                                    return (
-                                      <motion.div 
-                                        key={link.id} 
-                                        className="space-y-2"
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                                      >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3">
-                                            {link.icon ? (
-                                              <div className="h-8 w-8 rounded-full overflow-hidden">
-                                            <img src={link.icon} alt="" className="h-full w-full object-cover" />
-                                          </div>
-                                            ) : (
-                                              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                                                {link.type === 'form' ? (
-                                                  <FileText className="h-4 w-4 text-muted-foreground" />
-                                                ) : (
-                                                  <Link2 className="h-4 w-4 text-muted-foreground" />
-                                                )}
-                                          </div>
-                                        )}
-                                        <div>
-                                          <p className="font-medium">{link.title}</p>
+                          
+                          <Card className="border border-muted-foreground/10 overflow-hidden">
+                            <CardContent className="p-4 space-y-3">
+                              {profile.links
+                                .filter(link => link.enabled)
+                                .sort((a, b) => b.clicks - a.clicks)
+                                .map((link, index) => {
+                                  const totalClicks = profile.links.reduce((acc: number, link: LinkItem) => acc + link.clicks, 0);
+                                  const percentage = totalClicks > 0 ? (link.clicks / totalClicks) * 100 : 0;
+                                  
+                                  return (
+                                    <motion.div 
+                                      key={link.id} 
+                                      className="space-y-2"
+                                      initial={{ opacity: 0, x: -10 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                          {link.icon ? (
+                                            <div className="h-8 w-8 rounded-full overflow-hidden">
+                                              <img src={link.icon} alt="" className="h-full w-full object-cover" />
+                                            </div>
+                                          ) : (
+                                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                                               {link.type === 'form' ? (
-                                                <p className="text-xs text-muted-foreground">Formulaire</p>
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
                                               ) : (
-                                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{link.url}</p>
+                                                <Link2 className="h-4 w-4 text-muted-foreground" />
                                               )}
+                                            </div>
+                                          )}
+                                          <div>
+                                            <p className="font-medium">{link.title}</p>
+                                            {link.type === 'form' ? (
+                                              <p className="text-xs text-muted-foreground">Formulaire</p>
+                                            ) : (
+                                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">{link.url}</p>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
                                         <div className="text-right">
                                           <p className="text-xl font-bold">{link.clicks}</p>
-                                            <p className="text-xs text-muted-foreground">{percentage.toFixed(1)}% des clics</p>
+                                          <p className="text-xs text-muted-foreground">{percentage.toFixed(1)}% des clics</p>
                                         </div>
-                                        </div>
-                                        <div className="relative w-full h-2 bg-muted/30 rounded-full overflow-hidden">
-                                          <motion.div 
-                                            className="absolute left-0 top-0 h-full bg-primary"
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${Math.max(3, percentage)}%` }}
-                                            transition={{ duration: 0.5, delay: 0.2 + index * 0.05 }}
-                                          ></motion.div>
                                       </div>
-                                      </motion.div>
-                                    );
-                                  })}
-                                  </CardContent>
-                                </Card>
-                          </motion.div>
-                        )}
-                        
-                        {/* Nouvelle section Réponses aux formulaires */}
-                        {profile.links.filter(link => link.type === 'form' && link.clicks > 0).length > 0 && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: 0.4 }}
-                          >
-                            <div className="flex items-center justify-between mb-4">
-                              <h3 className="text-lg font-medium">Réponses aux formulaires</h3>
-                              <Badge variant="outline" className="bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
-                                {profile.links.filter(link => link.type === 'form').reduce((acc, link) => acc + link.clicks, 0)} réponses au total
-                              </Badge>
-                            </div>
-                            
-                            <Card className="border border-muted-foreground/10">
-                              <CardContent className="p-4">
-                                <FormSubmissionsViewer 
-                                  links={profile.links.filter(link => link.type === 'form' && link.clicks > 0)} 
-                                  profile={profile}
-                                />
-                              </CardContent>
-                            </Card>
-                          </motion.div>
-                        )}
-                      </div>
+                                      <div className="relative w-full h-2 bg-muted/30 rounded-full overflow-hidden">
+                                        <motion.div 
+                                          className="absolute left-0 top-0 h-full bg-primary"
+                                          initial={{ width: 0 }}
+                                          animate={{ width: `${Math.max(3, percentage)}%` }}
+                                          transition={{ duration: 0.5, delay: 0.2 + index * 0.05 }}
+                                        ></motion.div>
+                                      </div>
+                                    </motion.div>
+                                  );
+                                })}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      )}
+                      
+                      {/* Nouvelle section Réponses aux formulaires */}
+                      {profile.links.filter(link => link.type === 'form' && link.clicks > 0).length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 0.4 }}
+                          className="mt-8"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-medium">Réponses aux formulaires</h3>
+                            <Badge variant="outline" className="bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
+                              {profile.links.filter(link => link.type === 'form').reduce((acc, link) => acc + link.clicks, 0)} réponses au total
+                            </Badge>
+                          </div>
+                          
+                          <Card className="border border-muted-foreground/10">
+                            <CardContent className="p-4">
+                              <FormSubmissionsViewer 
+                                links={profile.links.filter(link => link.type === 'form' && link.clicks > 0)} 
+                                profile={profile}
+                              />
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1822,8 +1819,7 @@ export default function LinksPage() {
                       onValueChange={(value) => setCurrentTab(value as 'info' | 'links' | 'forms' | 'appearance' | 'stats')} 
                       className="w-full"
                     >
-                      <div className="border-b bg-muted/10">
-                        <div className="flex items-center justify-between px-4">
+                      <div className="border-b">
                         <TabsList className="w-full justify-start rounded-none h-auto p-0 bg-transparent">
                           <TabsTrigger 
                             value="info" 
@@ -1881,33 +1877,181 @@ export default function LinksPage() {
                             </div>
                           </TabsTrigger>
                         </TabsList>
+                      </div>
+
+                      {/* Rest of the tabs content */}
+                      <TabsContent value="info" className="p-6 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="profileTitle">Titre de la page</Label>
+                              <Input
+                                id="profileTitle"
+                                value={profile.title}
+                                onChange={(e) => setProfile({...profile, title: e.target.value})}
+                                placeholder="Mon profil professionnel"
+                                className="bg-background/50 border-muted-foreground/20"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="profileDescription">Description</Label>
+                              <Input
+                                id="profileDescription"
+                                value={profile.description}
+                                onChange={(e) => setProfile({...profile, description: e.target.value})}
+                                placeholder="Tous mes liens professionnels en un seul endroit"
+                                className="bg-background/50 border-muted-foreground/20"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="profileSlug">Nom d'utilisateur / Slug</Label>
+                              <div className="flex items-center">
+                                <span className="bg-muted/50 px-3 py-2 rounded-l-md border-y border-l border-muted-foreground/20 text-muted-foreground text-sm">
+                                  {window.location.origin}/u/
+                                </span>
+                                <Input
+                                  id="profileSlug"
+                                  value={profile.slug}
+                                  onChange={(e) => handleSlugChange(e.target.value)}
+                                  placeholder="votreidentifiant"
+                                  className="bg-background/50 border-muted-foreground/20 rounded-l-none"
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">L'URL de votre profil public</p>
+                            </div>
+                            
+                            <div className="space-y-2 pt-4 border-t border-muted-foreground/10">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <Label className="text-lg">État du profil</Label>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {profile.is_paused ? 
+                                      "Votre profil n'est actuellement pas visible publiquement." : 
+                                      "Votre profil est actuellement visible publiquement."}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-muted-foreground">
+                                    {profile.is_paused ? "Désactivé" : "Activé"}
+                                  </span>
+                                  <Switch
+                                    checked={!profile.is_paused}
+                                    onCheckedChange={(checked) => {
+                                      // Mise à jour de l'état local uniquement, sans déclencher la mutation
+                                      setProfile({
+                                        ...profile,
+                                        is_paused: !checked
+                                      });
+                                      setHasUnsavedChanges(true);
+                                    }}
+                                    className="data-[state=checked]:bg-emerald-600"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                           
+                          <div className="space-y-6">
+                            <div className="space-y-2">
+                              <Label>Logo</Label>
+                              <div className="flex items-start gap-4">
+                                <div 
+                                  className="h-28 w-28 rounded-xl border-2 border-primary/20 flex items-center justify-center overflow-hidden bg-gradient-to-br from-background to-muted shadow-md"
+                                  style={{ 
+                                    backgroundColor: profile.backgroundColor || '#ffffff',
+                                  }}
+                                >
+                                  {profile.logoUrl ? (
+                                    <img src={profile.logoUrl} alt="Logo" className="h-full w-full object-cover" />
+                                  ) : (
+                                    <div className="flex flex-col items-center justify-center h-full w-full text-muted-foreground">
+                                      <Link2 className="h-10 w-10 mb-1" />
+                                      <span className="text-xs">Aucun logo</span>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="flex flex-col gap-2">
                                   <Button 
                                     variant="outline" 
-                            size="sm"
-                            className="mr-2 h-8"
-                            onClick={() => setIsSideBySideView(!isSideBySideView)}
-                          >
-                            {isSideBySideView ? (
-                              <><PanelTop className="h-4 w-4 mr-2" /> Vue complète</>
-                            ) : (
-                              <><Split className="h-4 w-4 mr-2" /> Vue divisée</>
+                                    className="gap-2 items-center whitespace-nowrap"
+                                    onClick={triggerFileInput}
+                                    disabled={uploadingLogo}
+                                  >
+                                    {uploadingLogo ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Chargement...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ImageIcon className="h-4 w-4" />
+                                        {profile.logoUrl ? 'Changer le logo' : 'Ajouter un logo'}
+                                      </>
                                     )}
                                   </Button>
+                                  
+                                  {profile.logoUrl && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="text-destructive"
+                                      onClick={() => {
+                                        const updatedProfile = { ...profile, logoUrl: '' };
+                                        setProfile(updatedProfile);
+                                        saveProfileMutation.mutate(updatedProfile);
+                                        toast({
+                                          title: "Logo supprimé",
+                                          description: "Votre logo a été supprimé",
+                                        });
+                                      }}
+                                    >
+                                      Supprimer
+                                    </Button>
+                                  )}
+                                  
+                                  <input 
+                                    type="file" 
+                                    ref={fileInputRef}
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleLogoUpload}
+                                  />
                                 </div>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Format recommandé : image carrée (1:1) au format JPG ou PNG
+                              </p>
                             </div>
                             
-                      {/* Contenu des onglets */}
+                            <Card className="border border-primary/20 bg-primary/5">
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 rounded-full bg-primary/10 text-primary mt-1">
+                                    <Sparkles className="h-4 w-4" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-sm">Conseils pour optimiser votre page</h4>
+                                    <ul className="text-xs text-muted-foreground mt-2 space-y-1.5 list-disc list-inside">
+                                      <li>Utilisez un titre court et mémorable</li>
+                                      <li>Ajoutez un logo professionnel pour renforcer votre marque</li>
+                                      <li>Choisissez une URL personnalisée facile à retenir</li>
+                                      <li>Ajoutez une description claire de vos activités</li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </div>
+                      </TabsContent>
+
                       <TabsContent value="links" className="p-6 space-y-8">
                         <div className="space-y-6">
-                          <div className="flex flex-wrap justify-between items-center gap-3">
-                            <div className="flex items-center gap-3">
+                          <div className="flex justify-between items-center">
                             <h2 className="text-xl font-medium">Mes Liens</h2>
-                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                                {profile.links.filter(link => link.type === 'link').length} {profile.links.filter(link => link.type === 'link').length > 1 ? 'liens' : 'lien'}
-                              </Badge>
-                            </div>
-                            
                             <div className="flex items-center gap-3">
                               <div className="flex items-center bg-muted/50 rounded-md p-0.5">
                                 <Button 
@@ -1929,31 +2073,15 @@ export default function LinksPage() {
                                   Grille
                                 </Button>
                               </div>
-                              
-                              <Button
-                                variant="default" 
-                                size="sm"
-                                className="h-8 gap-2"
-                                onClick={() => {
-                                  const section = document.getElementById('new-link-section');
-                                  if (section) {
-                                    section.scrollIntoView({ behavior: 'smooth' });
-                                    const input = section.querySelector('input');
-                                    if (input) input.focus();
-                                  }
-                                }}
-                              >
-                                <Plus className="h-4 w-4" />
-                                Nouveau lien
-                              </Button>
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                              {profile.links.length} {profile.links.length > 1 ? 'liens' : 'lien'}
+                            </Badge>
                             </div>
                           </div>
                         
-                          <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
+                          <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4"}>
                             <AnimatePresence>
-                              {profile.links
-                                .filter(link => link.type === 'link')
-                                .map((link, index) => (
+                              {profile.links.map((link, index) => (
                                 <motion.div
                                   key={link.id}
                                   initial={{ opacity: 0, y: 10 }}
@@ -2011,7 +2139,11 @@ export default function LinksPage() {
                                             setTimeout(() => triggerLinkIconInput(), 100);
                                           }}
                                         >
+                                          {link.type === 'form' ? (
+                                            <FileText className={`${viewMode === 'grid' ? 'h-6 w-6' : 'h-4 w-4'} text-muted-foreground`} />
+                                          ) : (
                                             <Link2 className={`${viewMode === 'grid' ? 'h-6 w-6' : 'h-4 w-4'} text-muted-foreground`} />
+                                          )}
                                         </Button>
                                       )}
                                       <div className={viewMode === 'grid' ? "text-center w-full" : ""}>
@@ -2025,6 +2157,13 @@ export default function LinksPage() {
                                           )}
                                         </div>
                                         <div className={`flex ${viewMode === 'grid' ? 'justify-center' : ''} items-center gap-1 text-sm text-muted-foreground mt-0.5`}>
+                                          {link.type === 'form' ? (
+                                            <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                                              <FileText className="h-3 w-3 mr-1" />
+                                              {link.formDefinition?.length || 0} champ{link.formDefinition?.length !== 1 ? 's' : ''} • {link.clicks} réponse{link.clicks !== 1 ? 's' : ''}
+                                            </Badge>
+                                          ) : (
+                                            <>
                                           <p className="truncate max-w-[180px] text-xs">{link.url}</p>
                                           <a 
                                             href={link.url} 
@@ -2034,6 +2173,8 @@ export default function LinksPage() {
                                           >
                                             <ExternalLink className="h-3 w-3" />
                                           </a>
+                                            </>
+                                          )}
                                         </div>
                                       </div>
                                     </div>
@@ -2044,7 +2185,11 @@ export default function LinksPage() {
                                       <div className="flex items-center justify-between mb-1">
                                         <span className="text-xs text-muted-foreground">Performance</span>
                                         <Badge variant="outline" className="bg-background border-muted-foreground/20">
+                                          {link.type === 'form' ? (
+                                            <FileText className="h-3 w-3 mr-1" />
+                                          ) : (
                                             <Eye className="h-3 w-3 mr-1" />
+                                          )}
                                           <span>{link.clicks}</span>
                                         </Badge>
                                       </div>
@@ -2062,59 +2207,53 @@ export default function LinksPage() {
                                   <div className={`flex items-center ${viewMode === 'grid' ? 'justify-center w-full border-t border-muted-foreground/10 pt-3 mt-auto' : 'gap-1'}`}>
                                     {link.clicks > 0 && viewMode !== 'grid' && (
                                       <Badge variant="outline" className="mr-2 bg-background border-muted-foreground/20">
+                                        {link.type === 'form' ? (
+                                          <FileText className="h-3 w-3 mr-1" />
+                                        ) : (
                                         <Eye className="h-3 w-3 mr-1" />
+                                        )}
                                         <span>{link.clicks}</span>
                                       </Badge>
                                     )}
                                     
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
                                     <Button 
                                       variant="ghost" 
                                       size="icon"
+                                      onClick={() => toggleFeatured(link.id)}
                                       className="h-8 w-8"
+                                      title={link.featured ? "Retirer des favoris" : "Mettre en favoris"}
                                     >
-                                          <MoreVertical className="h-4 w-4" />
+                                      {link.featured ? 
+                                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> : 
+                                        <StarOff className="h-4 w-4" />
+                                      }
                                     </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => setEditingLinkId(link.id)}>
-                                          <Edit className="h-4 w-4 mr-2" />
-                                          Modifier
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => toggleFeatured(link.id)}>
-                                          {link.featured ? (
-                                            <>
-                                              <StarOff className="h-4 w-4 mr-2" />
-                                              Retirer des favoris
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Star className="h-4 w-4 mr-2" />
-                                              Mettre en favoris
-                                            </>
-                                          )}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => copyLinkToClipboard()}>
-                                          <Copy className="h-4 w-4 mr-2" />
-                                          Copier le lien
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
+                                    
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      onClick={() => setEditingLinkId(link.id)}
+                                      className="h-8 w-8"
+                                      title="Modifier"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="text-destructive hover:text-destructive/80 h-8 w-8"
                                       onClick={() => removeLink(link.id)}
-                                          className="text-destructive focus:text-destructive"
-                                        >
-                                          <Trash2 className="h-4 w-4 mr-2" />
-                                          Supprimer
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
+                                      title="Supprimer"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
                                   </div>
                                 </motion.div>
                               ))}
                             </AnimatePresence>
                             
-                            {profile.links.filter(link => link.type === 'link').length === 0 && (
+                            {profile.links.length === 0 && (
                               <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/30 rounded-xl border border-dashed border-muted-foreground/20">
                                 <div className="p-4 rounded-full bg-primary/10">
                                   <Link2 className="h-8 w-8 text-primary" />
@@ -2146,7 +2285,7 @@ export default function LinksPage() {
                                     className="h-8 w-8" 
                                     onClick={() => setEditingLinkId(null)}
                                   >
-                                    <X className="h-4 w-4" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                   </Button>
                                 </CardHeader>
                                 <CardContent className="pt-0 pb-3 px-4">
@@ -2162,7 +2301,7 @@ export default function LinksPage() {
                           
                           <Separator />
                           
-                          <div id="new-link-section" className="p-4 bg-background rounded-xl border border-muted-foreground/10 shadow-sm">
+                          <div className="p-4 bg-background rounded-xl border border-muted-foreground/10 shadow-sm">
                             <h3 className="text-lg font-medium mb-4">Ajouter un nouveau lien</h3>
                             
                             <div className="grid gap-4">
@@ -3434,198 +3573,64 @@ export default function LinksPage() {
               {!previewMode && isSideBySideView && (
                 <div className="lg:col-span-4">
                   <Card className="border-none shadow-lg sticky top-24 bg-gradient-to-br from-background to-muted/50">
-                    <CardContent className="p-4 overflow-auto max-h-[calc(100vh-120px)]">
-                      <div className="flex items-center justify-between w-full mb-4">
-                        <h3 className="text-lg font-medium flex items-center gap-2">
-                          <Smartphone className="h-4 w-4 text-muted-foreground" />
-                          Aperçu mobile
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          {hasUnsavedChanges && (
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Non enregistré
-                            </Badge>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => window.open(`/u/${previewProfile.slug}`, '_blank')}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            Ouvrir
-                          </Button>
-                        </div>
+                    <CardContent className="p-6 flex flex-col items-center">
+                      <div className="flex items-center justify-between w-full mb-6">
+                        <h3 className="text-lg font-medium">Aperçu en direct</h3>
+                        {hasUnsavedChanges && (
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
+                            Non enregistré
+                          </Badge>
+                        )}
                       </div>
-                      
-                      <div className="flex flex-col items-center">
-                        <motion.div 
-                          className="relative w-[240px] h-[480px] border-8 border-gray-800 rounded-[35px] shadow-xl overflow-hidden bg-black"
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[100px] h-[25px] bg-gray-800 rounded-b-[12px] z-10"></div>
-                          <iframe
-                            key={JSON.stringify(previewProfile)} // Force refresh when previewProfile changes
-                            src={`/u/${previewProfile.slug || 'preview'}?preview=true&data=${encodeURIComponent(JSON.stringify(previewProfile))}`}
-                            className="w-full h-full border-0 z-0"
-                            title="Aperçu de votre page"
-                          />
-                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-[80px] h-[3px] bg-gray-700 rounded-full"></div>
-                        </motion.div>
-                      </div>
-                      
-                      <div className="mt-5 w-full">
-                        <div className="flex flex-col space-y-3 w-full">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">État</span>
-                            <Badge variant={profile.is_paused ? "destructive" : "outline"} className={profile.is_paused ? "" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"}>
-                              {profile.is_paused ? "Désactivé" : "Actif"}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">Liens</span>
-                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                              {profile.links.filter(l => l.enabled).length} actifs
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">Vues</span>
-                            <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                              {profile.views} vues
-                            </Badge>
-                          </div>
-                          
-                          <div className="pt-3 pb-1">
-                            <p className="text-sm text-muted-foreground">URL de partage</p>
-                            <div className="flex items-center justify-between mt-2 bg-muted/70 backdrop-blur-sm rounded-md py-1.5 px-3 border border-muted-foreground/10">
-                              <code className="text-xs truncate mr-2">
-                                {window.location.origin}/u/{previewProfile.slug || 'votre-lien'}
-                              </code>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 flex-shrink-0"
-                                onClick={copyLinkToClipboard}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
+                      <motion.div 
+                        className="relative w-[280px] h-[560px] border-8 border-gray-800 rounded-[40px] shadow-xl overflow-hidden bg-black"
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[120px] h-[30px] bg-gray-800 rounded-b-[14px] z-10"></div>
+                        <div className="absolute right-[-4px] top-[70px] h-[60px] w-[4px] bg-gray-900 rounded-l-lg"></div>
+                        <div className="absolute right-[-4px] top-[140px] h-[100px] w-[4px] bg-gray-900 rounded-l-lg"></div>
+                        <div className="absolute left-[-4px] top-[180px] h-[40px] w-[4px] bg-gray-900 rounded-r-lg"></div>
+                        <iframe
+                          key={JSON.stringify(previewProfile)} // Force refresh when previewProfile changes
+                          src={`/u/${previewProfile.slug || 'preview'}?preview=true&data=${encodeURIComponent(JSON.stringify(previewProfile))}`}
+                          className="w-full h-full border-0 z-0"
+                          title="Aperçu de votre page"
+                        />
+                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-[120px] h-[4px] bg-gray-700 rounded-full"></div>
+                      </motion.div>
+                      <div className="mt-6 flex flex-col items-center">
+                        <p className="text-sm text-muted-foreground">URL de partage</p>
+                        <div className="flex items-center mt-2">
+                          <div className="relative group">
+                            <div className="flex items-center bg-muted/70 backdrop-blur-sm rounded-md py-1.5 px-3 pr-8 border border-muted-foreground/10">
+                              <Globe className="h-3.5 w-3.5 text-muted-foreground mr-2" />
+                              <code className="text-xs">
+                            {window.location.origin}/u/{previewProfile.slug || 'votre-lien'}
+                          </code>
                             </div>
-                          </div>
-                        </div>
-                        
-                        <div className="w-full mt-6 grid grid-cols-2 gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full"
-                            onClick={() => setPreviewMode(true)}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                              className="h-6 w-6 absolute right-1 top-1"
+                            onClick={copyLinkToClipboard}
                           >
-                            <Eye className="h-3.5 w-3.5 mr-1.5" />
-                            Aperçu plein écran
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="w-full"
-                            onClick={() => {
-                              if (hasUnsavedChanges) {
-                                saveProfile();
-                              }
-                            }}
-                            disabled={!hasUnsavedChanges}
-                          >
-                            {saveProfileMutation.isPending ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                            ) : (
-                              <Save className="h-3.5 w-3.5 mr-1.5" />
-                            )}
-                            Enregistrer
+                              <Copy className="h-3 w-3 group-hover:scale-110 transition-transform" />
                           </Button>
                         </div>
-                        
-                        {/* Section statistiques */}
-                        <div className="mt-6 border-t pt-4 border-muted-foreground/10">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-base font-medium flex items-center gap-2">
-                              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                              Statistiques
-                            </h4>
-                            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                              {profile.views} vues au total
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            {profile.links
-                              .filter(link => link.enabled)
-                              .sort((a, b) => b.clicks - a.clicks)
-                              .slice(0, 3)
-                              .map((link) => {
-                                const totalClicks = profile.links.reduce((acc, link) => acc + link.clicks, 0);
-                                const percentage = totalClicks > 0 ? (link.clicks / totalClicks) * 100 : 0;
-                                
-                                return (
-                                  <div key={link.id} className="space-y-1">
-                                    <div className="flex items-center justify-between text-sm">
-                                      <div className="flex items-center gap-2 truncate max-w-[70%]">
-                                        {link.icon ? (
-                                          <div className="h-5 w-5 rounded-full overflow-hidden">
-                                            <img src={link.icon} alt="" className="h-full w-full object-cover" />
-                                          </div>
-                                        ) : (
-                                          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
-                                            {link.type === 'form' ? (
-                                              <FileText className="h-3 w-3 text-muted-foreground" />
-                                            ) : (
-                                              <Link2 className="h-3 w-3 text-muted-foreground" />
-                                            )}
-                                          </div>
-                                        )}
-                                        <span className="truncate font-medium">{link.title}</span>
-                                      </div>
-                                      <div className="text-right">
-                                        <span className="font-bold">{link.clicks}</span>
-                                        <span className="text-xs text-muted-foreground ml-1">clics</span>
-                                      </div>
-                                    </div>
-                                    <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                                      <div 
-                                        className="h-full bg-primary"
-                                        style={{ width: `${Math.max(3, percentage)}%` }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            
-                            {profile.links.filter(link => link.enabled).length === 0 && (
-                              <div className="text-center py-3 text-sm text-muted-foreground">
-                                Aucun lien actif pour le moment
-                              </div>
-                            )}
-                          </div>
-                          
-                          {profile.links.length > 3 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full mt-2 text-xs"
-                              onClick={() => {
-                                setCurrentTab('stats');
-                                setPreviewMode(false);
-                              }}
-                            >
-                              Voir toutes les statistiques
-                            </Button>
-                          )}
                         </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-4 text-sm bg-muted/50 hover:bg-muted"
+                          onClick={() => window.open(`/u/${previewProfile.slug}`, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-2" />
+                          Ouvrir dans un nouvel onglet
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

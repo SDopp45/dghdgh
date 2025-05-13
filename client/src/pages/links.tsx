@@ -1464,86 +1464,89 @@ export default function LinksPage() {
       <div className="flex flex-col space-y-6">
         {/* En-tête repris du style de maintenance.tsx */}
         <Card className="p-6 rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col gap-4">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                 <Link2 className="h-6 w-6" />
               </div>
-          <div>
+              <div>
                 <h1 className="text-2xl font-bold tracking-tight">Personnalisation de lien</h1>
                 <p className="text-muted-foreground text-sm">
                   Créez et gérez le profil public pour partager vos liens.
                 </p>
-          </div>
-            </div>
-            <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto justify-end">
-               {/* Barre de lien - style adapté */}
-              <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg text-sm border border-gray-200">
-                <span className="text-muted-foreground text-xs">Lien public:</span>
-                <code className="font-mono text-xs bg-white px-1.5 py-0.5 rounded border border-gray-200">{window.location.origin}/u/{profile.slug || 'votre-lien'}</code>
-              <Button
-                variant="ghost"
-                size="icon"
-                  className="h-6 w-6 text-gray-500 hover:text-gray-700"
-                onClick={copyLinkToClipboard}
-                  title="Copier le lien"
-              >
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
+              </div>
             </div>
             
-              {/* Boutons d'actions */}
-            {previewMode ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => setPreviewMode(false)}
-              >
-                <Edit className="h-4 w-4" />
-                Éditer
-              </Button>
-            ) : (
+            <div className="flex flex-col sm:flex-row items-start gap-3">
+              {/* Barre de lien - style adapté */}
+              <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg text-sm border border-gray-200 w-full sm:w-auto overflow-hidden flex-shrink-0">
+                <span className="text-muted-foreground text-xs whitespace-nowrap flex-shrink-0">Lien public:</span>
+                <code className="font-mono text-xs bg-white px-1.5 py-0.5 rounded border border-gray-200 truncate min-w-0 sm:max-w-[180px] md:max-w-[240px]">{window.location.origin}/u/{profile.slug || 'votre-lien'}</code>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => setPreviewMode(true)}
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-gray-500 hover:text-gray-700 flex-shrink-0 ml-1"
+                  onClick={copyLinkToClipboard}
+                  title="Copier le lien"
                 >
-                  <Eye className="h-4 w-4" />
-                    Aperçu
+                  <Copy className="h-3.5 w-3.5" />
                 </Button>
-            )}
-            
-            {hasUnsavedChanges && !previewMode && (
-              <Button
-                variant="outline"
-                size="sm"
-                    className="gap-2 text-destructive hover:bg-destructive/10 border-destructive/30"
-                onClick={cancelChanges}
-              >
-                <X className="h-4 w-4" />
-                Annuler
-              </Button>
-            )}
-            
-            <Button
-              variant="default"
-              size="sm"
-              className="gap-2"
-              onClick={saveProfile}
-              disabled={!hasUnsavedChanges || saveProfileMutation.isPending}
-            >
-              {saveProfileMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Enregistrer
-              {hasUnsavedChanges && "*"}
-            </Button>
+              </div>
+              
+              {/* Boutons d'actions */}
+              <div className="flex gap-2 w-full sm:justify-end">
+                {previewMode ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => setPreviewMode(false)}
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    Éditer
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => setPreviewMode(true)}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Aperçu
+                  </Button>
+                )}
+                
+                {hasUnsavedChanges && !previewMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-destructive hover:bg-destructive/10 border-destructive/30"
+                    onClick={cancelChanges}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Annuler
+                  </Button>
+                )}
+                
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-1"
+                  onClick={saveProfile}
+                  disabled={!hasUnsavedChanges || saveProfileMutation.isPending}
+                >
+                  {saveProfileMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
+                  )}
+                  Enregistrer
+                  {hasUnsavedChanges && "*"}
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
         </Card>
         
         {/* Inputs de type file cachés pour les uploads */}
